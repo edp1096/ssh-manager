@@ -35,7 +35,7 @@ clean:
 	rm -rf $(dest)/my-ssh-manager*
 	rm -rf $(dest)/ssh-client*
 	rm -rf $(dest)/browser_data
-	rm -rf dist/*
+	rm -rf dist
 	rm -rf ssh-client/$(dest)/*
 	rm -f ./coverage.html
 	rm -f ./coverage.out

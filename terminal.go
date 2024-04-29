@@ -56,14 +56,14 @@ func openWindowsTerminal(hostsFile string, hostsIndex int) (pid int, err error) 
 	return
 }
 
-func connectSSH(arg SshArgument) {
+func openSession(arg SshArgument) {
 	hostsFile := arg.HostsFile
 	hostsIndex := arg.Index
 
-	// pid3, err := openWindowsTerminal(hostsFile, hostsIndex)
+	// pid, err := openWindowsTerminal(hostsFile, hostsIndex)
 	_, err := openWindowsTerminal(hostsFile, hostsIndex)
 	if err != nil {
 		fmt.Println("Error open terminal:", err)
 	}
-	// log.Println(pid3)
+	// fmt.Println("process id:", pid)
 }

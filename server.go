@@ -21,7 +21,7 @@ func handleQuit(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handlePost(w http.ResponseWriter, r *http.Request) {
+func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 	// params := r.URL.Query()
 	// mode := params.Get("mode")
 
@@ -38,7 +38,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	connectSSH(arg)
+	openSession(arg)
 }
 
 func runServer() {
@@ -46,7 +46,7 @@ func runServer() {
 
 	mux.HandleFunc("GET /", handleHTML)
 	mux.HandleFunc("GET /quit", handleQuit)
-	mux.HandleFunc("POST /hello", handlePost)
+	mux.HandleFunc("POST /open-session", handleOpenSession)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

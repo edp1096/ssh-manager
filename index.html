@@ -20,7 +20,7 @@
         }
 
         const body = { "hosts-file": "./hosts.dat", "index": hostsIndex }
-        const r = await fetch("/hello", {
+        const r = await fetch("/open-session", {
             method: "POST",
             headers: new Headers({}),
             body: JSON.stringify(body)
