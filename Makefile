@@ -1,4 +1,4 @@
-dest = ./bin
+dest = bin
 
 ifndef version
 #	version = 0.0.1
