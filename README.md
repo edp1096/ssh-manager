@@ -2,7 +2,7 @@ SSH hosts manager
 
 ## Usage
 ```sh
-./my-ssh-manager.exe
+./my-ssh-manager
 ```
 
 ## Build
