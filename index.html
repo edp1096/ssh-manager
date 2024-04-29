@@ -1,0 +1,45 @@
+<html>
+
+<head>
+    <title>SSH Manager</title>
+</head>
+
+<body oncontextmenu="return false">
+    <div id="result"></div>
+    <button onclick="connectSSH(1)">sdf 연결</button>
+    <button onclick="connectSSH(2)">enjoytools 내부</button>
+    <button onclick="connectSSH(3)">바틀 신 클라우드</button>
+    <button onclick="connectSSH(4)">바틀 구 클라우드</button>
+</body>
+<script>
+    async function connectSSH(idx) {
+        const hostsIndex = parseInt(idx)
+        if (typeof hostsIndex != 'number' || !Number.isInteger(hostsIndex)) {
+            alert("Index is not integer")
+            return false
+        }
+
+        const body = { "hosts-file": "./hosts.dat", "index": hostsIndex }
+        const r = await fetch("/hello", {
+            method: "POST",
+            headers: new Headers({}),
+            body: JSON.stringify(body)
+        })
+
+        if (r.ok) {
+            const response = await r.text()
+            document.querySelector("#result").innerHTML = response
+            return
+        }
+    }
+
+    function closingCode() {
+        const r = fetch("/quit")
+        return false;
+    }
+    window.onunload = () => { closingCode() }
+    window.addEventListener("unload", () => { closingCode() })
+    document.addEventListener("DOMContentLoaded", () => { })
+</script>
+
+</html>
