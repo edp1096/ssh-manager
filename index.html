@@ -5,7 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>SSH Manager</title>
+    <link rel="icon" href="data:,">
 </head>
+
+<style>
+    html,
+    body {
+        padding: 0;
+        margin: 0;
+    }
+
+    #hosts-data-container {
+        overflow-y: scroll;
+    }
+
+    ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    li {
+        list-style: none;
+        display: inline-flex;
+        margin-right: 20px;
+
+        min-width: 15em;
+    }
+
+    li.part-name {
+        min-width: 12em;
+    }
+
+    li.part-gender {
+        min-width: 8em;
+    }
+
+    li.part-age {
+        min-width: 4em;
+    }
+
+    .label {
+        font-weight: bold;
+        margin-right: 5px;
+    }
+</style>
 
 <body oncontextmenu="return false">
     <div id="result"></div>
@@ -14,35 +58,47 @@
     <button onclick="connectSSH(3)">바틀 신 클라우드</button>
     <button onclick="connectSSH(4)">바틀 구 클라우드</button>
 
-    <div class="host-list"></div>
+    <div id="hosts-data-container"></div>
 
-    <template id="hosts-data">
+    <template id="hosts-data-template">
         <ul>
-            <li>Name:</li>
-            <li>$$_NAME_$$</li>
-            <li>Name:</li>
-            <li>$$_NAME_$$</li>
+            <li class="part-name">
+                <span class="label">Name:</span> <span>$$_NAME_$$</span>
+            </li>
+            <li class="part-address">
+                <span class="label">Address:</span> <span>$$_ADDRESS_$$</span>
+            </li>
         </ul>
     </template>
 </body>
 
 <script>
-    async function getHosts() {
-        const hostFile = "./hosts.dat"
+    let hostsData
+    let hostsFile = "./hosts.dat"
 
-        const r = await fetch("/hosts?hosts-file=" + hostFile)
+    async function getHosts() {
+        const tmpl = document.querySelector("#hosts-data-template").innerHTML
+        const hostsContainer = document.querySelector("#hosts-data-container")
+
+        const r = await fetch("/hosts?hosts-file=" + hostsFile)
         if (r.ok) {
             const response = await r.json()
             console.log(response)
 
-            let
-                response.array.forEach(e => {
-                    e.name
-                });
+            hostsContainer.innerHTML = ""
+            response.forEach(el => {
+                console.log(el["name"], el["address"])
+                line = tmpl
+                line = line.replace("$$_NAME_$$", el["name"])
+                line = line.replace("$$_ADDRESS_$$", el["address"])
+
+                hostsContainer.innerHTML += line
+            })
 
             return
         }
     }
+
     async function connectSSH(idx) {
         const hostsIndex = parseInt(idx)
         if (typeof hostsIndex != 'number' || !Number.isInteger(hostsIndex)) {
@@ -50,7 +106,7 @@
             return false
         }
 
-        const body = { "hosts-file": "./hosts.dat", "index": hostsIndex }
+        const body = { "hosts-file": hostsFile, "index": hostsIndex }
         const r = await fetch("/open-session", {
             method: "POST",
             headers: new Headers({}),
@@ -74,9 +130,5 @@
         getHosts()
     })
 </script>
-
-<style>
-
-</style>
 
 </html>
