@@ -23,7 +23,14 @@ func openBrowser(url string) bool {
 			"--user-agent=" + userAgent,
 		}
 	default:
-		args = []string{"xdg-open"}
+		// args = []string{"xdg-open"}
+		args = []string{
+			"/usr/bin/chromium-browser",
+			"--user-data-dir=" + dataPath,
+			"--app=" + url,
+			"--window-size=640,720",
+			"--user-agent=" + userAgent,
+		}
 	}
 
 	cmd := exec.Command(args[0], append(args[1:], url)...)

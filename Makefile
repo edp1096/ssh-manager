@@ -3,9 +3,11 @@ GO_OS := $(shell go env GOOS)
 GO_ARCH := $(shell go env GOARCH)
 
 ifeq ($(GO_OS),windows)
-    BIN_EXT := .exe
+	BIN_EXT := .exe
+	WINDOWS_HIDE := -H=windowsgui
 else
-    BIN_EXT :=
+	BIN_EXT :=
+	WINDOWS_HIDE :=
 endif
 
 ifndef version
@@ -15,17 +17,18 @@ endif
 
 build:
 	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
-	go build -ldflags "-w -s -H=windowsgui" -trimpath -o $(dest)/
+	go build -ldflags "-w -s $(WINDOWS_HIDE)" -trimpath -o $(dest)/
 
 dist: clean
 	go get -d github.com/mitchellh/gox
+	go mod edit -replace github.com/mitchellh/gox=github.com/edp1096/gox@latest
 	go build -mod=readonly -o $(dest)/ github.com/mitchellh/gox
 	go mod tidy
 	go env -w GOFLAGS=-trimpath
 
-	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 linux/amd64 linux/arm linux/arm64 darwin/amd64 darwin/arm64" ./ssh-client
-	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s -H=windowsgui" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 linux/amd64 linux/arm linux/arm64 darwin/amd64 darwin/arm64"
-	go run ./builder/archiver -osarch "windows/amd64 linux/amd64 linux/arm linux/arm64 darwin/amd64 darwin/arm64"
+	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 linux/amd64 linux/arm linux/arm64" ./ssh-client
+	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s -H=windowsgui" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 linux/amd64 linux/arm linux/arm64"
+	go run ./builder/archiver -osarch "windows/amd64 linux/amd64 linux/arm linux/arm64"
 	rm $(dest)/gox*
 	rm $(dest)/ssh-client_*
 	rm $(dest)/my-ssh-manager_*

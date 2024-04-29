@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"sync"
 )
 
@@ -14,6 +15,8 @@ func handleHTML(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleQuit(w http.ResponseWriter, r *http.Request) {
+	exec.Command("pkill", "ssh-client").Run()
+
 	if server != nil {
 		server.Close()
 	} else {

@@ -1,2 +1,4 @@
+github.com/edp1096/gox v0.0.0-20240429132002-732d358d175e h1:ye2WJii4THXHVgzFUBjnYrHtqG5X3Odr/E6COsi0eqI=
+github.com/edp1096/gox v0.0.0-20240429132002-732d358d175e/go.mod h1:siFmTmsREyxJqRbVsdVV5xbXcZGsqKTOJ9F1lxWm3SY=
 golang.org/x/net v0.21.0/go.mod h1:bIjVDfnllIU7BJ2DNgfnXvpSvtn8VRwhlsaeUTyUS44=
 golang.org/x/text v0.14.0/go.mod h1:18ZOQIKpY8NJVqYksKHtTdi31H5itFRjB5/qKTNYzSU=

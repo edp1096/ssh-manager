@@ -14,3 +14,5 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 )
+
+replace github.com/mitchellh/gox => github.com/edp1096/gox v0.0.0-20240429132002-732d358d175e

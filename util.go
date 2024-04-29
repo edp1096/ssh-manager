@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 
@@ -20,6 +21,10 @@ func checkProcessExists(name string) (bool, error) {
 		if err != nil {
 			continue
 		}
+
+		log.Println(n, name)
+
+		// TODO: catch "tmux: server <nil>"
 		if n == name {
 			result = true
 			break

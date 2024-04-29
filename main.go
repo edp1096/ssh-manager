@@ -19,7 +19,7 @@ type HostInfo struct {
 	PrivateKeyText string
 }
 
-var windowsTerminalPath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
+var shellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
 var (
 	cmd        *exec.Cmd
 	server     *http.Server
