@@ -1,6 +1,9 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>SSH Manager</title>
 </head>
 
@@ -10,8 +13,36 @@
     <button onclick="connectSSH(2)">enjoytools 내부</button>
     <button onclick="connectSSH(3)">바틀 신 클라우드</button>
     <button onclick="connectSSH(4)">바틀 구 클라우드</button>
+
+    <div class="host-list"></div>
+
+    <template id="hosts-data">
+        <ul>
+            <li>Name:</li>
+            <li>$$_NAME_$$</li>
+            <li>Name:</li>
+            <li>$$_NAME_$$</li>
+        </ul>
+    </template>
 </body>
+
 <script>
+    async function getHosts() {
+        const hostFile = "./hosts.dat"
+
+        const r = await fetch("/hosts?hosts-file=" + hostFile)
+        if (r.ok) {
+            const response = await r.json()
+            console.log(response)
+
+            let
+                response.array.forEach(e => {
+                    e.name
+                });
+
+            return
+        }
+    }
     async function connectSSH(idx) {
         const hostsIndex = parseInt(idx)
         if (typeof hostsIndex != 'number' || !Number.isInteger(hostsIndex)) {
@@ -39,7 +70,13 @@
     }
     window.onunload = () => { closingCode() }
     window.addEventListener("unload", () => { closingCode() })
-    document.addEventListener("DOMContentLoaded", () => { })
+    document.addEventListener("DOMContentLoaded", () => {
+        getHosts()
+    })
 </script>
+
+<style>
+
+</style>
 
 </html>

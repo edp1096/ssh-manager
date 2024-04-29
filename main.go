@@ -9,14 +9,14 @@ import (
 )
 
 type HostInfo struct {
-	Name           string
-	Description    string
-	Address        string
-	Port           int
-	Username       string
-	Password       string
-	PrivateKeyFile string
-	PrivateKeyText string
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	Address        string `json:"address"`
+	Port           int    `json:"port"`
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	PrivateKeyFile string `json:"private-key-file"`
+	PrivateKeyText string `json:"private-key-text"`
 }
 
 var shellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"

@@ -24,6 +24,26 @@ func handleQuit(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleGetHosts(w http.ResponseWriter, r *http.Request) {
+	var err error
+
+	params := r.URL.Query()
+	hostsFile := params.Get("hosts-file")
+	key := []byte("0123456789!#$%^&*()abcdefghijklm")
+	var hosts []HostInfo
+
+	err = loadHostData(hostsFile, key, &hosts)
+	if err != nil {
+		http.Error(w, "error loading host data file", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(hosts)
+}
+
 func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 	// params := r.URL.Query()
 	// mode := params.Get("mode")
@@ -49,6 +69,7 @@ func runServer() {
 
 	mux.HandleFunc("GET /", handleHTML)
 	mux.HandleFunc("GET /quit", handleQuit)
+	mux.HandleFunc("GET /hosts", handleGetHosts)
 	mux.HandleFunc("POST /open-session", handleOpenSession)
 
 	var wg sync.WaitGroup
