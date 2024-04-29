@@ -7,8 +7,5 @@ SSH hosts manager
 
 ## Build
 ```sh
-cd ssh-client
-make dist
-cd ..
 make
 ```
