@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -18,13 +19,19 @@ func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not open websocket connection", http.StatusBadRequest)
 		return
 	}
-	defer server.Close()
+	defer exitProcess()
 	defer conn.Close()
 
 	for {
-		_, _, err := conn.ReadMessage()
+		_, m, err := conn.ReadMessage()
 		if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 			break
+		}
+
+		if strings.Contains(string(m), "document title|") {
+			ms := strings.Split(string(m), "|")
+			browserWindowTitle = ms[1]
+			continue
 		}
 	}
 }
@@ -50,8 +57,8 @@ func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleOpenSession(w http.ResponseWriter, r *http.Request) {
-	// params := r.URL.Query()
-	// mode := params.Get("mode")
+	params := r.URL.Query()
+	windowMode := params.Get("window-mode")
 
 	body, err := io.ReadAll(io.Reader(r.Body))
 	if err != nil {
@@ -66,7 +73,12 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	openSession(arg)
+	newWindow := false
+	if windowMode == "new_window" {
+		newWindow = true
+	}
+
+	openSession(arg, newWindow)
 }
 
 func handleStaticFiles(w http.ResponseWriter, r *http.Request) {

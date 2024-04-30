@@ -8,12 +8,11 @@ function preventCtrlWheel(e) {
 }
 
 async function preventKeys(e) {
-    // Function keys
+    // Function keys - F1 ~ F12
     if (e.code.startsWith("F")) {
         // for (let i = 1; i <= 12; i++) {
         for (let i = 1; i <= 11; i++) {
             if (e.code == `F${i}`) {
-                console.log(`F${i} key pressed`)
                 e.preventDefault()
                 break
             }
@@ -23,6 +22,9 @@ async function preventKeys(e) {
     // Ctrl
     if (e.ctrlKey) {
         if (e.ctrlKey && e.code == "KeyC") {
+            return
+        }
+        if (e.ctrlKey && e.code == "Insert") {
             return
         }
         if (e.ctrlKey && e.code == "KeyV") {

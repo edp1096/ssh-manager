@@ -8,37 +8,16 @@
     <link rel="icon" href="data:,">
 
     <link rel="stylesheet" href="/css/style.css" type="text/css" />
+    <link rel="stylesheet" href="/css/dialog.css" type="text/css" />
 </head>
 
-<!-- <body oncontextmenu="return false" onmousewheel="preventCtrlWheel(event)"> -->
-
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
-    <div id="result"></div>
     <button onclick="openNewHost()">New Host</button>
-    <button onclick="connectSSH(1)">sdf 연결</button>
-    <button onclick="connectSSH(2)">enjoytools 내부</button>
-    <button onclick="connectSSH(3)">바틀 신 클라우드</button>
-    <button onclick="connectSSH(4)">바틀 구 클라우드</button>
 
     <div id="hosts-data-container"></div>
 
     <dialog id="dialog-host-edit" onclose="closeNewHost(event)"></dialog>
-    <dialog id="dialog-notice" onclick="closeNotice(event)"></dialog>
-
-    <template id="dialog-host-edit-template">
-        <h2>$$_TITLE_$$</h2>
-        <form method="dialog">
-            <label>Name:</label>
-            <input name="name" />
-            <label>Address:</label>
-            <input name="address" />
-            <label>Port:</label>
-            <input name="port" />
-
-            <button value="cancel">취소</button>
-            <button value="confirm">확인</button>
-        </form>
-    </template>
+    <dialog id="dialog-notice"></dialog>
 
     <template id="hosts-data-template">
         <ul>
@@ -48,20 +27,44 @@
             <li class="part-address">
                 <span class="label">Address:</span> <span>$$_ADDRESS_$$:$$_PORT_$$</span>
             </li>
+            <li>
+                <button>Edit</button>
+                <button onclick="connectSSH(`$$_IDX_$$`, `new_window`)">Open new window</button>
+                <button onclick="connectSSH(`$$_IDX_$$`)">Open new panel</button>
+            </li>
         </ul>
+    </template>
+
+    <template id="dialog-host-edit-template">
+        <h2>$$_TITLE_$$</h2>
+        <form method="dialog">
+            <p><label>Name:</label><input name="name" /></p>
+            <p><label>Address:</label><input name="address" /></p>
+            <p><label>Port:</label><input type="number" name="port" /></p>
+            <p><label>Username:</label><input name="username" /></p>
+            <p><label>Password:</label><input type="password" name="password" /></p>
+            <p><label>Key path:</label><input type="file" name="private-key-file" /></p>
+            <p><label>Key text:</label><textarea></textarea></p>
+
+            <p>
+                <button value="cancel">Cancel</button>
+                <button value="confirm">Save</button>
+            </p>
+        </form>
     </template>
 
     <template id="dialog-notice-template">
         <div style="width: 15rem; height: 10rem;">
             <p>$$_MESSAGE_$$</p>
-            <button onclick="closeNotice(event)">닫기</button>
+            <button onclick="closeNotice(event)">Close</button>
         </div>
     </template>
 </body>
 
 <script src="/js/consts.js"></script>
 <script src="/js/ws.js"></script>
-<script src="/js/input_event.js"></script>
-<script src="/js/script.js"></script>
+<script src="/js/input_events.js"></script>
+<script src="/js/dialogs.js"></script>
+<script src="/js/scripts.js"></script>
 
 </html>

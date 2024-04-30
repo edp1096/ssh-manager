@@ -7,15 +7,30 @@ import (
 	"crypto/rand"
 	"encoding/gob"
 	"io"
-	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
 )
 
 func exitProcess() {
-	cmdBrowser.Process.Kill()
+	err := cmdBrowser.Process.Kill()
+	if err != nil {
+		if runtime.GOOS == "windows" {
+			exec.Command("taskkill", "/fi", "windowtitle eq "+browserWindowTitle).Run()
+		} else {
+			exec.Command("pkill", "-f", browserWindowTitle).Run()
+		}
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	dataPath := filepath.FromSlash(binaryPath + "/browser_data")
+	os.RemoveAll(dataPath)
+
 	os.Exit(0)
 }
 
@@ -32,8 +47,6 @@ func checkProcessExists(name string) (bool, error) {
 		if err != nil {
 			continue
 		}
-
-		log.Println(n, name)
 
 		// TODO: catch "tmux: server <nil>"
 		if n == name {

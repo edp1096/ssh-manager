@@ -1,0 +1,30 @@
+dialog {
+    border: 2px solid rgb(80, 140, 230);
+    border-radius: 5px;
+    padding: 0.5em;
+}
+
+dialog>h2 {
+    margin: 0.3em;
+}
+
+dialog>form {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+dialog>form>p {
+    margin: 0;
+    padding: 0;
+}
+
+dialog .label {
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(1px);
+}

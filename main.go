@@ -32,10 +32,11 @@ type HostRequestInfo struct {
 
 var shellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
 var (
-	cmdTerminal *exec.Cmd
-	cmdBrowser  *exec.Cmd
-	server      *http.Server
-	binaryPath  string
+	cmdTerminal        *exec.Cmd
+	cmdBrowser         *exec.Cmd
+	browserWindowTitle string
+	server             *http.Server
+	binaryPath         string
 )
 
 //go:embed html/*

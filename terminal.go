@@ -15,16 +15,16 @@ type SshArgument struct {
 	Index     int    `json:"index"`
 }
 
-func openWindowsTerminal(hostsFile string, hostsIndex int) (pid int, err error) {
+func openWindowsTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid int, err error) {
 	procName := "ssh-client.exe"
 	termExists, err := checkProcessExists(procName)
 	if err != nil {
 		return -1, fmt.Errorf("proc error: %s", err)
 	}
 
-	splitParams := []string{}
-	if termExists {
-		splitParams = []string{"-w", "0", "sp"}
+	splitParams := []string{"-w", "0", "sp"}
+	if !termExists || newWindow {
+		splitParams = []string{}
 	}
 
 	shParams := []string{}
@@ -57,7 +57,7 @@ func openWindowsTerminal(hostsFile string, hostsIndex int) (pid int, err error) 
 	return
 }
 
-func openGnomeTerminal(hostsFile string, hostsIndex int) (pid int, err error) {
+func openGnomeTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid int, err error) {
 	shellRuntimePath = "tmux"
 
 	procName := "ssh-client"
@@ -69,7 +69,7 @@ func openGnomeTerminal(hostsFile string, hostsIndex int) (pid int, err error) {
 
 	log.Println("ssh-client exists:", termExists)
 
-	if !termExists {
+	if !termExists || newWindow {
 		err = exec.Command("gnome-terminal", "--", "sh", "-c", shellRuntimePath+"; exec").Run()
 		if err != nil {
 			return -1, fmt.Errorf("error execute tmux:%s", err)
@@ -110,17 +110,17 @@ func openGnomeTerminal(hostsFile string, hostsIndex int) (pid int, err error) {
 	return
 }
 
-func openSession(arg SshArgument) {
+func openSession(arg SshArgument, newWindow bool) {
 	hostsFile := arg.HostsFile
 	hostsIndex := arg.Index
 
 	if runtime.GOOS == "windows" {
-		_, err := openWindowsTerminal(hostsFile, hostsIndex)
+		_, err := openWindowsTerminal(hostsFile, hostsIndex, newWindow)
 		if err != nil {
 			fmt.Println("Error open terminal:", err)
 		}
 	} else {
-		_, err := openGnomeTerminal(hostsFile, hostsIndex)
+		_, err := openGnomeTerminal(hostsFile, hostsIndex, newWindow)
 		if err != nil {
 			fmt.Println("Error open terminal:", err)
 		}

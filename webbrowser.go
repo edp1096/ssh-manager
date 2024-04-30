@@ -15,7 +15,7 @@ func openBrowser(url string) bool {
 		"--user-data-dir=" + dataPath,
 		"--app=" + url,
 		// "--window-position=0,0",
-		"--window-size=640,720",
+		"--window-size=920,600",
 		"--user-agent=" + userAgent,
 		"--enable-local-file-accesses",
 		"--ash-force-desktop",
