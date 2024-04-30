@@ -14,9 +14,32 @@ dialog>form {
     align-items: flex-end;
 }
 
-dialog>form>p {
+dialog>form>p,
+dialog>form>p * {
     margin: 0;
     padding: 0;
+}
+
+dialog>form>p>label {
+    display: inline-block;
+    text-align: center;
+}
+
+dialog>form>p>input:not([type="radio"]),
+dialog>form>p>textarea,
+dialog>form>p>span {
+    min-width: 22em;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+dialog>form>p>span {
+    display: inline-table;
+    overflow-x: scroll;
 }
 
 dialog .label {

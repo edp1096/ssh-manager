@@ -94,12 +94,12 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fext := filepath.Ext(fname)
+	fext := filepath.Ext(fname)[1:]
 	switch fext {
-	case "css":
-		w.Header().Set("Content-Type", "text/css")
 	case "js":
 		w.Header().Set("Content-Type", "text/javascript")
+	default:
+		w.Header().Set("Content-Type", "text/"+fext)
 	}
 
 	w.Write(file)

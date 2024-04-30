@@ -14,6 +14,7 @@ func openBrowser(url string) bool {
 		"browser_command_here",
 		"--user-data-dir=" + dataPath,
 		"--app=" + url,
+		// "--auto-open-devtools-for-tabs ",
 		// "--window-position=0,0",
 		"--window-size=920,600",
 		"--user-agent=" + userAgent,
@@ -29,6 +30,7 @@ func openBrowser(url string) bool {
 		"--disable-speech-api",
 		"--disable-logging",
 		"--disable-translate",
+		"--disable-features=Translate",
 	}
 
 	switch runtime.GOOS {

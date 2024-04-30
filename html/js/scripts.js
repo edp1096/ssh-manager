@@ -48,11 +48,4 @@ async function connectSSH(idx, windowMode = null) {
     }
 }
 
-function closingCode() {
-    const r = fetch("/quit")
-    return false
-}
-
-globalThis.onunload = () => { closingCode() }
-globalThis.addEventListener("unload", () => { closingCode() })
 document.addEventListener("DOMContentLoaded", () => { getHosts() })

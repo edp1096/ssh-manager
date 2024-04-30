@@ -1,4 +1,5 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -7,8 +8,9 @@
     <title>SSH Manager</title>
     <link rel="icon" href="data:,">
 
-    <link rel="stylesheet" href="/css/style.css" type="text/css" />
-    <link rel="stylesheet" href="/css/dialog.css" type="text/css" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/host-list.css" />
+    <link rel="stylesheet" href="/css/dialog.css" />
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
@@ -38,16 +40,39 @@
     <template id="dialog-host-edit-template">
         <h2>$$_TITLE_$$</h2>
         <form method="dialog">
-            <p><label>Name:</label><input name="name" /></p>
-            <p><label>Address:</label><input name="address" /></p>
-            <p><label>Port:</label><input type="number" name="port" /></p>
-            <p><label>Username:</label><input name="username" /></p>
-            <p><label>Password:</label><input type="password" name="password" /></p>
-            <p><label>Key path:</label><input type="file" name="private-key-file" /></p>
-            <p><label>Key text:</label><textarea></textarea></p>
+            <p><label for="host-edit-name">Name:</label><input type="text" id="host-edit-name" name="name" required /></p>
+            <p><label for="host-edit-address">Address:</label><input id="host-edit-address" name="address" required placeholder="IP or domain" /></p>
+            <p><label for="host-edit-port">Port:</label><input id="host-edit-port" type="number" name="port" required /></p>
+            <p><label for="host-edit-username">Username:</label><input id="host-edit-username" name="username" required /></p>
+
+            <hr />
 
             <p>
-                <button value="cancel">Cancel</button>
+                <label for="use-password">Password</label><input onchange="changeAuthType()" type="radio" id="use-password" name="auth-type" checked />
+                <label for="use-private-key-file">Key file</label><input onchange="changeAuthType()" type="radio" id="use-private-key-file" name="auth-type" />
+                <label for="use-private-key-text">Key text</label><input onchange="changeAuthType()" type="radio" id="use-private-key-text" name="auth-type" />
+            </p>
+            <p>
+                <label for="host-edit-password">Password:</label>
+                <input type="password" id="host-edit-password" name="password" required />
+            </p>
+            <p>
+                <label for="host-edit-private-key-file" class="file-upload">Key path:</label>
+                <!-- <span></span> -->
+                <input type="file" id="host-edit-private-key-file" name="private-key-file" required />
+            </p>
+            <p>
+                <label for="host-edit-private-key-text">Key text:</label>
+                <textarea id="host-edit-private-key-text" name="private-key-text" required></textarea>
+            </p>
+
+            <p>
+                <label for="host-edit-description">Description:</label>
+                <textarea id="host-edit-description" name="description"></textarea>
+            </p>
+
+            <p>
+                <button type="button" onclick="cancelHostEditDialog()">Cancel</button>
                 <button value="confirm">Save</button>
             </p>
         </form>
@@ -63,7 +88,7 @@
 
 <script src="/js/consts.js"></script>
 <script src="/js/ws.js"></script>
-<script src="/js/input_events.js"></script>
+<script src="/js/input-events.js"></script>
 <script src="/js/dialogs.js"></script>
 <script src="/js/scripts.js"></script>
 

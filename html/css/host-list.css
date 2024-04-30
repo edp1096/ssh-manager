@@ -1,0 +1,33 @@
+#hosts-data-container {
+    overflow-y: scroll;
+}
+
+#hosts-data-container ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#hosts-data-container ul:hover {
+    background-color: gainsboro;
+}
+
+#hosts-data-container li {
+    list-style: none;
+    display: inline-flex;
+    margin-right: 20px;
+
+    min-width: 15em;
+}
+
+#hosts-data-container li.part-name {
+    min-width: 13em;
+}
+
+#hosts-data-container li.part-address {
+    min-width: 14em;
+}
+
+#hosts-data-container li.part-port {
+    min-width: 4em;
+}
