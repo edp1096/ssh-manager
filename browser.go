@@ -14,10 +14,21 @@ func openBrowser(url string) bool {
 		"browser_command_here",
 		"--user-data-dir=" + dataPath,
 		"--app=" + url,
+		// "--window-position=0,0",
 		"--window-size=640,720",
 		"--user-agent=" + userAgent,
 		"--enable-local-file-accesses",
 		"--ash-force-desktop",
+		"--no-initial-navigation",
+		"--no-default-browser-check",
+		"--allow-file-access-from-files",
+		"--disable-background-mode",
+		"--no-experiments",
+		"--no-proxy-server",
+		"--ignore-autocomplete-off-autofill",
+		"--disable-speech-api",
+		"--disable-logging",
+		"--disable-translate",
 	}
 
 	switch runtime.GOOS {

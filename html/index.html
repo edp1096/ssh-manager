@@ -10,7 +10,9 @@
     <link rel="stylesheet" href="/css/style.css" type="text/css" />
 </head>
 
-<body oncontextmenu="return false">
+<!-- <body oncontextmenu="return false" onmousewheel="preventCtrlWheel(event)"> -->
+
+<body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
     <div id="result"></div>
     <button onclick="openNewHost()">New Host</button>
     <button onclick="connectSSH(1)">sdf 연결</button>
@@ -32,7 +34,7 @@
             <input name="address" />
             <label>Port:</label>
             <input name="port" />
-    
+
             <button value="cancel">취소</button>
             <button value="confirm">확인</button>
         </form>
@@ -58,7 +60,8 @@
 </body>
 
 <script src="/js/consts.js"></script>
-<script src="/js/script.js"></script>
 <script src="/js/ws.js"></script>
+<script src="/js/input_event.js"></script>
+<script src="/js/script.js"></script>
 
 </html>
