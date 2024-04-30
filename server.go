@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -75,9 +74,6 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 
 	if fname == "" {
 		fname = "index.html"
-	}
-	if strings.Contains(fname, "/") {
-		fname = ""
 	}
 
 	file, err := embedFiles.ReadFile("html/" + fname)

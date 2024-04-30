@@ -12,7 +12,6 @@ async function getHosts() {
 
         hostsContainer.innerHTML = ""
         response.forEach(el => {
-            console.log(el["name"], el["address"])
             line = tmpl
             line = line.replace("$$_NAME_$$", el["name"])
             line = line.replace("$$_ADDRESS_$$", el["address"])
@@ -47,17 +46,19 @@ async function connectSSH(idx) {
 }
 
 const newHostDialog = document.querySelector('#dialog-host-edit')
+const noticeDialogTMPL = document.querySelector('#dialog-notice-template')
 const noticeDialog = document.querySelector('#dialog-notice')
 
 function openNewHost() { newHostDialog.showModal() }
 
-function closeNewHost(e) {
+async function closeNewHost(e) {
     const name = document.querySelector("dialog input[name='name']")
     const address = document.querySelector("dialog input[name='address']")
     const port = document.querySelector("dialog input[name='port']")
 
     if (newHostDialog.returnValue === 'confirm') {
-        console.log(name.value, address.value, port.value)
+        noticeDialog.innerHTML = noticeDialogTMPL.innerHTML
+        noticeDialog.innerHTML.replace("$$_MESSAGE_$$", "완료")
         noticeDialog.showModal()
     }
 

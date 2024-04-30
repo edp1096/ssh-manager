@@ -7,7 +7,7 @@
     <title>SSH Manager</title>
     <link rel="icon" href="data:,">
 
-    <link rel="stylesheet" href="/style.css" type="text/css" />
+    <link rel="stylesheet" href="/css/style.css" type="text/css" />
 </head>
 
 <body oncontextmenu="return false">
@@ -20,8 +20,11 @@
 
     <div id="hosts-data-container"></div>
 
-    <dialog id="dialog-host-edit" onclose="closeNewHost(event)">
-        <h2>New host</h2>
+    <dialog id="dialog-host-edit" onclose="closeNewHost(event)"></dialog>
+    <dialog id="dialog-notice" onclick="closeNotice(event)"></dialog>
+
+    <template id="dialog-host-edit-template">
+        <h2>$$_TITLE_$$</h2>
         <form method="dialog">
             <label>Name:</label>
             <input name="name" />
@@ -29,18 +32,11 @@
             <input name="address" />
             <label>Port:</label>
             <input name="port" />
-
+    
             <button value="cancel">취소</button>
             <button value="confirm">확인</button>
         </form>
-    </dialog>
-
-    <dialog id="dialog-notice" onclick="closeNotice(event)">
-        <div style="width: 15rem; height: 10rem;">
-            <p>구독이 완료되었습니다.</p>
-            <button onclick="closeNotice(event)">닫기</button>
-        </div>
-    </dialog>
+    </template>
 
     <template id="hosts-data-template">
         <ul>
@@ -52,10 +48,17 @@
             </li>
         </ul>
     </template>
+
+    <template id="dialog-notice-template">
+        <div style="width: 15rem; height: 10rem;">
+            <p>$$_MESSAGE_$$</p>
+            <button onclick="closeNotice(event)">닫기</button>
+        </div>
+    </template>
 </body>
 
-<script src="/consts.js"></script>
-<script src="/script.js"></script>
-<script src="/ws.js"></script>
+<script src="/js/consts.js"></script>
+<script src="/js/script.js"></script>
+<script src="/js/ws.js"></script>
 
 </html>
