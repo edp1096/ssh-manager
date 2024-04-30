@@ -3,10 +3,8 @@ GO_OS := $(shell go env GOOS)
 GO_ARCH := $(shell go env GOARCH)
 
 ifeq ($(GO_OS),windows)
-	BIN_EXT := .exe
 	WINDOWS_HIDE := -H=windowsgui
 else
-	BIN_EXT :=
 	WINDOWS_HIDE :=
 endif
 
