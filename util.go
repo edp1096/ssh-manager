@@ -14,6 +14,11 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
+func exitProcess() {
+	cmdBrowser.Process.Kill()
+	os.Exit(0)
+}
+
 func checkProcessExists(name string) (bool, error) {
 	var err error
 	var result bool = false

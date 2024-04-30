@@ -1,7 +1,7 @@
 package main // import "my-ssh-manager"
 
 import (
-	_ "embed"
+	"embed"
 	"fmt"
 	"net/http"
 	"os"
@@ -32,13 +32,14 @@ type HostRequestInfo struct {
 
 var shellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
 var (
-	cmd        *exec.Cmd
-	server     *http.Server
-	binaryPath string
+	cmdTerminal *exec.Cmd
+	cmdBrowser  *exec.Cmd
+	server      *http.Server
+	binaryPath  string
 )
 
-//go:embed index.html
-var html string
+//go:embed html/*
+var embedFiles embed.FS
 
 func main() {
 	var err error

@@ -1,0 +1,62 @@
+html,
+body {
+    padding: 0;
+    margin: 0;
+}
+
+#hosts-data-container {
+    overflow-y: scroll;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    list-style: none;
+    display: inline-flex;
+    margin-right: 20px;
+
+    min-width: 15em;
+}
+
+li.part-name {
+    min-width: 13em;
+}
+
+li.part-address {
+    min-width: 8em;
+}
+
+li.part-port {
+    min-width: 4em;
+}
+
+.label {
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+dialog {
+    border: 2px solid rgb(80, 140, 230);
+    border-radius: 5px;
+}
+
+dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(1px);
+}
+
+button {
+    color: #668ba4;
+    border: 2px solid #97cba9;
+    border-radius: 5px;
+    background: none;
+}
+
+button:hover {
+    background-color: #97cba9;
+    cursor: pointer;
+}

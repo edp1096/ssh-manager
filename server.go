@@ -5,22 +5,28 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
-func handleHTML(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, html)
-}
+func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "could not open websocket connection", http.StatusBadRequest)
+		return
+	}
+	defer server.Close()
+	defer conn.Close()
 
-func handleQuit(w http.ResponseWriter, r *http.Request) {
-	exec.Command("pkill", "ssh-client").Run()
-
-	if server != nil {
-		server.Close()
-	} else {
-		os.Exit(0)
+	for {
+		_, _, err := conn.ReadMessage()
+		if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+			break
+		}
 	}
 }
 
@@ -64,25 +70,59 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 	openSession(arg)
 }
 
+func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
+	fname := r.URL.Path[1:] // remove first slash
+
+	if fname == "" {
+		fname = "index.html"
+	}
+	if strings.Contains(fname, "/") {
+		fname = ""
+	}
+
+	file, err := embedFiles.ReadFile("html/" + fname)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	fext := filepath.Ext(fname)
+	switch fext {
+	case "css":
+		w.Header().Set("Content-Type", "text/css")
+	case "js":
+		w.Header().Set("Content-Type", "text/javascript")
+	}
+
+	w.Write(file)
+}
+
 func runServer() {
+	listen := "localhost:11080"
+
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /", handleHTML)
-	mux.HandleFunc("GET /quit", handleQuit)
+	mux.HandleFunc("GET /connection-watchdog", handleConnectionWatchdog)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
-	mux.HandleFunc("POST /open-session", handleOpenSession)
+	mux.HandleFunc("POST /session/open", handleOpenSession)
+	mux.HandleFunc("/", handleStaticFiles)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
 	go func() {
-		http.ListenAndServe("localhost:11080", mux)
-		server = &http.Server{Addr: "localhost:11080", Handler: http.DefaultServeMux}
-		server.ListenAndServe()
+		server = &http.Server{Addr: listen, Handler: mux}
+		err := server.ListenAndServe()
+		if err != nil {
+			if err.Error() != "http: Server closed" {
+				fmt.Println("err server running:", err)
+			}
+			exitProcess()
+		}
 		wg.Done()
 	}()
 
-	openBrowser("http://localhost:11080")
+	openBrowser("http://" + listen)
 
 	wg.Wait()
 }

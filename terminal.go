@@ -46,14 +46,14 @@ func openWindowsTerminal(hostsFile string, hostsIndex int) (pid int, err error) 
 	sshParams := []string{sshclientPath, "-f", hostsDataFile, "-i", strconv.Itoa(hostsIndex)}
 	shParams = append(shParams, sshParams...)
 
-	cmd = exec.Command(shellRuntimePath, shParams...)
-	err = cmd.Run()
+	cmdTerminal = exec.Command(shellRuntimePath, shParams...)
+	err = cmdTerminal.Run()
 	if err != nil {
 		fmt.Println("Error opening terminal:", err)
 		return
 	}
 
-	pid = cmd.Process.Pid
+	pid = cmdTerminal.Process.Pid
 	return
 }
 
@@ -98,14 +98,14 @@ func openGnomeTerminal(hostsFile string, hostsIndex int) (pid int, err error) {
 	shParams := []string{"send"}
 	shParams = append(shParams, sshParams...)
 
-	cmd = exec.Command(shellRuntimePath, shParams...)
-	err = cmd.Run()
+	cmdTerminal = exec.Command(shellRuntimePath, shParams...)
+	err = cmdTerminal.Run()
 	if err != nil {
 		fmt.Println("Error opening terminal:", err)
 		return
 	}
 
-	pid = cmd.Process.Pid
+	pid = cmdTerminal.Process.Pid
 
 	return
 }

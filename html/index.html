@@ -1,0 +1,61 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SSH Manager</title>
+    <link rel="icon" href="data:,">
+
+    <link rel="stylesheet" href="/style.css" type="text/css" />
+</head>
+
+<body oncontextmenu="return false">
+    <div id="result"></div>
+    <button onclick="openNewHost()">New Host</button>
+    <button onclick="connectSSH(1)">sdf 연결</button>
+    <button onclick="connectSSH(2)">enjoytools 내부</button>
+    <button onclick="connectSSH(3)">바틀 신 클라우드</button>
+    <button onclick="connectSSH(4)">바틀 구 클라우드</button>
+
+    <div id="hosts-data-container"></div>
+
+    <dialog id="dialog-host-edit" onclose="closeNewHost(event)">
+        <h2>New host</h2>
+        <form method="dialog">
+            <label>Name:</label>
+            <input name="name" />
+            <label>Address:</label>
+            <input name="address" />
+            <label>Port:</label>
+            <input name="port" />
+
+            <button value="cancel">취소</button>
+            <button value="confirm">확인</button>
+        </form>
+    </dialog>
+
+    <dialog id="dialog-notice" onclick="closeNotice(event)">
+        <div style="width: 15rem; height: 10rem;">
+            <p>구독이 완료되었습니다.</p>
+            <button onclick="closeNotice(event)">닫기</button>
+        </div>
+    </dialog>
+
+    <template id="hosts-data-template">
+        <ul>
+            <li class="part-name">
+                <span class="label">Name:</span> <span>$$_NAME_$$</span>
+            </li>
+            <li class="part-address">
+                <span class="label">Address:</span> <span>$$_ADDRESS_$$:$$_PORT_$$</span>
+            </li>
+        </ul>
+    </template>
+</body>
+
+<script src="/consts.js"></script>
+<script src="/script.js"></script>
+<script src="/ws.js"></script>
+
+</html>

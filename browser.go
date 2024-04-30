@@ -21,6 +21,8 @@ func openBrowser(url string) bool {
 			"--app=" + url,
 			"--window-size=640,720",
 			"--user-agent=" + userAgent,
+			"--enable-local-file-accesses",
+			"--ash-force-desktop",
 		}
 	default:
 		// args = []string{"xdg-open"}
@@ -30,9 +32,10 @@ func openBrowser(url string) bool {
 			"--app=" + url,
 			"--window-size=640,720",
 			"--user-agent=" + userAgent,
+			"--enable-local-file-accesses",
 		}
 	}
 
-	cmd := exec.Command(args[0], append(args[1:], url)...)
-	return cmd.Start() == nil
+	cmdBrowser = exec.Command(args[0], append(args[1:], url)...)
+	return cmdBrowser.Start() == nil
 }
