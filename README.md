@@ -12,7 +12,9 @@ SSH hosts manager for personal use
 * Linux - gnome-terminal, Tmux, chromium
 
 ## Limitation
-* Private key file selection by browsing - Since web browser security reason, not support. Only copy&paste work.
+* `Private key file` selection by browse window
+    * Since web browser security reason, not support. Just copy & paste file path string.
+    * Or use `private key text` instead.
 
 ## Build
 ```sh
