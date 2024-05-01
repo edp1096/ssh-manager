@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"os"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -34,14 +33,9 @@ func parsePemBlock(block *pem.Block) (interface{}, error) {
 	}
 }
 
-func setSigner(fpath string) (ssh.Signer, error) {
+func setSigner(keyData []byte) (ssh.Signer, error) {
 	var err error
 	var privateKey interface{}
-
-	keyData, err := os.ReadFile(fpath)
-	if err != nil {
-		return nil, err
-	}
 
 	block, _ := pem.Decode(keyData)
 	if block == nil {

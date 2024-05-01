@@ -1,7 +1,34 @@
-POST http://localhost:11080/hello HTTP/1.1
+### HTML Page
+GET http://localhost:11080 HTTP/1.1
+
+
+### Get host list
+GET http://localhost:11080/hosts?hosts-file=./hosts.dat HTTP/1.1
+
+### Add host
+POST http://localhost:11080/hosts?hosts-file=./hosts.dat HTTP/1.1
 content-type: application/json
 
 {
-    "name": "John",
-    "age": 21
+    "name": "test0",
+    "address": "localhost",
+    "port": 1022,
+    "username": "testuser",
+    "password": "1234",
+    "privateKeyFile": "",
+    "privateKeyText": ""
+}
+
+### Edit host
+POST http://localhost:11080/hosts?hosts-file=./hosts.dat&idx=2 HTTP/1.1
+content-type: application/json
+
+{
+    "name": "바틀_클라우드",
+    "description": "",
+    "address": "211.43.14.148",
+    "port": 16022,
+    "username": "root",
+    "private-key-file": "bottle_web01.pem",
+    "private-key-text": ""
 }

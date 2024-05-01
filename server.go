@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -38,22 +39,82 @@ func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 
 func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 	var err error
+	var hosts []HostInfo
 
 	params := r.URL.Query()
 	hostsFile := params.Get("hosts-file")
-	key := []byte("0123456789!#$%^&*()abcdefghijklm")
-	var hosts []HostInfo
-
-	err = loadHostData(hostsFile, key, &hosts)
-	if err != nil {
-		http.Error(w, "error loading host data file", http.StatusInternalServerError)
+	if strings.TrimSpace(hostsFile) == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
 		return
+	}
+
+	err = loadHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		hosts = []HostInfo{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(hosts)
+}
+
+func handleSetHosts(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var hostsRequest HostRequestInfo
+	var hosts []HostInfo
+
+	params := r.URL.Query()
+	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
+	if hostsFile == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	idxSTR := strings.TrimSpace(params.Get("idx"))
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&hostsRequest)
+	if err != nil {
+		http.Error(w, "invalid host data", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(hostsFile) == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	err = loadHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		hosts = []HostInfo{}
+	}
+
+	if idxSTR == "" {
+		hosts = append(hosts, HostInfo(hostsRequest))
+	} else {
+		idx, _ := strconv.ParseInt(idxSTR, 10, 64)
+		if hostsRequest.PrivateKeyFile == "" && hostsRequest.PrivateKeyText == "" {
+			if strings.TrimSpace(hostsRequest.Password) == "" {
+				hostsRequest.Password = hosts[idx].Password
+			}
+		}
+
+		hosts[idx] = HostInfo(hostsRequest)
+	}
+
+	err = saveHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		http.Error(w, "error loading host data file", http.StatusInternalServerError)
+		return
+	}
+
+	result := map[string]string{"message": "success"}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(result)
 }
 
 func handleOpenSession(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +173,7 @@ func runServer() {
 
 	mux.HandleFunc("GET /connection-watchdog", handleConnectionWatchdog)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
+	mux.HandleFunc("POST /hosts", handleSetHosts)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
 	mux.HandleFunc("/", handleStaticFiles)
 

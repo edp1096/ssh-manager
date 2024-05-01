@@ -31,10 +31,14 @@ dialog>form>p>span {
     min-width: 22em;
 }
 
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
+dialog input::-webkit-outer-spin-button,
+dialog input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+
+dialog input#host-edit-private-key-file-browse {
+    display: none;
 }
 
 dialog>form>p>span {

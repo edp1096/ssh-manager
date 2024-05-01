@@ -27,6 +27,9 @@ async function preventKeys(e) {
         if (e.ctrlKey && e.code == "Insert") {
             return
         }
+        if (e.ctrlKey && e.code == "KeyX") {
+            return
+        }
         if (e.ctrlKey && e.code == "KeyV") {
             return
         }

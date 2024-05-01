@@ -14,15 +14,16 @@
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
-    <button onclick="openNewHost()">New Host</button>
+    <button onclick="openHostEditDialog()">New Host</button>
+    <button onclick="getHosts()">Refresh host list</button>
 
     <div id="hosts-data-container"></div>
 
-    <dialog id="dialog-host-edit" onclose="closeNewHost(event)"></dialog>
+    <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
     <dialog id="dialog-notice"></dialog>
 
     <template id="hosts-data-template">
-        <ul>
+        <ul ondblclick="connectSSH(`$$_IDX_$$`, `new_window`)" onmousedown="return false">
             <li class="part-name">
                 <span class="label">Name:</span> <span>$$_NAME_$$</span>
             </li>
@@ -30,7 +31,7 @@
                 <span class="label">Address:</span> <span>$$_ADDRESS_$$:$$_PORT_$$</span>
             </li>
             <li>
-                <button>Edit</button>
+                <button onclick="openHostEditDialog(`$$_IDX_$$`)">Edit</button>
                 <button onclick="connectSSH(`$$_IDX_$$`, `new_window`)">Open new window</button>
                 <button onclick="connectSSH(`$$_IDX_$$`)">Open new panel</button>
             </li>
@@ -40,26 +41,42 @@
     <template id="dialog-host-edit-template">
         <h2>$$_TITLE_$$</h2>
         <form method="dialog">
-            <p><label for="host-edit-name">Name:</label><input type="text" id="host-edit-name" name="name" required /></p>
-            <p><label for="host-edit-address">Address:</label><input id="host-edit-address" name="address" required placeholder="IP or domain" /></p>
-            <p><label for="host-edit-port">Port:</label><input id="host-edit-port" type="number" name="port" required /></p>
-            <p><label for="host-edit-username">Username:</label><input id="host-edit-username" name="username" required /></p>
+            <input type="hidden" id="idx" value="" />
+            <p>
+                <label for="host-edit-name">Name:</label>
+                <input type="text" id="host-edit-name" name="name" required autocomplete="off" />
+            </p>
+            <p>
+                <label for="host-edit-address">Address:</label>
+                <input id="host-edit-address" name="address" required autocomplete="off" placeholder="IP or domain" />
+            </p>
+            <p>
+                <label for="host-edit-port">Port:</label>
+                <input id="host-edit-port" type="number" name="port" autocomplete="off" placeholder="22 is default if empty" />
+            </p>
+            <p>
+                <label for="host-edit-username">Username:</label>
+                <input id="host-edit-username" name="username" required autocomplete="off" />
+            </p>
 
             <hr />
 
             <p>
-                <label for="use-password">Password</label><input onchange="changeAuthType()" type="radio" id="use-password" name="auth-type" checked />
-                <label for="use-private-key-file">Key file</label><input onchange="changeAuthType()" type="radio" id="use-private-key-file" name="auth-type" />
-                <label for="use-private-key-text">Key text</label><input onchange="changeAuthType()" type="radio" id="use-private-key-text" name="auth-type" />
+                <label for="use-password">Password</label><input onchange="setAuthType()" type="radio" id="use-password" name="auth-type" checked />
+                <label for="use-private-key-file">Key file</label><input onchange="setAuthType()" type="radio" id="use-private-key-file" name="auth-type" />
+                <label for="use-private-key-text">Key text</label><input onchange="setAuthType()" type="radio" id="use-private-key-text" name="auth-type" />
             </p>
             <p>
                 <label for="host-edit-password">Password:</label>
                 <input type="password" id="host-edit-password" name="password" required />
             </p>
             <p>
+                <!-- Since security of chrome, cannot use real path -->
+                <!-- <label for="host-edit-private-key-file-browse" class="file-upload">Key path:</label> -->
                 <label for="host-edit-private-key-file" class="file-upload">Key path:</label>
                 <!-- <span></span> -->
-                <input type="file" id="host-edit-private-key-file" name="private-key-file" required />
+                <input type="text" id="host-edit-private-key-file" name="private-key-file" required />
+                <!-- <input type="file" id="host-edit-private-key-file-browse" onchange="moveKeyFilePathText()" /> -->
             </p>
             <p>
                 <label for="host-edit-private-key-text">Key text:</label>
@@ -86,10 +103,11 @@
     </template>
 </body>
 
+<script>"use strict"</script>
 <script src="/js/consts.js"></script>
 <script src="/js/ws.js"></script>
 <script src="/js/input-events.js"></script>
-<script src="/js/dialogs.js"></script>
+<script src="/js/host-control.js"></script>
 <script src="/js/scripts.js"></script>
 
 </html>

@@ -14,7 +14,7 @@ type HostInfo struct {
 	Address        string `json:"address"`
 	Port           int    `json:"port"`
 	Username       string `json:"username"`
-	Password       string
+	Password       string `json:"-"`
 	PrivateKeyFile string `json:"private-key-file"`
 	PrivateKeyText string `json:"private-key-text"`
 }
@@ -31,6 +31,7 @@ type HostRequestInfo struct {
 }
 
 var shellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
+var hostFileKEY []byte = []byte("0123456789!#$%^&*()abcdefghijklm")
 var (
 	cmdTerminal        *exec.Cmd
 	cmdBrowser         *exec.Cmd

@@ -18,13 +18,28 @@ func openSession() (err error) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	if host.PrivateKeyFile != "" {
-		signer, err := setSigner(host.PrivateKeyFile)
-		if err != nil {
-			panic(err)
-		}
+	if host.Password == "" {
+		switch true {
+		case host.PrivateKeyFile != "":
+			keyData, err := os.ReadFile(host.PrivateKeyFile)
+			if err != nil {
+				panic(err)
+			}
 
-		config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
+			signer, err := setSigner(keyData)
+			if err != nil {
+				panic(err)
+			}
+
+			config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
+		case host.PrivateKeyText != "":
+			signer, err := setSigner([]byte(host.PrivateKeyText))
+			if err != nil {
+				panic(err)
+			}
+
+			config.Auth = []ssh.AuthMethod{ssh.PublicKeys(signer)}
+		}
 	}
 
 	hostport := fmt.Sprintf("%s:%d", host.Address, host.Port)

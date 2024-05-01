@@ -77,7 +77,7 @@ func getBinaryPath() (binPath, binName string, err error) {
 // 	return cwd, err
 // }
 
-func saveHostData(fileName string, data interface{}, key []byte) error {
+func saveHostData(fileName string, key []byte, data interface{}) error {
 	var buf bytes.Buffer
 	iv := make([]byte, aes.BlockSize)
 
