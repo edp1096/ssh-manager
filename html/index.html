@@ -31,9 +31,11 @@
                 <span class="label">Address:</span> <span>$$_ADDRESS_$$:$$_PORT_$$</span>
             </li>
             <li>
-                <button onclick="openHostEditDialog(`$$_IDX_$$`)">Edit</button>
                 <button onclick="connectSSH(`$$_IDX_$$`, `new_window`)">Open new window</button>
                 <button onclick="connectSSH(`$$_IDX_$$`)">Open new panel</button>
+                <span class="button-section-divider">|</span>
+                <button onclick="openHostEditDialog(`$$_IDX_$$`)">Edit</button>
+                <button onclick="deleteHost(`$$_IDX_$$`)">Delete</button>
             </li>
         </ul>
     </template>

@@ -2,12 +2,11 @@ dest = bin
 GO_OS := $(shell go env GOOS)
 GO_ARCH := $(shell go env GOARCH)
 
-WINDOWS_HIDE := -H=windowsgui
-#ifeq ($(GO_OS),windows)
-#	WINDOWS_HIDE := -H=windowsgui
-#else
-#	WINDOWS_HIDE :=
-#endif
+ifeq ($(GO_OS),windows)
+	WINDOWS_HIDE := -H=windowsgui
+else
+	WINDOWS_HIDE :=
+endif
 
 ifndef version
 #	version = 0.0.1

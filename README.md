@@ -16,7 +16,7 @@ SSH hosts manager for personal use
     * Since web browser policy reason, not work. Just copy & paste file path string.
     * Or use `private key text` instead.
 * ms-edge
-    * `Password suggestion` cannot be disabled
+    * `Password suggestion` notice cannot be disabled
     * `autocomplete="off"` which in input tag is not work
 
 ## Build

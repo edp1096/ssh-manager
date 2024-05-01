@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,7 +60,7 @@ func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(hosts)
 }
 
-func handleSetHosts(w http.ResponseWriter, r *http.Request) {
+func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var hostsRequest HostRequestInfo
 	var hosts []HostInfo
@@ -105,7 +106,53 @@ func handleSetHosts(w http.ResponseWriter, r *http.Request) {
 
 	err = saveHostData(hostsFile, hostFileKEY, &hosts)
 	if err != nil {
-		http.Error(w, "error loading host data file", http.StatusInternalServerError)
+		http.Error(w, "error saving host data file", http.StatusInternalServerError)
+		return
+	}
+
+	result := map[string]string{"message": "success"}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(result)
+}
+
+func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var hosts []HostInfo
+
+	params := r.URL.Query()
+	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
+	if hostsFile == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	idxSTR := strings.TrimSpace(params.Get("idx"))
+
+	err = loadHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		hosts = []HostInfo{}
+	}
+
+	if idxSTR == "" {
+		http.Error(w, "require idx", http.StatusBadRequest)
+		return
+	} else {
+		idx, _ := strconv.ParseInt(idxSTR, 10, 64)
+
+		if int(idx) > len(hosts)-1 {
+			http.Error(w, "wrong index", http.StatusBadRequest)
+			return
+		}
+
+		hosts = slices.Delete(hosts, int(idx), int(idx+1))
+	}
+
+	err = saveHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		http.Error(w, "error saving host data file", http.StatusInternalServerError)
 		return
 	}
 
@@ -173,7 +220,8 @@ func runServer() {
 
 	mux.HandleFunc("GET /connection-watchdog", handleConnectionWatchdog)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
-	mux.HandleFunc("POST /hosts", handleSetHosts)
+	mux.HandleFunc("POST /hosts", handleAddEditHost)
+	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
 	mux.HandleFunc("/", handleStaticFiles)
 

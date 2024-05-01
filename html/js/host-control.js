@@ -148,9 +148,10 @@ async function saveHostData(e) {
 
     let message = "failed to save."
     if (r.ok) {
-        const response = await r.text()
-        console.log(response)
-        message = "done."
+        const response = await r.json()
+        if (response.message == "success") {
+            message = "done to save."
+        }
     }
 
     hostEditDialog.innerHTML = ""
@@ -167,7 +168,30 @@ async function saveHostData(e) {
 function cancelHostEditDialog() {
     hostEditDialog.innerHTML = ""
     hostEditDialog.close()
+}
 
+async function deleteHost(idxSTR) {
+    const idx = parseInt(idxSTR) - 1
+
+    const params = `hosts-file=${hostsFile}&idx=${idx}`
+    const r = await fetch(`/hosts?${params}`, { method: "DELETE" })
+
+    let message = "failed to delete."
+    if (r.ok) {
+        const response = await r.json()
+        if (response.message == "success") {
+            message = "done to save."
+        }
+    }
+
+    const tmpl = noticeDialogTMPL.innerHTML
+    noticeDialog.innerHTML = tmpl.replaceAll("$$_MESSAGE_$$", message)
+    noticeDialog.showModal()
+    getHosts()
+
+    setTimeout(() => { noticeDialog.close() }, 2000)
+
+    return
 }
 
 function closeNotice(e) {

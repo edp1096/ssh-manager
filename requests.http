@@ -32,3 +32,6 @@ content-type: application/json
     "private-key-file": "bottle_web01.pem",
     "private-key-text": ""
 }
+
+### Delete host
+DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&idx=7 HTTP/1.1
