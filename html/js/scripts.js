@@ -59,7 +59,12 @@ async function enterPassword() {
         }
     }
 
-    alert("incorrect password")
+    let message = "incorrect password"
+    if (password == "") {
+        message = "Empty password input"
+    }
+    alert(message)
+
     document.querySelector("#dialog-enter-password").showModal()
     return
 }
