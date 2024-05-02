@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -138,33 +139,43 @@ func saveHostData(fileName string, key []byte, data interface{}) error {
 }
 
 func loadHostData(fileName string, key []byte, decryptedData interface{}) error {
-	encryptedData := make([]byte, 4096)
+	// encryptedData := make([]byte, 4096)
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		return err
+		return fmt.Errorf("loadHostData/open: %s", err)
 	}
 	defer file.Close()
 
-	_, err = file.Read(encryptedData)
-	if err != nil && err != io.EOF {
-		return err
+	// _, err = file.Read(encryptedData)
+	// if err != nil && err != io.EOF {
+	// 	return fmt.Errorf("loadHostData/read: %s", err)
+	// }
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("loadHostData/Stat: %s", err)
+	}
+
+	encryptedData := make([]byte, fileInfo.Size())
+	_, err = io.ReadFull(file, encryptedData)
+	if err != nil {
+		return fmt.Errorf("loadHostData/ReadFull: %s", err)
 	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return fmt.Errorf("loadHostData/NewCipher: %s", err)
 	}
 	iv := encryptedData[:aes.BlockSize]
 	stream := cipher.NewCFBDecrypter(block, iv)
 
 	encryptedData = encryptedData[aes.BlockSize:]
 
-	reader := &cipher.StreamReader{S: stream, R: bytes.NewReader(encryptedData)}
-	decoder := gob.NewDecoder(reader)
+	reader := cipher.StreamReader{S: stream, R: bytes.NewReader(encryptedData)}
+	decoder := gob.NewDecoder(&reader)
 	err = decoder.Decode(decryptedData)
 	if err != nil {
-		return err
+		return fmt.Errorf("loadHostData/Decode: %s", err)
 	}
 
 	return nil

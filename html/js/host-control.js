@@ -10,10 +10,29 @@ async function getHosts() {
 
     const r = await fetch("/hosts?hosts-file=" + hostsFile)
     if (r.ok) {
-        const response = await r.json()
+        const response = await r.text()
+        if (!response) {
+            hostsData = []
+            return
+        }
+
+        let isJSON = true
+        try {
+            JSON.parse(response)
+        } catch (e) {
+            isJSON = false
+        }
+
+        if (!isJSON) {
+            alert(response)
+            document.querySelector("#dialog-enter-password").showModal()
+        }
+
+        const json = JSON.parse(response)
+        if (!json) { json = [] }
 
         hostsContainer.innerHTML = ""
-        response.forEach((el, i) => {
+        json.forEach((el, i) => {
             line = tmpl
             line = line.replaceAll("$$_NAME_$$", el["name"])
             line = line.replaceAll("$$_ADDRESS_$$", el["address"])
@@ -23,7 +42,7 @@ async function getHosts() {
             hostsContainer.innerHTML += line
         })
 
-        hostsData = response
+        hostsData = json
         return
     }
 }
@@ -94,6 +113,8 @@ async function saveHostData(e) {
         d.innerHTML = ""
         return
     }
+
+    d.returnValue = ""
 
     const idxSTR = d.querySelector("input#idx").value
 

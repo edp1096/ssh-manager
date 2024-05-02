@@ -21,6 +21,9 @@ async function preventKeys(e) {
 
     // Ctrl
     if (e.ctrlKey) {
+        if (e.ctrlKey && e.code == "KeyA") {
+            return
+        }
         if (e.ctrlKey && e.code == "KeyC") {
             return
         }

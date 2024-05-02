@@ -56,8 +56,6 @@ func openWindowsTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid 
 		return
 	}
 
-	log.Println(shellRuntimePath, shParams)
-
 	pid = cmdTerminal.Process.Pid
 	return
 }

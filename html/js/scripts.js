@@ -21,7 +21,7 @@ async function connectSSH(idx, windowMode = null) {
 
     if (r.ok) {
         const response = await r.text()
-        document.querySelector("#result").innerHTML = response
+        // console.log(response)
         return
     }
 }
