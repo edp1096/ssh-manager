@@ -61,7 +61,13 @@ function setAuthType() {
 
     const inputEL = hostEditDialog.querySelector(`[name='${selectedAuthName}']`)
     inputEL.parentElement.style.display = null
+
     inputEL.setAttribute("required", "")
+    if (parseInt(hostEditDialog.querySelector("input#idx").value) > -1) {
+        if (hostEditDialog.querySelector("input#auth-type-orig").value == selectedAuthName) {
+            inputEL.removeAttribute("required")
+        }
+    }
 }
 
 function moveKeyFileToPrivateKeyText(el) {
@@ -97,8 +103,10 @@ function openHostEditDialog(idxSTR = null) {
         d.querySelector("textarea[name='private-key-text']").value = privateKeyText
         d.querySelector("textarea[name='description']").value = hostsData[idx]["description"]
 
+        d.querySelector("input#auth-type-orig").value = "password"
         if (privateKeyText != "") {
             d.querySelector("input#use-private-key-text").checked = true
+            d.querySelector("input#auth-type-orig").value = "private-key-text"
         }
     }
 
