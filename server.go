@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -13,6 +14,10 @@ import (
 
 	"github.com/gorilla/websocket"
 )
+
+type EnterPassword struct {
+	Password string `json:"password"`
+}
 
 func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
@@ -36,6 +41,58 @@ func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 	}
+}
+
+func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var data EnterPassword
+	var hosts []HostInfo
+
+	params := r.URL.Query()
+	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
+	if hostsFile == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&data)
+	if err != nil {
+		http.Error(w, "invalid request data", http.StatusBadRequest)
+		return
+	}
+
+	if data.Password == "" {
+		http.Error(w, "empty password", http.StatusBadRequest)
+		return
+	}
+
+	hostFileKEY, err = generateKey(data.Password)
+	if err != nil {
+		http.Error(w, "failed to generate key", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := os.Stat(hostsFile); os.IsNotExist(err) {
+		err = saveHostData(hostsFile, hostFileKEY, &hosts)
+		if err != nil {
+			http.Error(w, "failed to create host data", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	err = loadHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		http.Error(w, "failed to to load host data", http.StatusInternalServerError)
+		return
+	}
+
+	result := map[string]string{"message": "success"}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(result)
 }
 
 func handleGetHosts(w http.ResponseWriter, r *http.Request) {
@@ -219,6 +276,7 @@ func runServer() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /connection-watchdog", handleConnectionWatchdog)
+	mux.HandleFunc("POST /enter-password", handleEnterPassword)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
 	mux.HandleFunc("POST /hosts", handleAddEditHost)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)

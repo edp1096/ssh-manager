@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/gob"
 	"io"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 func exitProcess() {
@@ -76,6 +78,22 @@ func getBinaryPath() (binPath, binName string, err error) {
 // 	}
 // 	return cwd, err
 // }
+
+func generateKey(password string) (key []byte, err error) {
+	// salt := make([]byte, 16)
+	// _, err = rand.Read(salt)
+	// if err != nil {
+	// 	fmt.Println("error generating salt:", err)
+	// 	return key, err
+	// }
+
+	salt := sha256.Sum256([]byte(password))
+	// fmt.Println("salt bytes:", salt)
+
+	key = pbkdf2.Key([]byte(password), salt[:], 10000, 32, sha256.New)
+
+	return key, nil
+}
 
 func saveHostData(fileName string, key []byte, data interface{}) error {
 	var buf bytes.Buffer

@@ -26,4 +26,46 @@ async function connectSSH(idx, windowMode = null) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => { getHosts() })
+async function enterPassword() {
+    const d = document.querySelector("#dialog-enter-password")
+
+    const password = d.querySelector("#enter-password-input").value.trim()
+    const body = { "password": password }
+    const r = await fetch(`/enter-password?hosts-file=${hostsFile}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    })
+
+    if (r.ok) {
+        const response = await r.text()
+
+        let isJSON = true
+        try {
+            JSON.parse(response)
+        } catch (e) {
+            isJSON = false
+        }
+
+        if (!isJSON) {
+            alert(response)
+            document.querySelector("#dialog-enter-password").showModal()
+        }
+
+        const json = JSON.parse(response)
+        if (json.message == "success") {
+            getHosts()
+            return
+        }
+    }
+
+    alert("incorrect password")
+    document.querySelector("#dialog-enter-password").showModal()
+    return
+}
+
+function init() {
+    document.querySelector("#dialog-enter-password").showModal()
+}
+
+document.addEventListener("DOMContentLoaded", () => { init() })

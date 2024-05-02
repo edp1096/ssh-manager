@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"os/exec"
@@ -43,7 +44,9 @@ func openWindowsTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid 
 	}
 	hostsDataFile = filepath.FromSlash(hostsDataFile)
 
-	sshParams := []string{sshclientPath, "-f", hostsDataFile, "-i", strconv.Itoa(hostsIndex)}
+	hostFileKEYB64 := base64.URLEncoding.EncodeToString(hostFileKEY)
+
+	sshParams := []string{sshclientPath, "-f", hostsDataFile, "-k", hostFileKEYB64, "-i", strconv.Itoa(hostsIndex)}
 	shParams = append(shParams, sshParams...)
 
 	cmdTerminal = exec.Command(shellRuntimePath, shParams...)
@@ -52,6 +55,8 @@ func openWindowsTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid 
 		fmt.Println("Error opening terminal:", err)
 		return
 	}
+
+	log.Println(shellRuntimePath, shParams)
 
 	pid = cmdTerminal.Process.Pid
 	return
@@ -93,7 +98,9 @@ func openGnomeTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid in
 	hostsDataFile = filepath.FromSlash(hostsDataFile)
 
 	sshclientPath := filepath.FromSlash(binaryPath + "/" + procName)
-	sshParams := []string{sshclientPath + " -f " + hostsDataFile + " -i " + strconv.Itoa(hostsIndex), "&&", "exit", "ENTER"}
+
+	hostFileKEYB64 := base64.URLEncoding.EncodeToString(hostFileKEY)
+	sshParams := []string{sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -i " + strconv.Itoa(hostsIndex), "&&", "exit", "ENTER"}
 
 	shParams := []string{"send"}
 	shParams = append(shParams, sshParams...)
