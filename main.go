@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 )
 
 type HostInfo struct {
@@ -40,6 +41,15 @@ var (
 
 //go:embed html/*
 var embedFiles embed.FS
+
+//go:embed tmux.conf
+var tmuxConf embed.FS
+
+func init() {
+	if runtime.GOOS != "windows" {
+		exportTmuxConf()
+	}
+}
 
 func main() {
 	var err error

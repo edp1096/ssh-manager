@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -70,10 +69,8 @@ func openGnomeTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid in
 		return -1, fmt.Errorf("error check process exist:%s", err)
 	}
 
-	log.Println("ssh-client exists:", termExists)
-
 	if !termExists || newWindow {
-		err = exec.Command("gnome-terminal", "--", "sh", "-c", shellRuntimePath+"; exec").Run()
+		err = exec.Command("gnome-terminal", "--", "sh", "-c", shellRuntimePath+" -f ./tmux.conf; exec").Run()
 		if err != nil {
 			return -1, fmt.Errorf("error execute tmux:%s", err)
 		}

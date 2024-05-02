@@ -12,7 +12,7 @@ SSH hosts manager for personal use
 * Linux - gnome-terminal, Tmux, chromium
 
 ## Issues - gave up :-p
-* ms-edge
+* web browser
     * `Password suggestion` notice cannot be disabled
     * `autocomplete="off"` which in input tag is not work
 

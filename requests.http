@@ -23,14 +23,24 @@ POST http://localhost:11080/hosts?hosts-file=./hosts.dat&idx=2 HTTP/1.1
 content-type: application/json
 
 {
-    "name": "바틀_클라우드",
+    "name": "test1",
     "description": "",
-    "address": "211.43.14.148",
-    "port": 16022,
-    "username": "root",
-    "password": "1234",
+    "address": "192.168.0.1",
+    "port": 2022,
+    "username": "user1",
+    "password": "user1234",
     "private-key-text": ""
 }
 
 ### Delete host
-DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&idx=7 HTTP/1.1
+DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&idx=1 HTTP/1.1
+
+
+### Change host file password
+PUT http://localhost:11080/host-file-password?hosts-file=./hosts.dat HTTP/1.1
+content-type: application/json
+
+{
+    "password-old": "1",
+    "password-new": "1234"
+}

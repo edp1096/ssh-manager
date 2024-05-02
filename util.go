@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +19,20 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"golang.org/x/crypto/pbkdf2"
 )
+
+func exportTmuxConf() {
+	data, err := tmuxConf.ReadFile("tmux.conf")
+	if err != nil {
+		fmt.Printf("cannot read file: %s", err)
+		os.Exit(1)
+	}
+
+	err = os.WriteFile("tmux.conf", data, fs.FileMode(0644))
+	if err != nil {
+		fmt.Printf("cannot write file: %s", err)
+		os.Exit(1)
+	}
+}
 
 func exitProcess() {
 	err := cmdBrowser.Process.Kill()
@@ -31,8 +46,9 @@ func exitProcess() {
 
 	time.Sleep(100 * time.Millisecond)
 
-	dataPath := filepath.FromSlash(binaryPath + "/browser_data")
-	os.RemoveAll(dataPath)
+	// Keep browser_data
+	// dataPath := filepath.FromSlash(binaryPath + "/browser_data")
+	// os.RemoveAll(dataPath)
 
 	os.Exit(0)
 }

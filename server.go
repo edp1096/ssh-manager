@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +18,11 @@ import (
 
 type EnterPassword struct {
 	Password string `json:"password"`
+}
+
+type ChangePassword struct {
+	PasswordOLD string `json:"password-old"`
+	PasswordNEW string `json:"password-new"`
 }
 
 func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +92,69 @@ func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to to load host data", http.StatusInternalServerError)
 		return
 	}
+
+	result := map[string]string{"message": "success"}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(result)
+}
+
+func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var data ChangePassword
+	var hosts []HostInfo
+
+	params := r.URL.Query()
+	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
+	if hostsFile == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&data)
+	if err != nil {
+		http.Error(w, "invalid request data", http.StatusBadRequest)
+		return
+	}
+
+	if data.PasswordOLD == "" || data.PasswordNEW == "" {
+		http.Error(w, "empty password", http.StatusBadRequest)
+		return
+	}
+
+	hostFileKeyOLD, err := generateKey(data.PasswordOLD)
+	if err != nil {
+		http.Error(w, "failed to generate key", http.StatusInternalServerError)
+		return
+	}
+
+	hostFileKeyNEW, err := generateKey(data.PasswordNEW)
+	if err != nil {
+		http.Error(w, "failed to generate key", http.StatusInternalServerError)
+		return
+	}
+
+	if len(hostFileKeyOLD) != len(hostFileKEY) || !bytes.Equal(hostFileKeyOLD, hostFileKEY) {
+		http.Error(w, "wrong password", http.StatusBadRequest)
+		return
+	}
+
+	err = loadHostData(hostsFile, hostFileKeyOLD, &hosts)
+	if err != nil {
+		http.Error(w, "failed to to load host data", http.StatusInternalServerError)
+		return
+	}
+
+	err = saveHostData(hostsFile, hostFileKeyNEW, &hosts)
+	if err != nil {
+		http.Error(w, "failed to create host data", http.StatusInternalServerError)
+		return
+	}
+
+	hostFileKEY = hostFileKeyNEW
 
 	result := map[string]string{"message": "success"}
 
@@ -277,6 +346,7 @@ func runServer() {
 
 	mux.HandleFunc("GET /connection-watchdog", handleConnectionWatchdog)
 	mux.HandleFunc("POST /enter-password", handleEnterPassword)
+	mux.HandleFunc("PUT /host-file-password", handleChangeHostFilePassword)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
 	mux.HandleFunc("POST /hosts", handleAddEditHost)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)

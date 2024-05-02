@@ -1,7 +1,6 @@
 let hostsData = []
 let hostsFile = "./hosts.dat"
 
-function preventDrag(e) { e.preventDefault() }
 
 async function connectSSH(idx, windowMode = null) {
     const hostsIndex = parseInt(idx)
@@ -10,10 +9,10 @@ async function connectSSH(idx, windowMode = null) {
         return false
     }
 
-    let params = (windowMode) ? windowMode : ""
+    let modeWindow = (windowMode) ? windowMode : ""
 
     const body = { "hosts-file": hostsFile, "index": hostsIndex }
-    const r = await fetch(`/session/open?window-mode=${windowMode}`, {
+    const r = await fetch(`/session/open?window-mode=${modeWindow}`, {
         method: "POST",
         headers: new Headers({}),
         body: JSON.stringify(body)
@@ -65,7 +64,72 @@ async function enterPassword() {
     }
     alert(message)
 
+    d.querySelector("#enter-password-input").value = ""
     document.querySelector("#dialog-enter-password").showModal()
+    return
+}
+
+function openChangePasswordDialog() {
+    document.querySelector("#dialog-change-password").showModal()
+}
+
+function cancelChangePasswordDialog() {
+    const d = document.querySelector("#dialog-change-password")
+    d.querySelector("#change-password-old").value = ""
+    d.querySelector("#change-password-new").value = ""
+    d.close()
+}
+
+async function changeHostFilePassword(e) {
+    const d = e.target
+    if (d.returnValue != 'confirm') {
+        d.querySelector("#change-password-old").value = ""
+        d.querySelector("#change-password-new").value = ""
+        return
+    }
+
+    const passwordOld = d.querySelector("#change-password-old").value.trim()
+    const passwordNew = d.querySelector("#change-password-new").value.trim()
+
+    const body = { "password-old": passwordOld, "password-new": passwordNew }
+    const r = await fetch(`/host-file-password?hosts-file=${hostsFile}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    })
+
+    if (r.ok) {
+        const response = await r.text()
+
+        let isJSON = true
+        try {
+            JSON.parse(response)
+        } catch (e) {
+            isJSON = false
+        }
+
+        if (!isJSON) {
+            alert(response)
+            document.querySelector("#dialog-change-password").showModal()
+            d.querySelector("#change-password-old").value = passwordOld
+            d.querySelector("#change-password-new").value = passwordNew
+        }
+
+        const json = JSON.parse(response)
+        if (json.message == "success") {
+            alert("Password of host file is changed")
+            getHosts()
+            return
+        }
+    }
+
+    let message = "password change failed"
+    try {
+        message = await r.text()
+    } catch (e) {}
+    alert(message)
+
+    document.querySelector("#dialog-change-password").showModal()
     return
 }
 

@@ -14,6 +14,17 @@
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
+    <button onclick="openHostEditDialog()">New Host</button>
+    <button onclick="getHosts()">Refresh host list</button>
+    <button onclick="openChangePasswordDialog()">Change password</button>
+
+    <hr />
+
+    <div id="hosts-data-container"></div>
+
+    <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
+    <dialog id="dialog-notice"></dialog>
+
     <dialog id="dialog-enter-password" onclose="enterPassword()">
         <h2>Enter password</h2>
         <form method="dialog">
@@ -28,15 +39,25 @@
         </form>
     </dialog>
 
-    <button onclick="openHostEditDialog()">New Host</button>
-    <button onclick="getHosts()">Refresh host list</button>
+    <dialog id="dialog-change-password" onclose="changeHostFilePassword(event)">
+        <h2>Change password</h2>
+        <form method="dialog">
+            <p>
+                <label for="enter-password-input">Previous password:</label>
+                <input type="password" id="change-password-old" name="password-old" required autocomplete="off" />
+            </p>
+            <p>
+                <label for="enter-password-input">New password:</label>
+                <input type="password" id="change-password-new" name="password-new" required autocomplete="off" />
+            </p>
 
-    <hr />
+            <p>
+                <button type="button" onclick="cancelChangePasswordDialog()">Cancel</button>
+                <button value="confirm">Submit</button>
+            </p>
+        </form>
+    </dialog>
 
-    <div id="hosts-data-container"></div>
-
-    <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
-    <dialog id="dialog-notice"></dialog>
 
     <template id="hosts-data-template">
         <ul ondblclick="connectSSH(`$$_IDX_$$`, `new_window`)" onmousedown="return false">
