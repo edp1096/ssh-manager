@@ -75,8 +75,7 @@ function openChangePasswordDialog() {
 
 function cancelChangePasswordDialog() {
     const d = document.querySelector("#dialog-change-password")
-    d.querySelector("#change-password-old").value = ""
-    d.querySelector("#change-password-new").value = ""
+    d.returnValue = "cancel"
     d.close()
 }
 
@@ -129,6 +128,8 @@ async function changeHostFilePassword(e) {
     } catch (e) {}
     alert(message)
 
+    d.querySelector("#change-password-old").value = ""
+    d.querySelector("#change-password-new").value = ""
     document.querySelector("#dialog-change-password").showModal()
     return
 }
