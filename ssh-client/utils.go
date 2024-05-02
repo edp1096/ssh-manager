@@ -63,7 +63,7 @@ func saveHostData(fileName string, data interface{}, key []byte) error {
 }
 
 func loadHostData(fileName string, key []byte, decryptedData interface{}) error {
-	encryptedData := make([]byte, 4096)
+	// encryptedData := make([]byte, 4096)
 
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -71,14 +71,24 @@ func loadHostData(fileName string, key []byte, decryptedData interface{}) error 
 	}
 	defer file.Close()
 
-	_, err = file.Read(encryptedData)
-	if err != nil && err != io.EOF {
-		return err
+	// _, err = file.Read(encryptedData)
+	// if err != nil && err != io.EOF {
+	// 	return err
+	// }
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("loadHostData/Stat: %s", err)
+	}
+
+	encryptedData := make([]byte, fileInfo.Size())
+	_, err = io.ReadFull(file, encryptedData)
+	if err != nil {
+		return fmt.Errorf("loadHostData/ReadFull: %s", err)
 	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return fmt.Errorf("loadHostData/NewCipher: %s", err)
 	}
 	iv := encryptedData[:aes.BlockSize]
 	stream := cipher.NewCFBDecrypter(block, iv)
@@ -89,7 +99,7 @@ func loadHostData(fileName string, key []byte, decryptedData interface{}) error 
 	decoder := gob.NewDecoder(reader)
 	err = decoder.Decode(decryptedData)
 	if err != nil {
-		return err
+		return fmt.Errorf("loadHostData/Decode: %s", err)
 	}
 
 	return nil
@@ -117,7 +127,7 @@ func CreateSampleHostData() {
 
 	hosts := []HostInfo{
 		{Name: "Local", Address: "localhost", Port: 10122, Username: "user", Password: "12345"},
-		{Name: "Local using key", Address: "localhost", Port: 10222, Username: "user", PrivateKeyFile: "my_private_key.pem"},
+		{Name: "Local using key", Address: "localhost", Port: 10222, Username: "user", PrivateKeyText: "fake key"},
 	}
 	fileName := "hosts.dat"
 

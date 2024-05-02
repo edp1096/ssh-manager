@@ -15,7 +15,6 @@ content-type: application/json
     "port": 1022,
     "username": "testuser",
     "password": "1234",
-    "privateKeyFile": "",
     "privateKeyText": ""
 }
 
@@ -29,7 +28,7 @@ content-type: application/json
     "address": "211.43.14.148",
     "port": 16022,
     "username": "root",
-    "private-key-file": "bottle_web01.pem",
+    "password": "1234",
     "private-key-text": ""
 }
 

@@ -15,7 +15,6 @@ type HostInfo struct {
 	Port           int    `json:"port"`
 	Username       string `json:"username"`
 	Password       string `json:"-"`
-	PrivateKeyFile string `json:"private-key-file"`
 	PrivateKeyText string `json:"private-key-text"`
 }
 
@@ -26,7 +25,6 @@ type HostRequestInfo struct {
 	Port           int    `json:"port"`
 	Username       string `json:"username"`
 	Password       string `json:"password"`
-	PrivateKeyFile string `json:"private-key-file"`
 	PrivateKeyText string `json:"private-key-text"`
 }
 

@@ -14,21 +14,34 @@ dialog>form {
     align-items: flex-end;
 }
 
-dialog>form>p,
-dialog>form>p * {
+dialog>form>div,
+dialog>form>div * {
     margin: 0;
     padding: 0;
 }
 
-dialog>form>p>label {
+dialog>form>div {
+    display: flex;
+    align-items: center;
+}
+
+dialog>form>div>label {
     display: inline-block;
     text-align: center;
 }
 
-dialog>form>p>input:not([type="radio"]),
-dialog>form>p>textarea,
-dialog>form>p>span {
-    min-width: 22em;
+dialog>form>div>input:not([type="radio"]),
+dialog>form>div>textarea,
+dialog>form>div>div {
+    min-width: 28em;
+}
+
+dialog>form>div>textarea[name="private-key-text"] {
+    min-height: 10em;
+}
+
+dialog>form>div>textarea[name="description"] {
+    min-height: 3em;
 }
 
 dialog input::-webkit-outer-spin-button,
@@ -37,7 +50,7 @@ dialog input::-webkit-inner-spin-button {
     margin: 0;
 }
 
-dialog input#host-edit-private-key-file-browse {
+dialog>form input[type="file"] {
     display: none;
 }
 

@@ -15,7 +15,6 @@ type HostInfo struct {
 	Port           int
 	Username       string
 	Password       string
-	PrivateKeyFile string
 	PrivateKeyText string
 }
 

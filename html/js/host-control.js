@@ -60,13 +60,19 @@ function setAuthType() {
     }
 
     const inputEL = hostEditDialog.querySelector(`[name='${selectedAuthName}']`)
-    inputEL.parentElement.style.display = "block"
+    inputEL.parentElement.style.display = null
     inputEL.setAttribute("required", "")
 }
 
-function moveKeyFilePathText() {
-    const d = hostEditDialog
-    d.querySelector("input#host-edit-private-key-file").value = d.querySelector("input#host-edit-private-key-file-browse").value
+function moveKeyFileToPrivateKeyText(el) {
+    const file = el.target.files[0]
+    const reader = new FileReader()
+    reader.readAsText(file, 'UTF-8')
+    reader.onload = (readerEvent) => {
+        const content = readerEvent.target.result
+        const d = hostEditDialog
+        d.querySelector("textarea#host-edit-private-key-text").value = content
+    }
 }
 
 function openHostEditDialog(idxSTR = null) {
@@ -78,7 +84,6 @@ function openHostEditDialog(idxSTR = null) {
         const idx = parseInt(idxSTR) - 1
         d.querySelector("input#idx").value = idx
 
-        const privateKeyFile = (hostsData[idx]["private-key-file"]) ? hostsData[idx]["private-key-file"] : ""
         const privateKeyText = (hostsData[idx]["private-key-text"]) ? hostsData[idx]["private-key-text"] : ""
 
         d.querySelector("input[name='name']").value = hostsData[idx]["name"]
@@ -89,14 +94,9 @@ function openHostEditDialog(idxSTR = null) {
         d.querySelector("input[name='password']").value = ""
         d.querySelector("input[name='password']").removeAttribute("required")
 
-        d.querySelector("input[name='private-key-file']").value = privateKeyFile
         d.querySelector("textarea[name='private-key-text']").value = privateKeyText
         d.querySelector("textarea[name='description']").value = hostsData[idx]["description"]
 
-        if (privateKeyFile == "" && privateKeyText == "") { }
-        if (privateKeyFile != "") {
-            d.querySelector("input#use-private-key-file").checked = true
-        }
         if (privateKeyText != "") {
             d.querySelector("input#use-private-key-text").checked = true
         }
@@ -128,14 +128,12 @@ async function saveHostData(e) {
 
     const username = d.querySelector("dialog input[name='username']").value
 
-    let password, privateKeyFile, privateKeyText
+    let password, privateKeyText
     const selectedAuthName = hostEditDialog.querySelector("input[name='auth-type']:checked").id.replaceAll("use-", "")
+    console.log(selectedAuthName)
     switch (selectedAuthName) {
         case "password":
             password = d.querySelector(`[name='${selectedAuthName}']`).value.trim()
-            break
-        case "private-key-file":
-            privateKeyFile = d.querySelector(`[name='${selectedAuthName}']`).value
             break
         case "private-key-text":
             privateKeyText = d.querySelector(`[name='${selectedAuthName}']`).value
@@ -148,7 +146,6 @@ async function saveHostData(e) {
         port: parseInt(port),
         username: username,
         password: password,
-        "private-key-file": privateKeyFile,
         "private-key-text": privateKeyText,
     }
 

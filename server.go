@@ -152,10 +152,10 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 		hosts = append(hosts, HostInfo(hostsRequest))
 	} else {
 		idx, _ := strconv.ParseInt(idxSTR, 10, 64)
-		if hostsRequest.PrivateKeyFile == "" && hostsRequest.PrivateKeyText == "" {
-			if strings.TrimSpace(hostsRequest.Password) == "" {
-				hostsRequest.Password = hosts[idx].Password
-			}
+
+		if strings.TrimSpace(hostsRequest.PrivateKeyText) == "" && strings.TrimSpace(hostsRequest.Password) == "" {
+			hostsRequest.PrivateKeyText = hosts[idx].PrivateKeyText
+			hostsRequest.Password = hosts[idx].Password
 		}
 
 		hosts[idx] = HostInfo(hostsRequest)

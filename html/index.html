@@ -31,6 +31,8 @@
     <button onclick="openHostEditDialog()">New Host</button>
     <button onclick="getHosts()">Refresh host list</button>
 
+    <hr />
+
     <div id="hosts-data-container"></div>
 
     <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
@@ -58,56 +60,49 @@
         <h2>$$_TITLE_$$</h2>
         <form method="dialog">
             <input type="hidden" id="idx" value="" />
-            <p>
+            <div>
                 <label for="host-edit-name">Name:</label>
                 <input type="text" id="host-edit-name" name="name" required autocomplete="off" />
-            </p>
-            <p>
+            </div>
+            <div>
                 <label for="host-edit-address">Address:</label>
                 <input id="host-edit-address" name="address" required autocomplete="off" placeholder="IP or domain" />
-            </p>
-            <p>
+            </div>
+            <div>
                 <label for="host-edit-port">Port:</label>
                 <input id="host-edit-port" type="number" name="port" autocomplete="off" placeholder="22 is default if empty" />
-            </p>
-            <p>
+            </div>
+            <div>
                 <label for="host-edit-username">Username:</label>
                 <input id="host-edit-username" name="username" required autocomplete="off" />
-            </p>
+            </div>
 
             <hr />
 
-            <p>
+            <div>
                 <label for="use-password">Password</label><input onchange="setAuthType()" type="radio" id="use-password" name="auth-type" checked />
-                <label for="use-private-key-file">Key file</label><input onchange="setAuthType()" type="radio" id="use-private-key-file" name="auth-type" />
-                <label for="use-private-key-text">Key text</label><input onchange="setAuthType()" type="radio" id="use-private-key-text" name="auth-type" />
-            </p>
-            <p>
+                <label for="use-private-key-text">Private Key</label><input onchange="setAuthType()" type="radio" id="use-private-key-text" name="auth-type" />
+            </div>
+            <div>
                 <label for="host-edit-password">Password:</label>
                 <input type="password" id="host-edit-password" name="password" required />
-            </p>
-            <p>
-                <!-- Since security of chrome, cannot use real path -->
-                <!-- <label for="host-edit-private-key-file-browse" class="file-upload">Key path:</label> -->
-                <label for="host-edit-private-key-file" class="file-upload">Key path:</label>
-                <!-- <span></span> -->
-                <input type="text" id="host-edit-private-key-file" name="private-key-file" required />
-                <!-- <input type="file" id="host-edit-private-key-file-browse" onchange="moveKeyFilePathText()" /> -->
-            </p>
-            <p>
-                <label for="host-edit-private-key-text">Key text:</label>
-                <textarea id="host-edit-private-key-text" name="private-key-text" required></textarea>
-            </p>
+            </div>
 
-            <p>
+            <div>
+                <label for="host-edit-private-key-file">Private key📂:</label>
+                <input type="file" id="host-edit-private-key-file" onchange="moveKeyFileToPrivateKeyText(event)" />
+                <textarea id="host-edit-private-key-text" name="private-key-text" required></textarea>
+            </div>
+
+            <div>
                 <label for="host-edit-description">Description:</label>
                 <textarea id="host-edit-description" name="description"></textarea>
-            </p>
+            </div>
 
-            <p>
+            <div>
                 <button type="button" onclick="cancelHostEditDialog()">Cancel</button>
                 <button value="confirm">Save</button>
-            </p>
+            </div>
         </form>
     </template>
 
