@@ -89,6 +89,8 @@ async function changeHostFilePassword(e) {
 
     const passwordOld = d.querySelector("#change-password-old").value.trim()
     const passwordNew = d.querySelector("#change-password-new").value.trim()
+    d.querySelector("#change-password-old").value = ""
+    d.querySelector("#change-password-new").value = ""
 
     const body = { "password-old": passwordOld, "password-new": passwordNew }
     const r = await fetch(`/host-file-password?hosts-file=${hostsFile}`, {
@@ -125,7 +127,7 @@ async function changeHostFilePassword(e) {
     let message = "password change failed"
     try {
         message = await r.text()
-    } catch (e) {}
+    } catch (e) { }
     alert(message)
 
     d.querySelector("#change-password-old").value = ""

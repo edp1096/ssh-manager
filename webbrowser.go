@@ -39,13 +39,25 @@ func openBrowser(url string) bool {
 	case "darwin":
 		args = []string{"open"}
 	case "windows":
-		// Use Chrome
+		extractPath := "browser_data"
+
+		// Use chrome if exist
 		args[0] = "C:/Program Files/Google/Chrome/Application/chrome.exe"
-		if _, err := os.Stat(args[0]); os.IsNotExist(err) {
+		if _, err := os.Stat(args[0]); !os.IsNotExist(err) {
+			// Use Chrome
+			embedTgzFileName := "embeds/chrome_browser_data.tar.gz"
+			embedTgzData, err := chromeBrowserData.ReadFile(embedTgzFileName)
+			if err != nil {
+				panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
+			}
+
+			if err := untar(embedTgzData, extractPath); err != nil {
+				panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
+			}
+		} else {
 			// Use Edge
 			args[0] = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
 
-			extractPath := "browser_data"
 			embedZipFileName := "embeds/edge_browser_data.zip"
 			embedZipData, err := edgeBrowserData.ReadFile(embedZipFileName)
 			if err != nil {
@@ -57,10 +69,11 @@ func openBrowser(url string) bool {
 			}
 		}
 	default:
+		extractPath := "browser_data"
+
 		// args = []string{"xdg-open"}
 		args[0] = "/usr/bin/chromium-browser"
 
-		extractPath := "browser_data"
 		embedTgzFileName := "embeds/chrome_browser_data.tar.gz"
 		embedTgzData, err := chromeBrowserData.ReadFile(embedTgzFileName)
 		if err != nil {
