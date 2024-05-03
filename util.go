@@ -65,9 +65,9 @@ func exitProcess() {
 
 	time.Sleep(100 * time.Millisecond)
 
-	// Keep browser_data
-	// dataPath := filepath.FromSlash(binaryPath + "/browser_data")
-	// os.RemoveAll(dataPath)
+	// Remove browser_data
+	dataPath := filepath.FromSlash(binaryPath + "/browser_data")
+	os.RemoveAll(dataPath)
 
 	os.Exit(0)
 }
