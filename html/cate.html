@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collapse Tree</title>
+</head>
+
+<body>
+
+    <div class="category-list">
+        <ul class="categories">
+            <li class="category">카테고리 1
+                <ul class="sub-categories">
+                    <li>하위 카테고리 1</li>
+                    <li>하위 카테고리 2</li>
+                </ul>
+            </li>
+            <li class="category">카테고리 2
+                <ul class="sub-categories">
+                    <li>하위 카테고리 1</li>
+                    <li>하위 카테고리 2</li>
+                </ul>
+            </li>
+            <li class="category">카테고리 3
+                <ul class="sub-categories">
+                    <li>하위 카테고리 1</li>
+                    <li>하위 카테고리 2</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+</body>
+
+<script>
+    document.querySelectorAll('.category').forEach(item => {
+        item.addEventListener('click', function (event) {
+            if (!event.target.closest('.sub-categories')) {
+                this.classList.toggle('active')
+            }
+        })
+    })
+</script>
+
+<style>
+    .category-list {
+        font-family: Arial, sans-serif;
+    }
+
+    .categories {
+        list-style: none;
+        padding-left: 20px;
+    }
+
+    .category {
+        position: relative;
+        margin-bottom: 5px;
+    }
+
+    .category:before {
+        content: "▶";
+        position: absolute;
+        left: -15px;
+        top: 2px;
+        cursor: pointer;
+    }
+
+    .category.active:before {
+        content: "▼";
+    }
+
+    .category.active .sub-categories {
+        display: block;
+    }
+
+    .sub-categories {
+        display: none;
+    }
+</style>
+
+</html>
