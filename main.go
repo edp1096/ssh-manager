@@ -42,17 +42,51 @@ var (
 //go:embed html/*
 var embedFiles embed.FS
 
-//go:embed tmux.conf
+//go:embed embeds/edge_browser_data.zip
+var edgeBrowserData embed.FS
+
+//go:embed embeds/tmux.conf
 var tmuxConf embed.FS
 
-func init() {
-	if runtime.GOOS != "windows" {
-		exportTmuxConf()
-	}
-}
+func init() {}
 
 func main() {
 	var err error
+
+	if runtime.GOOS == "windows" {
+		if _, err := os.Stat(shellRuntimePath); os.IsNotExist(err) {
+			cwd, _ := os.Getwd()
+			shellRuntimePath = cwd + "/windows-terminal/wt.exe"
+
+			if _, err := os.Stat(shellRuntimePath + "zzz"); os.IsNotExist(err) {
+				err = downloadWindowsTerminal()
+				if err != nil {
+					panic(fmt.Errorf("downloadWindowsTerminal: %s", err))
+				}
+
+				wtFname := "windows-terminal.zip"
+
+				// extractPath := "windows-terminal"
+				extractPath := "."
+				fileZipData, err2 := os.ReadFile(wtFname)
+				if err2 != nil {
+					panic(fmt.Errorf("failed to read zip file: %s", err2))
+				}
+
+				if err2 = unzip(fileZipData, extractPath); err2 != nil {
+					panic(fmt.Errorf("failed to unzip file: %s", err2))
+				}
+
+				pattern := "terminal-*"
+				newPrefix := "windows-terminal"
+				if err2 = renameFolders(pattern, newPrefix); err2 != nil {
+					panic(fmt.Errorf("failed to rename folder: %s", err2))
+				}
+			}
+		}
+	} else {
+		exportTmuxConf()
+	}
 
 	binaryPath, _, err = getBinaryPath()
 	if err != nil {

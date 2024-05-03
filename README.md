@@ -13,7 +13,6 @@ SSH hosts manager for personal use
 
 ## Issues - gave up :-p
 * web browser
-    * `Password suggestion` notice cannot be disabled
     * `autocomplete="off"` which in input tag is not work
 
 ## Build

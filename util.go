@@ -20,6 +20,25 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
+func renameFolders(pattern, newPrefix string) error {
+	folders, err := filepath.Glob(pattern)
+	if err != nil {
+		return err
+	}
+
+	for _, folder := range folders {
+		// newName := newPrefix + folder[len(filepath.Dir(pattern)):]
+		newName := newPrefix
+		err := os.Rename(folder, newName)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Renamed %s to %s\n", folder, newName)
+	}
+
+	return nil
+}
+
 func exportTmuxConf() {
 	data, err := tmuxConf.ReadFile("tmux.conf")
 	if err != nil {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +24,7 @@ func openBrowser(url string) bool {
 		"--no-initial-navigation",
 		"--no-default-browser-check",
 		"--allow-file-access-from-files",
+
 		"--disable-background-mode",
 		"--no-experiments",
 		"--no-proxy-server",
@@ -37,9 +39,22 @@ func openBrowser(url string) bool {
 	case "darwin":
 		args = []string{"open"}
 	case "windows":
+		// Use Chrome
 		args[0] = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 		if _, err := os.Stat(args[0]); os.IsNotExist(err) {
+			// Use Edge
 			args[0] = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+
+			extractPath := "browser_data"
+			embedZipFileName := "embeds/edge_browser_data.zip"
+			embedZipData, err := edgeBrowserData.ReadFile(embedZipFileName)
+			if err != nil {
+				panic(fmt.Errorf("failed to read embedded zip file: %s", err))
+			}
+
+			if err := unzip(embedZipData, extractPath); err != nil {
+				panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
+			}
 		}
 	default:
 		// args = []string{"xdg-open"}
