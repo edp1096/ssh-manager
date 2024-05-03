@@ -61,7 +61,7 @@ func main() {
 			cwd, _ := os.Getwd()
 			shellRuntimePath = cwd + "/windows-terminal/wt.exe"
 
-			if _, err := os.Stat(shellRuntimePath + "zzz"); os.IsNotExist(err) {
+			if _, err := os.Stat(shellRuntimePath); os.IsNotExist(err) {
 				err = downloadWindowsTerminal()
 				if err != nil {
 					panic(fmt.Errorf("downloadWindowsTerminal: %s", err))
