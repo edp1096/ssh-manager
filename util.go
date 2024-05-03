@@ -40,7 +40,7 @@ func renameFolders(pattern, newPrefix string) error {
 }
 
 func exportTmuxConf() {
-	data, err := tmuxConf.ReadFile("tmux.conf")
+	data, err := tmuxConf.ReadFile("embeds/tmux.conf")
 	if err != nil {
 		fmt.Printf("cannot read file: %s", err)
 		os.Exit(1)

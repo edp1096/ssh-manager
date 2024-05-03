@@ -45,6 +45,9 @@ var embedFiles embed.FS
 //go:embed embeds/edge_browser_data.zip
 var edgeBrowserData embed.FS
 
+//go:embed embeds/chrome_browser_data.tar.gz
+var chromeBrowserData embed.FS
+
 //go:embed embeds/tmux.conf
 var tmuxConf embed.FS
 

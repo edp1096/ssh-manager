@@ -59,6 +59,17 @@ func openBrowser(url string) bool {
 	default:
 		// args = []string{"xdg-open"}
 		args[0] = "/usr/bin/chromium-browser"
+
+		extractPath := "browser_data"
+		embedTgzFileName := "embeds/chrome_browser_data.tar.gz"
+		embedTgzData, err := chromeBrowserData.ReadFile(embedTgzFileName)
+		if err != nil {
+			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
+		}
+
+		if err := untar(embedTgzData, extractPath); err != nil {
+			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
+		}
 	}
 
 	cmdBrowser = exec.Command(args[0], append(args[1:], url)...)
