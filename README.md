@@ -8,7 +8,7 @@ SSH hosts manager for personal use
 ```
 
 ## Requirements
-* MS-Windows - Windows Terminal, ms-edge
+* MS-Windows - Windows Terminal, chrome or ms-edge
 * Linux - gnome-terminal, Tmux, chromium
 
 ## Build
