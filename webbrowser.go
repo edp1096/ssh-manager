@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -36,7 +37,10 @@ func openBrowser(url string) bool {
 	case "darwin":
 		args = []string{"open"}
 	case "windows":
-		args[0] = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+		args[0] = "C:/Program Files/Google/Chrome/Application/chrome.exe"
+		if _, err := os.Stat(args[0]); os.IsNotExist(err) {
+			args[0] = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
+		}
 	default:
 		// args = []string{"xdg-open"}
 		args[0] = "/usr/bin/chromium-browser"
