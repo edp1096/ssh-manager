@@ -9,6 +9,15 @@ import (
 	"runtime"
 )
 
+type HostList struct {
+	Categories []HostCategory `json:"host-categories"`
+}
+
+type HostCategory struct {
+	Name  string     `json:"name"`
+	Hosts []HostInfo `json:"hosts"`
+}
+
 type HostInfo struct {
 	Name           string `json:"name"`
 	Description    string `json:"description"`
@@ -50,8 +59,6 @@ var chromeBrowserData embed.FS
 
 //go:embed embeds/tmux.conf
 var tmuxConf embed.FS
-
-func init() {}
 
 func main() {
 	var err error

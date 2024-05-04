@@ -5,7 +5,9 @@ const noticeDialog = document.querySelector('#dialog-notice')
 
 
 async function getHosts() {
-    const tmpl = document.querySelector("#hosts-data-template").innerHTML
+    const tmplHost = document.querySelector("#hosts-data-template").innerHTML
+    const tmplCategoryButtons = document.querySelector("#category-buttons-template").innerHTML
+    const tmplCategory = document.querySelector("#category-data-template").innerHTML
     const hostsContainer = document.querySelector("#hosts-data-container")
 
     const r = await fetch("/hosts?hosts-file=" + hostsFile)
@@ -32,14 +34,33 @@ async function getHosts() {
         if (!json) { json = [] }
 
         hostsContainer.innerHTML = ""
-        json.forEach((el, i) => {
-            line = tmpl
-            line = line.replaceAll("$$_NAME_$$", el["name"])
-            line = line.replaceAll("$$_ADDRESS_$$", el["address"])
-            line = line.replaceAll("$$_PORT_$$", el["port"])
-            line = line.replaceAll("$$_IDX_$$", i + 1)
+        json["host-categories"].forEach((elCategory, i) => {
+            let lines = ""
+            elCategory["hosts"].forEach((elHosts, j) => {
+                let line = tmplHost
+                line = line.replaceAll("@@_NAME_@@", elHosts["name"])
+                line = line.replaceAll("@@_ADDRESS_@@", elHosts["address"])
+                line = line.replaceAll("@@_PORT_@@", elHosts["port"])
+                line = line.replaceAll("@@_IDX_@@", j + 1)
 
-            hostsContainer.innerHTML += line
+                lines += line
+            })
+
+            let cate = tmplCategory
+            cate = cate.replaceAll("@@_CATEGORY_NAME_@@", elCategory["name"])
+            cate = cate.replace("@@_CATEGORY_BUTTONS_@@", tmplCategoryButtons)
+            cate = cate.replaceAll("@@_CATEGORY_IDX_@@", (i + 1))
+            cate = cate.replaceAll("@@_HOST_DATA_@@", lines)
+
+            hostsContainer.innerHTML += cate
+        })
+
+        hostsContainer.querySelectorAll('.category').forEach(item => {
+            item.addEventListener('click', function (event) {
+                if (!event.target.closest('.host-part-info') && !event.target.closest('button')) {
+                    this.classList.toggle('active')
+                }
+            })
         })
 
         hostsData = json
@@ -81,13 +102,20 @@ function moveKeyFileToPrivateKeyText(el) {
     }
 }
 
-function openHostEditDialog(idxSTR = null) {
+function openHostEditDialog(categoryIdxSTR = null, hostIdxSTR = null) {
     const tmpl = hostEditDialogTMPL.innerHTML
-    hostEditDialog.innerHTML = tmpl.replaceAll("$$_TITLE_$$", "New host")
+    hostEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "New host")
 
-    if (idxSTR) {
+    let categoryIdx = 0
+    if (categoryIdxSTR) {
+        categoryIdx = parseInt(categoryIdxSTR) - 1
+    }
+
+    hostEditDialog.querySelector("input#category-idx").value = categoryIdx
+
+    if (hostIdxSTR) {
         const d = hostEditDialog
-        const idx = parseInt(idxSTR) - 1
+        const idx = parseInt(hostIdxSTR) - 1
         d.querySelector("input#idx").value = idx
 
         const privateKeyText = (hostsData[idx]["private-key-text"]) ? hostsData[idx]["private-key-text"] : ""
@@ -124,7 +152,8 @@ async function saveHostData(e) {
 
     d.returnValue = ""
 
-    const idxSTR = d.querySelector("input#idx").value
+    const categoryIdxSTR = d.querySelector("input#category-idx").value
+    const hostIdxSTR = d.querySelector("input#idx").value
 
     const name = d.querySelector("dialog input[name='name']").value
     const address = d.querySelector("dialog input[name='address']").value
@@ -159,8 +188,15 @@ async function saveHostData(e) {
 
     let params = `hosts-file=${hostsFile}`
 
-    if (idxSTR) {
-        const idx = parseInt(idxSTR)
+    if (categoryIdxSTR) {
+        const categoryIdx = parseInt(categoryIdxSTR)
+        if (idx > -1) {
+            params += `&category-idx=${categoryIdx}`
+        }
+    }
+
+    if (hostIdxSTR) {
+        const idx = parseInt(hostIdxSTR)
         if (idx > -1) {
             params += `&idx=${idx}`
         }
@@ -182,7 +218,7 @@ async function saveHostData(e) {
 
     hostEditDialog.innerHTML = ""
     const tmpl = noticeDialogTMPL.innerHTML
-    noticeDialog.innerHTML = tmpl.replaceAll("$$_MESSAGE_$$", message)
+    noticeDialog.innerHTML = tmpl.replaceAll("@@_MESSAGE_@@", message)
     noticeDialog.showModal()
     getHosts()
 
@@ -211,7 +247,7 @@ async function deleteHost(idxSTR) {
     }
 
     const tmpl = noticeDialogTMPL.innerHTML
-    noticeDialog.innerHTML = tmpl.replaceAll("$$_MESSAGE_$$", message)
+    noticeDialog.innerHTML = tmpl.replaceAll("@@_MESSAGE_@@", message)
     noticeDialog.showModal()
     getHosts()
 

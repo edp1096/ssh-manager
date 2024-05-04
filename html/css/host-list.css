@@ -3,21 +3,51 @@
     height: calc(100% - 40px);
 }
 
-#hosts-data-container ul {
+.categories {
+    list-style: none;
+    padding-left: 20px;
+}
+
+.category {
+    position: relative;
+    margin-bottom: 5px;
+}
+
+.category:before {
+    content: "▶";
+    position: absolute;
+    left: -15px;
+    top: 2px;
+    cursor: pointer;
+}
+
+.category.active:before {
+    content: "▼";
+}
+
+.category.active .host-part-info {
+    display: flex;
+}
+
+.host-part-info {
+    display: none;
+}
+
+.category ul {
     list-style-type: none;
     padding: 0;
     margin: 0;
-    display: flex;
+    /* display: flex; */
     flex-direction: row;
     justify-content: space-around;
     align-items: flex-start;
 }
 
-#hosts-data-container ul:hover {
+.category ul:hover {
     background-color: gainsboro;
 }
 
-#hosts-data-container li {
+.category li {
     list-style: none;
     display: inline-flex;
     margin-right: 20px;
@@ -25,14 +55,14 @@
     min-width: 15em;
 }
 
-#hosts-data-container li.part-name {
+.category li.part-name {
     min-width: 13em;
 }
 
-#hosts-data-container li.part-address {
+.category li.part-address {
     min-width: 14em;
 }
 
-#hosts-data-container li.part-port {
+.category li.part-port {
     min-width: 4em;
 }

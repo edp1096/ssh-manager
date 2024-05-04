@@ -5,7 +5,10 @@ GET http://localhost:11080 HTTP/1.1
 ### Get host list
 GET http://localhost:11080/hosts?hosts-file=./hosts.dat HTTP/1.1
 
-### Add host
+
+## Default category
+
+### Add host to default category
 POST http://localhost:11080/hosts?hosts-file=./hosts.dat HTTP/1.1
 content-type: application/json
 
@@ -19,7 +22,7 @@ content-type: application/json
 }
 
 ### Edit host
-POST http://localhost:11080/hosts?hosts-file=./hosts.dat&idx=2 HTTP/1.1
+POST http://localhost:11080/hosts?hosts-file=./hosts.dat&host-idx=0 HTTP/1.1
 content-type: application/json
 
 {
@@ -33,7 +36,48 @@ content-type: application/json
 }
 
 ### Delete host
-DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&idx=1 HTTP/1.1
+DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=0&host-idx=1 HTTP/1.1
+
+
+## Category cate01
+
+### Add category
+POST http://localhost:11080/categories?hosts-file=./hosts.dat HTTP/1.1
+content-type: application/json
+
+{
+    "name": "cate01"
+}
+
+### Add host
+POST http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=1 HTTP/1.1
+content-type: application/json
+
+{
+    "name": "test0",
+    "address": "localhost",
+    "port": 1022,
+    "username": "testuser",
+    "password": "1234",
+    "privateKeyText": ""
+}
+
+### Edit host
+POST http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=1&host-idx=0 HTTP/1.1
+content-type: application/json
+
+{
+    "name": "test1",
+    "description": "",
+    "address": "192.168.0.1",
+    "port": 2022,
+    "username": "user1",
+    "password": "user1234",
+    "private-key-text": ""
+}
+
+### Delete host
+DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=1&host-idx=0 HTTP/1.1
 
 
 ### Change host file password

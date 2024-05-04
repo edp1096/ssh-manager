@@ -14,7 +14,7 @@
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
-    <button onclick="openHostEditDialog()">New Host</button>
+    <button onclick="appendCategory()">Add category</button>
     <button onclick="getHosts()">Refresh host list</button>
     <button onclick="openChangePasswordDialog()">Change password</button>
 
@@ -58,28 +58,48 @@
         </form>
     </dialog>
 
+    <template id="category-edit-template">
+        <input id="category-name" />
+    </template>
+
+    <template id="category-buttons-template">
+        <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`)">Add host</button>
+        <button onclick="alert('Not yet')">Rename category</button>
+        <button onclick="alert('Not yet')">Delete category</button>
+    </template>
+
+    <template id="category-data-template">
+        <ul class="categories">
+            <li class="category">
+                <span class="category-name">@@_CATEGORY_NAME_@@</span>
+                <span class="buttons">@@_CATEGORY_BUTTONS_@@</span>
+                @@_HOST_DATA_@@
+            </li>
+        </ul>
+    </template>
 
     <template id="hosts-data-template">
-        <ul ondblclick="connectSSH(`$$_IDX_$$`, `new_window`)" onmousedown="return false">
+        <ul class="host-part-info" ondblclick="connectSSH(`@@_IDX_@@`, `new_window`)" onmousedown="return false">
             <li class="part-name">
-                <span class="label">Name:</span> <span>$$_NAME_$$</span>
+                <span class="label">Name:</span> <span>@@_NAME_@@</span>
             </li>
             <li class="part-address">
-                <span class="label">Address:</span> <span>$$_ADDRESS_$$:$$_PORT_$$</span>
+                <span class="label">Address:</span> <span>@@_ADDRESS_@@:@@_PORT_@@</span>
             </li>
             <li>
-                <button onclick="connectSSH(`$$_IDX_$$`, `new_window`)">Open new window</button>
-                <button onclick="connectSSH(`$$_IDX_$$`)">Open new panel</button>
+                <button onclick="connectSSH(`@@_IDX_@@`, `new_window`)">Open new window</button>
+                <button onclick="connectSSH(`@@_IDX_@@`)">Open new panel</button>
                 <span class="button-section-divider">|</span>
-                <button onclick="openHostEditDialog(`$$_IDX_$$`)">Edit</button>
-                <button onclick="deleteHost(`$$_IDX_$$`)">Delete</button>
+                <button onclick="openHostEditDialog(`@@_IDX_@@`)">Edit</button>
+                <button onclick="deleteHost(`@@_IDX_@@`)">Delete</button>
             </li>
         </ul>
     </template>
 
     <template id="dialog-host-edit-template">
-        <h2>$$_TITLE_$$</h2>
+        <h2>@@_TITLE_@@</h2>
         <form method="dialog">
+            <input type="hidden" id="category-idx" value="" />
             <input type="hidden" id="idx" value="" />
             <input type="hidden" id="auth-type-orig" value="" />
             <div>
@@ -130,7 +150,7 @@
 
     <template id="dialog-notice-template">
         <div style="width: 15rem; height: 10rem;">
-            <p>$$_MESSAGE_$$</p>
+            <p>@@_MESSAGE_@@</p>
             <button onclick="closeNotice(event)">Close</button>
         </div>
     </template>

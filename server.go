@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -52,7 +53,8 @@ func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var data EnterPassword
-	var hosts []HostInfo
+
+	hosts := HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -104,7 +106,7 @@ func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
 func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var data ChangePassword
-	var hosts []HostInfo
+	var hosts HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -166,7 +168,7 @@ func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
 
 func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var hosts []HostInfo
+	var hosts HostList
 
 	params := r.URL.Query()
 	hostsFile := params.Get("hosts-file")
@@ -177,7 +179,7 @@ func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 
 	err = loadHostData(hostsFile, hostFileKEY, &hosts)
 	if err != nil {
-		hosts = []HostInfo{}
+		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -186,10 +188,10 @@ func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(hosts)
 }
 
-func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
+func handleAddEditCategory(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var hostsRequest HostRequestInfo
-	var hosts []HostInfo
+	var categoryRequest HostCategory
+	var hosts HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -198,10 +200,10 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idxSTR := strings.TrimSpace(params.Get("idx"))
+	categoryIdxSTR := strings.TrimSpace(params.Get("category-idx"))
 
 	decoder := json.NewDecoder(r.Body)
-	err = decoder.Decode(&hostsRequest)
+	err = decoder.Decode(&categoryRequest)
 	if err != nil {
 		http.Error(w, "invalid host data", http.StatusBadRequest)
 		return
@@ -214,20 +216,27 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 
 	err = loadHostData(hostsFile, hostFileKEY, &hosts)
 	if err != nil {
-		hosts = []HostInfo{}
+		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
 	}
 
-	if idxSTR == "" {
-		hosts = append(hosts, HostInfo(hostsRequest))
-	} else {
-		idx, _ := strconv.ParseInt(idxSTR, 10, 64)
-
-		if strings.TrimSpace(hostsRequest.PrivateKeyText) == "" && strings.TrimSpace(hostsRequest.Password) == "" {
-			hostsRequest.PrivateKeyText = hosts[idx].PrivateKeyText
-			hostsRequest.Password = hosts[idx].Password
+	categoryIDX := 0
+	if categoryIdxSTR != "" {
+		categoryIDX, err = strconv.Atoi(categoryIdxSTR)
+		if err != nil {
+			http.Error(w, "wrong category index", http.StatusBadRequest)
+			return
 		}
+		if int(categoryIDX) > len(hosts.Categories)-1 {
+			http.Error(w, "wrong category index", http.StatusBadRequest)
+			return
+		}
+	}
 
-		hosts[idx] = HostInfo(hostsRequest)
+	if categoryIdxSTR == "" {
+		hosts.Categories = append(hosts.Categories, categoryRequest)
+	} else {
+		categoryRequest.Hosts = hosts.Categories[categoryIDX].Hosts
+		hosts.Categories[categoryIDX] = categoryRequest
 	}
 
 	err = saveHostData(hostsFile, hostFileKEY, &hosts)
@@ -244,9 +253,10 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
+func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var hosts []HostInfo
+	var hostRequest HostRequestInfo
+	var hosts HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -255,25 +265,112 @@ func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idxSTR := strings.TrimSpace(params.Get("idx"))
+	categoryIdxSTR := strings.TrimSpace(params.Get("category-idx"))
+	hostIdxSTR := strings.TrimSpace(params.Get("host-idx"))
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&hostRequest)
+	if err != nil {
+		http.Error(w, "invalid host data", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(hostsFile) == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
 
 	err = loadHostData(hostsFile, hostFileKEY, &hosts)
 	if err != nil {
-		hosts = []HostInfo{}
+		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
 	}
 
-	if idxSTR == "" {
-		http.Error(w, "require idx", http.StatusBadRequest)
+	categoryIDX := 0
+	if categoryIdxSTR != "" {
+		categoryIDX, err = strconv.Atoi(categoryIdxSTR)
+		if err != nil {
+			http.Error(w, "wrong category index", http.StatusBadRequest)
+			return
+		}
+		if int(categoryIDX) > len(hosts.Categories)-1 {
+			http.Error(w, "wrong category index", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if hostIdxSTR == "" {
+		hosts.Categories[categoryIDX].Hosts = append(hosts.Categories[categoryIDX].Hosts, HostInfo(hostRequest))
+	} else {
+		hostIDX, _ := strconv.ParseInt(hostIdxSTR, 10, 64)
+
+		if strings.TrimSpace(hostRequest.PrivateKeyText) == "" && strings.TrimSpace(hostRequest.Password) == "" {
+			hostRequest.PrivateKeyText = hosts.Categories[categoryIDX].Hosts[hostIDX].PrivateKeyText
+			hostRequest.Password = hosts.Categories[categoryIDX].Hosts[hostIDX].Password
+		}
+
+		hosts.Categories[categoryIDX].Hosts[hostIDX] = HostInfo(hostRequest)
+	}
+
+	err = saveHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "error saving host data file", http.StatusInternalServerError)
+		return
+	}
+
+	result := map[string]string{"message": "success"}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(result)
+}
+
+func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var hosts HostList
+
+	params := r.URL.Query()
+	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
+	if hostsFile == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	// idxSTR := strings.TrimSpace(params.Get("idx"))
+	categoryIdxSTR := strings.TrimSpace(params.Get("category-idx"))
+	hostIdxSTR := strings.TrimSpace(params.Get("host-idx"))
+
+	err = loadHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+	}
+
+	categoryIDX := 0
+	if categoryIdxSTR != "" {
+		categoryIDX, err = strconv.Atoi(categoryIdxSTR)
+		if err != nil {
+			http.Error(w, "wrong category index", http.StatusBadRequest)
+			return
+		}
+		if int(categoryIDX) > len(hosts.Categories)-1 {
+			http.Error(w, "wrong category index", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if hostIdxSTR == "" {
+		http.Error(w, "require host index", http.StatusBadRequest)
 		return
 	} else {
-		idx, _ := strconv.ParseInt(idxSTR, 10, 64)
+		hostIDX, _ := strconv.ParseInt(hostIdxSTR, 10, 64)
 
-		if int(idx) > len(hosts)-1 {
+		if int(hostIDX) > len(hosts.Categories[categoryIDX].Hosts)-1 {
 			http.Error(w, "wrong index", http.StatusBadRequest)
 			return
 		}
 
-		hosts = slices.Delete(hosts, int(idx), int(idx+1))
+		hosts.Categories[categoryIDX].Hosts = slices.Delete(hosts.Categories[categoryIDX].Hosts, int(hostIDX), int(hostIDX+1))
 	}
 
 	err = saveHostData(hostsFile, hostFileKEY, &hosts)
@@ -348,6 +445,7 @@ func runServer() {
 	mux.HandleFunc("POST /enter-password", handleEnterPassword)
 	mux.HandleFunc("PUT /host-file-password", handleChangeHostFilePassword)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
+	mux.HandleFunc("POST /categories", handleAddEditCategory)
 	mux.HandleFunc("POST /hosts", handleAddEditHost)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
