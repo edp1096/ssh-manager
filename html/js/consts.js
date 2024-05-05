@@ -1,1 +1,2 @@
-const serverURI = "localhost:11080"
+const currentURL = new URL(window.location.href)
+const serverURI = `${currentURL.hostname}:${currentURL.port}`

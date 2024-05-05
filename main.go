@@ -46,6 +46,7 @@ var (
 	browserWindowTitle string
 	server             *http.Server
 	binaryPath         string
+	availablePort      int
 )
 
 //go:embed html/*

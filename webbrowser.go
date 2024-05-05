@@ -1,12 +1,36 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+
+	_ "modernc.org/sqlite"
 )
+
+func editLogin(url string) {
+	dbPath := "./browser_data/Default/Login Data"
+
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE logins SET origin_url = ?, signon_realm = ? WHERE id = (SELECT id FROM logins LIMIT 1)", url, url, 3)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec("UPDATE stats SET origin_domain = ? WHERE update_time = (SELECT update_time FROM stats LIMIT 1)", url)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func openBrowser(url string) bool {
 	userAgent := "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 Edg/124.0.0.0"
@@ -54,6 +78,8 @@ func openBrowser(url string) bool {
 			if err := untar(embedTgzData, extractPath); err != nil {
 				panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 			}
+
+			editLogin(url + "/")
 		} else {
 			// Use Edge
 			args[0] = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
@@ -67,6 +93,8 @@ func openBrowser(url string) bool {
 			if err := unzip(embedZipData, extractPath); err != nil {
 				panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
 			}
+
+			editLogin(url + "/")
 		}
 	default:
 		extractPath := "browser_data"
@@ -83,6 +111,8 @@ func openBrowser(url string) bool {
 		if err := untar(embedTgzData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
+
+		editLogin(url + "/")
 	}
 
 	cmdBrowser = exec.Command(args[0], append(args[1:], url)...)

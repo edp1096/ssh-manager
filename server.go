@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -24,6 +27,26 @@ type EnterPassword struct {
 type ChangePassword struct {
 	PasswordOLD string `json:"password-old"`
 	PasswordNEW string `json:"password-new"`
+}
+
+func getAvailablePort() (port int, err error) {
+	portBegin := 10000
+	portEnd := 50000
+
+	source := rand.NewSource(time.Now().UnixNano())
+	randGen := rand.New(source)
+
+	for {
+		port = randGen.Intn(portEnd-portBegin) + portBegin
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err == nil {
+			ln.Close()
+			fmt.Printf("available port: %d\n", port)
+			break
+		}
+	}
+
+	return
 }
 
 func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
@@ -437,7 +460,14 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func runServer() {
-	listen := "localhost:11080"
+	var err error
+
+	availablePort, err = getAvailablePort()
+	if err != nil {
+		panic(err)
+	}
+
+	listen := "localhost:" + strconv.Itoa(availablePort)
 
 	mux := http.NewServeMux()
 
