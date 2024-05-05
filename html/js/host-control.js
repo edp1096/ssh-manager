@@ -41,6 +41,7 @@ async function getHosts() {
                 line = line.replaceAll("@@_NAME_@@", elHosts["name"])
                 line = line.replaceAll("@@_ADDRESS_@@", elHosts["address"])
                 line = line.replaceAll("@@_PORT_@@", elHosts["port"])
+                line = line.replaceAll("@@_CATEGORY_IDX_@@", (i + 1))
                 line = line.replaceAll("@@_IDX_@@", j + 1)
 
                 lines += line
@@ -63,7 +64,7 @@ async function getHosts() {
             })
         })
 
-        hostsData = json
+        hostsData = json["host-categories"]
         return
     }
 }
@@ -118,18 +119,19 @@ function openHostEditDialog(categoryIdxSTR = null, hostIdxSTR = null) {
         const idx = parseInt(hostIdxSTR) - 1
         d.querySelector("input#idx").value = idx
 
-        const privateKeyText = (hostsData[idx]["private-key-text"]) ? hostsData[idx]["private-key-text"] : ""
+        const hostItem = hostsData[categoryIdx].hosts[idx]
+        const privateKeyText = (hostItem["private-key-text"]) ? hostItem["private-key-text"] : ""
 
-        d.querySelector("input[name='name']").value = hostsData[idx]["name"]
-        d.querySelector("input[name='address']").value = hostsData[idx]["address"]
-        d.querySelector("input[name='port']").value = hostsData[idx]["port"]
-        d.querySelector("input[name='username']").value = hostsData[idx]["username"]
+        d.querySelector("input[name='name']").value = hostItem["name"]
+        d.querySelector("input[name='address']").value = hostItem["address"]
+        d.querySelector("input[name='port']").value = hostItem["port"]
+        d.querySelector("input[name='username']").value = hostItem["username"]
 
         d.querySelector("input[name='password']").value = ""
         d.querySelector("input[name='password']").removeAttribute("required")
 
         d.querySelector("textarea[name='private-key-text']").value = privateKeyText
-        d.querySelector("textarea[name='description']").value = hostsData[idx]["description"]
+        d.querySelector("textarea[name='description']").value = hostItem["description"]
 
         d.querySelector("input#auth-type-orig").value = "password"
         if (privateKeyText != "") {
