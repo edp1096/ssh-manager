@@ -276,6 +276,52 @@ func handleAddEditCategory(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var hosts HostList
+
+	params := r.URL.Query()
+	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
+	if hostsFile == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	idxSTR := strings.TrimSpace(params.Get("idx"))
+
+	err = loadHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+	}
+
+	if idxSTR == "" {
+		http.Error(w, "require category index", http.StatusBadRequest)
+		return
+	} else {
+		idx, _ := strconv.ParseInt(idxSTR, 10, 64)
+
+		if int(idx) > len(hosts.Categories)-1 {
+			http.Error(w, "wrong index", http.StatusBadRequest)
+			return
+		}
+
+		hosts.Categories = slices.Delete(hosts.Categories, int(idx), int(idx+1))
+	}
+
+	err = saveHostData(hostsFile, hostFileKEY, &hosts)
+	if err != nil {
+		http.Error(w, "error saving host data file", http.StatusInternalServerError)
+		return
+	}
+
+	result := map[string]string{"message": "success"}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(result)
+}
+
 func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var hostRequest HostRequestInfo
@@ -476,6 +522,7 @@ func runServer() {
 	mux.HandleFunc("PUT /host-file-password", handleChangeHostFilePassword)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
 	mux.HandleFunc("POST /categories", handleAddEditCategory)
+	mux.HandleFunc("DELETE /categories", handleDeleteCategory)
 	mux.HandleFunc("POST /hosts", handleAddEditHost)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)

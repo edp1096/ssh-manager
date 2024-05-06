@@ -8,6 +8,15 @@ import (
 	"path/filepath"
 )
 
+type HostList struct {
+	Categories []HostCategory `json:"host-categories"`
+}
+
+type HostCategory struct {
+	Name  string     `json:"name"`
+	Hosts []HostInfo `json:"hosts"`
+}
+
 type HostInfo struct {
 	Name           string
 	Description    string
@@ -21,9 +30,11 @@ type HostInfo struct {
 var (
 	hostsFile   = flag.String("f", "", "host data file (required)")
 	hostFileKey = flag.String("k", "", "host data file key which is base64 encoded (required)")
-	hostsIDX    = flag.Int("i", 0, "index of host data (required)")
+	hostIDX     = flag.Int("hi", 0, "index of host (required)")
+	categoryIDX = flag.Int("ci", 0, "index of category (required)")
 
-	hosts []HostInfo
+	// hosts []HostInfo
+	hosts HostList
 	host  HostInfo
 	key   []byte
 )
@@ -32,7 +43,7 @@ func main() {
 	var err error
 
 	flag.Parse()
-	if flag.NArg() > 0 || *hostsFile == "" || *hostFileKey == "" || *hostsIDX == 0 {
+	if flag.NArg() > 0 || *hostsFile == "" || *hostFileKey == "" || *categoryIDX == 0 || *hostIDX == 0 {
 		binaryName := filepath.Base(os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", binaryName)
 		flag.PrintDefaults()
@@ -53,13 +64,20 @@ func main() {
 		return
 	}
 
-	if *hostsIDX > len(hosts) {
-		fmt.Printf("index not exist. max index is %d\n", len(hosts))
+	*categoryIDX--
+	*hostIDX--
+
+	if *categoryIDX > len(hosts.Categories)-1 {
+		fmt.Printf("category index not exist. max index is %d\n", len(hosts.Categories))
 		return
 	}
 
-	*hostsIDX--
-	host = hosts[*hostsIDX]
+	if *hostIDX > len(hosts.Categories[*categoryIDX].Hosts)-1 {
+		fmt.Printf("host index not exist. max index is %d\n", len(hosts.Categories))
+		return
+	}
+
+	host = hosts.Categories[*categoryIDX].Hosts[*hostIDX]
 	fmt.Printf("Connecting %s/%s\n", host.Name, host.Address)
 
 	err = openSession()

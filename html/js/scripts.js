@@ -2,16 +2,21 @@ let hostsData = []
 let hostsFile = "./hosts.dat"
 
 
-async function connectSSH(idx, windowMode = null) {
-    const hostsIndex = parseInt(idx)
-    if (typeof hostsIndex != 'number' || !Number.isInteger(hostsIndex)) {
-        alert("Index is not integer")
+async function connectSSH(categoryIdx, hostIdx, windowMode = null) {
+    const categoryIndex = parseInt(categoryIdx)
+    if (typeof categoryIndex != 'number' || !Number.isInteger(categoryIndex)) {
+        alert("Category index is not integer")
+        return false
+    }
+    const hostIndex = parseInt(hostIdx)
+    if (typeof hostIndex != 'number' || !Number.isInteger(hostIndex)) {
+        alert("Host index is not integer")
         return false
     }
 
     let modeWindow = (windowMode) ? windowMode : ""
 
-    const body = { "hosts-file": hostsFile, "index": hostsIndex }
+    const body = { "hosts-file": hostsFile, "category-index": categoryIndex, "host-index": hostIndex }
     const r = await fetch(`/session/open?window-mode=${modeWindow}`, {
         method: "POST",
         headers: new Headers({}),

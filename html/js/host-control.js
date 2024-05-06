@@ -1,4 +1,6 @@
+const categoryEditDialog = document.querySelector('#dialog-category-edit')
 const hostEditDialog = document.querySelector('#dialog-host-edit')
+const categoryEditDialogTMPL = document.querySelector('#dialog-category-edit-template')
 const hostEditDialogTMPL = document.querySelector('#dialog-host-edit-template')
 const noticeDialogTMPL = document.querySelector('#dialog-notice-template')
 const noticeDialog = document.querySelector('#dialog-notice')
@@ -36,16 +38,18 @@ async function getHosts() {
         hostsContainer.innerHTML = ""
         json["host-categories"].forEach((elCategory, i) => {
             let lines = ""
-            elCategory["hosts"].forEach((elHosts, j) => {
-                let line = tmplHost
-                line = line.replaceAll("@@_NAME_@@", elHosts["name"])
-                line = line.replaceAll("@@_ADDRESS_@@", elHosts["address"])
-                line = line.replaceAll("@@_PORT_@@", elHosts["port"])
-                line = line.replaceAll("@@_CATEGORY_IDX_@@", (i + 1))
-                line = line.replaceAll("@@_IDX_@@", j + 1)
+            if (elCategory["hosts"]) {
+                elCategory["hosts"].forEach((elHosts, j) => {
+                    let line = tmplHost
+                    line = line.replaceAll("@@_NAME_@@", elHosts["name"])
+                    line = line.replaceAll("@@_ADDRESS_@@", elHosts["address"])
+                    line = line.replaceAll("@@_PORT_@@", elHosts["port"])
+                    line = line.replaceAll("@@_CATEGORY_IDX_@@", (i + 1))
+                    line = line.replaceAll("@@_HOST_IDX_@@", j + 1)
 
-                lines += line
-            })
+                    lines += line
+                })
+            }
 
             let cate = tmplCategory
             cate = cate.replaceAll("@@_CATEGORY_NAME_@@", elCategory["name"])
@@ -101,6 +105,93 @@ function moveKeyFileToPrivateKeyText(el) {
         const d = hostEditDialog
         d.querySelector("textarea#host-edit-private-key-text").value = content
     }
+}
+
+function openCategoryEditDialog(categoryIdxSTR = null) {
+    const tmpl = categoryEditDialogTMPL.innerHTML
+    categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "New category")
+
+    if (categoryIdxSTR) {
+        const d = categoryEditDialog
+        const idx = parseInt(categoryIdxSTR) - 1
+        d.querySelector("input#category-idx").value = idx
+    }
+
+    categoryEditDialog.showModal()
+}
+
+async function saveCategoryData(e) {
+    const d = e.target
+    if (d.returnValue != 'confirm') {
+        d.innerHTML = ""
+        return
+    }
+
+    d.returnValue = ""
+
+    let params = `hosts-file=${hostsFile}`
+
+    const categoryIdxSTR = d.querySelector("input#category-idx").value
+    if (categoryIdxSTR) {
+        const idx = parseInt(categoryIdxSTR)
+        if (idx > -1) {
+            params += `&category-idx=${idx}`
+        }
+    }
+
+    const categoryName = d.querySelector("input#category-name").value
+    const categoryData = { name: categoryName }
+
+    const r = await fetch(`/categories?${params}`, {
+        method: "POST",
+        body: JSON.stringify(categoryData)
+    })
+
+    if (r.ok) {
+        const response = await r.json()
+        if (response.message == "success") {
+            message = "done to add."
+        }
+    }
+
+    hostEditDialog.innerHTML = ""
+    const tmpl = noticeDialogTMPL.innerHTML
+    noticeDialog.innerHTML = tmpl.replaceAll("@@_MESSAGE_@@", message)
+    noticeDialog.showModal()
+    getHosts()
+
+    setTimeout(() => { noticeDialog.close() }, 2000)
+
+    return
+}
+
+function cancelCategoryEditDialog() {
+    categoryEditDialog.innerHTML = ""
+    categoryEditDialog.close()
+}
+
+async function deleteCategory(idxSTR) {
+    const idx = parseInt(idxSTR) - 1
+
+    const params = `hosts-file=${hostsFile}&idx=${idx}`
+    const r = await fetch(`/categories?${params}`, { method: "DELETE" })
+
+    let message = "failed to delete."
+    if (r.ok) {
+        const response = await r.json()
+        if (response.message == "success") {
+            message = "done to delete."
+        }
+    }
+
+    const tmpl = noticeDialogTMPL.innerHTML
+    noticeDialog.innerHTML = tmpl.replaceAll("@@_MESSAGE_@@", message)
+    noticeDialog.showModal()
+    getHosts()
+
+    setTimeout(() => { noticeDialog.close() }, 2000)
+
+    return
 }
 
 function openHostEditDialog(categoryIdxSTR = null, hostIdxSTR = null) {
@@ -192,7 +283,7 @@ async function saveHostData(e) {
 
     if (categoryIdxSTR) {
         const categoryIdx = parseInt(categoryIdxSTR)
-        if (idx > -1) {
+        if (categoryIdx > -1) {
             params += `&category-idx=${categoryIdx}`
         }
     }
@@ -200,7 +291,7 @@ async function saveHostData(e) {
     if (hostIdxSTR) {
         const idx = parseInt(hostIdxSTR)
         if (idx > -1) {
-            params += `&idx=${idx}`
+            params += `&host-idx=${idx}`
         }
     }
 
@@ -234,17 +325,18 @@ function cancelHostEditDialog() {
     hostEditDialog.close()
 }
 
-async function deleteHost(idxSTR) {
-    const idx = parseInt(idxSTR) - 1
+async function deleteHost(categoryIdxSTR, hostIdxSTR) {
+    const categoryIDX = parseInt(categoryIdxSTR) - 1
+    const hostIDX = parseInt(hostIdxSTR) - 1
 
-    const params = `hosts-file=${hostsFile}&idx=${idx}`
+    const params = `hosts-file=${hostsFile}&category-idx=${categoryIDX}&host-idx=${hostIDX}`
     const r = await fetch(`/hosts?${params}`, { method: "DELETE" })
 
     let message = "failed to delete."
     if (r.ok) {
         const response = await r.json()
         if (response.message == "success") {
-            message = "done to save."
+            message = "done to delete."
         }
     }
 

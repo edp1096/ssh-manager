@@ -14,7 +14,7 @@
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
-    <button onclick="appendCategory()">Add category</button>
+    <button onclick="openCategoryEditDialog()">Add category</button>
     <button onclick="getHosts()">Refresh host list</button>
     <button onclick="openChangePasswordDialog()">Change password</button>
 
@@ -22,6 +22,7 @@
 
     <div id="hosts-data-container"></div>
 
+    <dialog id="dialog-category-edit" onclose="saveCategoryData(event)"></dialog>
     <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
     <dialog id="dialog-notice"></dialog>
 
@@ -58,14 +59,26 @@
         </form>
     </dialog>
 
-    <template id="category-edit-template">
-        <input id="category-name" />
+    <template id="dialog-category-edit-template">
+        <h2>@@_TITLE_@@</h2>
+        <form method="dialog">
+            <input type="hidden" id="category-idx" value="" />
+            <div>
+                <label for="category-name">Category name:</label>
+                <input id="category-name" required />
+            </div>
+
+            <div>
+                <button type="button" onclick="cancelCategoryEditDialog()">Cancel</button>
+                <button value="confirm">Save</button>
+            </div>
+        </form>
     </template>
 
     <template id="category-buttons-template">
         <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`)">Add host</button>
-        <button onclick="alert('Not yet')">Rename category</button>
-        <button onclick="alert('Not yet')">Delete category</button>
+        <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)">Rename category</button>
+        <button onclick="deleteCategory('@@_CATEGORY_IDX_@@')">Delete category</button>
     </template>
 
     <template id="category-data-template">
@@ -79,7 +92,7 @@
     </template>
 
     <template id="hosts-data-template">
-        <ul class="host-part-info" ondblclick="connectSSH(`@@_IDX_@@`, `new_window`)" onmousedown="return false">
+        <ul class="host-part-info" ondblclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)" onmousedown="return false">
             <li class="part-name">
                 <span class="label">Name:</span> <span>@@_NAME_@@</span>
             </li>
@@ -87,11 +100,11 @@
                 <span class="label">Address:</span> <span>@@_ADDRESS_@@:@@_PORT_@@</span>
             </li>
             <li>
-                <button onclick="connectSSH(`@@_IDX_@@`, `new_window`)">Open new window</button>
-                <button onclick="connectSSH(`@@_IDX_@@`)">Open new panel</button>
+                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">Open new window</button>
+                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Open new panel</button>
                 <span class="button-section-divider">|</span>
-                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_IDX_@@`)">Edit</button>
-                <button onclick="deleteHost(`@@_IDX_@@`)">Delete</button>
+                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Edit</button>
+                <button onclick="deleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Delete</button>
             </li>
         </ul>
     </template>

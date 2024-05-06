@@ -1,15 +1,17 @@
+@port = 49895
+
 ### HTML Page
-GET http://localhost:11080 HTTP/1.1
+GET http://localhost:{{port}} HTTP/1.1
 
 
 ### Get host list
-GET http://localhost:11080/hosts?hosts-file=./hosts.dat HTTP/1.1
+GET http://localhost:{{port}}/hosts?hosts-file=./hosts.dat HTTP/1.1
 
 
 ## Default category
 
 ### Add host to default category
-POST http://localhost:11080/hosts?hosts-file=./hosts.dat HTTP/1.1
+POST http://localhost:{{port}}/hosts?hosts-file=./hosts.dat HTTP/1.1
 content-type: application/json
 
 {
@@ -22,7 +24,7 @@ content-type: application/json
 }
 
 ### Edit host
-POST http://localhost:11080/hosts?hosts-file=./hosts.dat&host-idx=0 HTTP/1.1
+POST http://localhost:{{port}}/hosts?hosts-file=./hosts.dat&host-idx=0 HTTP/1.1
 content-type: application/json
 
 {
@@ -36,21 +38,33 @@ content-type: application/json
 }
 
 ### Delete host
-DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=0&host-idx=1 HTTP/1.1
+DELETE http://localhost:{{port}}/hosts?hosts-file=./hosts.dat&category-idx=0&host-idx=1 HTTP/1.1
 
 
-## Category cate01
+## Category usage
 
 ### Add category
-POST http://localhost:11080/categories?hosts-file=./hosts.dat HTTP/1.1
+POST http://localhost:{{port}}/categories?hosts-file=./hosts.dat HTTP/1.1
 content-type: application/json
 
 {
     "name": "cate01"
 }
 
+### Edit category
+POST http://localhost:{{port}}/categories?hosts-file=./hosts.dat&category-idx=1 HTTP/1.1
+content-type: application/json
+
+{
+    "name": "cate00"
+}
+
+### Delete category
+DELETE http://localhost:{{port}}/categories?hosts-file=./hosts.dat&idx=1 HTTP/1.1
+
+
 ### Add host
-POST http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=1 HTTP/1.1
+POST http://localhost:{{port}}/hosts?hosts-file=./hosts.dat&category-idx=1 HTTP/1.1
 content-type: application/json
 
 {
@@ -63,7 +77,7 @@ content-type: application/json
 }
 
 ### Edit host
-POST http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=1&host-idx=0 HTTP/1.1
+POST http://localhost:{{port}}/hosts?hosts-file=./hosts.dat&category-idx=1&host-idx=0 HTTP/1.1
 content-type: application/json
 
 {
@@ -77,11 +91,11 @@ content-type: application/json
 }
 
 ### Delete host
-DELETE http://localhost:11080/hosts?hosts-file=./hosts.dat&category-idx=1&host-idx=0 HTTP/1.1
+DELETE http://localhost:{{port}}/hosts?hosts-file=./hosts.dat&category-idx=1&host-idx=0 HTTP/1.1
 
 
 ### Change host file password
-PUT http://localhost:11080/host-file-password?hosts-file=./hosts.dat HTTP/1.1
+PUT http://localhost:{{port}}/host-file-password?hosts-file=./hosts.dat HTTP/1.1
 content-type: application/json
 
 {

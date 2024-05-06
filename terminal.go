@@ -11,11 +11,12 @@ import (
 )
 
 type SshArgument struct {
-	HostsFile string `json:"hosts-file"`
-	Index     int    `json:"index"`
+	HostsFile     string `json:"hosts-file"`
+	CategoryIndex int    `json:"category-index"`
+	HostIndex     int    `json:"host-index"`
 }
 
-func openWindowsTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid int, err error) {
+func openWindowsTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
 	procName := "ssh-client.exe"
 	termExists, err := checkProcessExists(procName)
 	if err != nil {
@@ -45,7 +46,7 @@ func openWindowsTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid 
 
 	hostFileKEYB64 := base64.URLEncoding.EncodeToString(hostFileKEY)
 
-	sshParams := []string{sshclientPath, "-f", hostsDataFile, "-k", hostFileKEYB64, "-i", strconv.Itoa(hostsIndex)}
+	sshParams := []string{sshclientPath, "-f", hostsDataFile, "-k", hostFileKEYB64, "-ci", strconv.Itoa(categoryIndex), "-hi", strconv.Itoa(hostIndex)}
 	shParams = append(shParams, sshParams...)
 
 	cmdTerminal = exec.Command(shellRuntimePath, shParams...)
@@ -59,7 +60,7 @@ func openWindowsTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid 
 	return
 }
 
-func openGnomeTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid int, err error) {
+func openGnomeTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
 	shellRuntimePath = "tmux"
 
 	procName := "ssh-client"
@@ -95,7 +96,7 @@ func openGnomeTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid in
 	sshclientPath := filepath.FromSlash(binaryPath + "/" + procName)
 
 	hostFileKEYB64 := base64.URLEncoding.EncodeToString(hostFileKEY)
-	sshParams := []string{sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -i " + strconv.Itoa(hostsIndex), "&&", "exit", "ENTER"}
+	sshParams := []string{sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex), "&&", "exit", "ENTER"}
 
 	shParams := []string{"send"}
 	shParams = append(shParams, sshParams...)
@@ -114,15 +115,16 @@ func openGnomeTerminal(hostsFile string, hostsIndex int, newWindow bool) (pid in
 
 func openSession(arg SshArgument, newWindow bool) {
 	hostsFile := arg.HostsFile
-	hostsIndex := arg.Index
+	hostIndex := arg.HostIndex
+	categoryIndex := arg.CategoryIndex
 
 	if runtime.GOOS == "windows" {
-		_, err := openWindowsTerminal(hostsFile, hostsIndex, newWindow)
+		_, err := openWindowsTerminal(hostsFile, categoryIndex, hostIndex, newWindow)
 		if err != nil {
 			fmt.Println("Error open terminal:", err)
 		}
 	} else {
-		_, err := openGnomeTerminal(hostsFile, hostsIndex, newWindow)
+		_, err := openGnomeTerminal(hostsFile, categoryIndex, hostIndex, newWindow)
 		if err != nil {
 			fmt.Println("Error open terminal:", err)
 		}
