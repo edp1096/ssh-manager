@@ -15,8 +15,8 @@ endif
 
 build:
 	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
-#	go build -ldflags "-w -s $(WINDOWS_HIDE)" -trimpath -o $(dest)/
-	go build -ldflags "-w -s" -trimpath -o $(dest)/
+	go build -ldflags "-w -s $(WINDOWS_HIDE)" -trimpath -o $(dest)/
+#	go build -ldflags "-w -s" -trimpath -o $(dest)/
 
 dist: clean
 	go get -d github.com/mitchellh/gox
