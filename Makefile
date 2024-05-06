@@ -14,11 +14,22 @@ ifndef version
 endif
 
 build:
+	go get github.com/akavel/rsrc
+	go build -o bin/ github.com/akavel/rsrc
+	bin/rsrc -ico ./html/favicon.ico -o rsrc.syso
+
 	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
 	go build -ldflags "-w -s $(WINDOWS_HIDE)" -trimpath -o $(dest)/
 #	go build -ldflags "-w -s" -trimpath -o $(dest)/
 
 dist: clean
+	go get github.com/akavel/rsrc
+	go build -o bin/ github.com/akavel/rsrc
+	bin/rsrc -arch amd64 -ico ./html/favicon.ico -o rsrc_windows_amd64.syso
+	bin/rsrc -arch amd64 -ico ./html/favicon.ico -o rsrc_linux_amd64.syso
+	bin/rsrc -arch arm -ico ./html/favicon.ico -o rsrc_linux_arm.syso
+	bin/rsrc -arch arm64 -ico ./html/favicon.ico -o rsrc_linux_arm64.syso
+
 	go get -d github.com/mitchellh/gox
 	go mod edit -replace github.com/mitchellh/gox=github.com/edp1096/gox@latest
 	go build -mod=readonly -o $(dest)/ github.com/mitchellh/gox
@@ -39,5 +50,6 @@ clean:
 	rm -rf $(dest)/browser_data
 	rm -rf dist
 	rm -rf ssh-client/$(dest)/*
+	rm -f ./rsrc_*.syso
 	rm -f ./coverage.html
 	rm -f ./coverage.out
