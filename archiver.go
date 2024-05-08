@@ -23,7 +23,7 @@ func unzip(zipFile []byte, targetFolder string) error {
 
 	fileList := make(map[string]bool)
 
-	fmt.Println("Extracting from ZIP:")
+	// fmt.Println("Extracting from ZIP:")
 	for _, file := range zipReader.File {
 		filePath := filepath.Join(targetFolder, file.Name)
 
@@ -58,7 +58,7 @@ func unzip(zipFile []byte, targetFolder string) error {
 			return fmt.Errorf("failed to extract file contents: %w", err)
 		}
 
-		fmt.Println(filePath)
+		// fmt.Println(filePath)
 	}
 
 	return nil
@@ -79,7 +79,7 @@ func untar(tarFile []byte, targetFolder string) error {
 
 	fileList := make(map[string]bool)
 
-	fmt.Println("Extracting from TAR.GZ:")
+	// fmt.Println("Extracting from TAR.GZ:")
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -115,7 +115,7 @@ func untar(tarFile []byte, targetFolder string) error {
 			return fmt.Errorf("failed to extract file contents: %w", err)
 		}
 
-		fmt.Println(filePath)
+		// fmt.Println(filePath)
 	}
 
 	return nil

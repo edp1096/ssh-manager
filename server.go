@@ -41,7 +41,7 @@ func getAvailablePort() (port int, err error) {
 		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 		if err == nil {
 			ln.Close()
-			fmt.Printf("available port: %d\n", port)
+			// fmt.Printf("available port: %d\n", port)
 			break
 		}
 	}

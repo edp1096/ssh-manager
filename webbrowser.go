@@ -100,7 +100,12 @@ func openBrowser(url string) bool {
 		extractPath := "browser_data"
 
 		// args = []string{"xdg-open"}
-		args[0] = "/usr/bin/chromium-browser"
+
+		// Use chrome if exist
+		args[0] = "/usr/bin/google-chrome"
+		if _, err := os.Stat(args[0]); os.IsNotExist(err) {
+			args[0] = "/usr/bin/chromium-browser"
+		}
 
 		embedTgzFileName := "embeds/chrome_browser_data.tar.gz"
 		embedTgzData, err := chromeBrowserData.ReadFile(embedTgzFileName)
