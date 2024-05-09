@@ -97,6 +97,9 @@ func openBrowser(url string) bool {
 			foundWebBrowser = b.Name
 			break
 		}
+	}
+
+	if foundWebBrowser == "" {
 		panic(fmt.Errorf("chrome or chromium or msedge not found"))
 	}
 
