@@ -12,6 +12,11 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+type WebBrowserInfo struct {
+	Name string
+	Path string
+}
+
 func editLogin(url string) {
 	dbPath := "./browser_data/Default/Login Data"
 
@@ -59,56 +64,57 @@ func openBrowser(url string) bool {
 		"--disable-features=Translate",
 	}
 
+	browsers := []WebBrowserInfo{}
+
 	switch runtime.GOOS {
-	case "darwin":
-		args = []string{"open"}
+	// case "darwin":
+	// 	args = []string{"open"}
 	case "windows":
-		extractPath := "browser_data"
-
-		// Use chrome if exist
-		args[0] = "C:/Program Files/Google/Chrome/Application/chrome.exe"
-		if _, err := os.Stat(args[0]); !os.IsNotExist(err) {
-			// Use Chrome
-			embedTgzFileName := "embeds/chrome_browser_data.tar.gz"
-			embedTgzData, err := chromeBrowserData.ReadFile(embedTgzFileName)
-			if err != nil {
-				panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
-			}
-
-			if err := untar(embedTgzData, extractPath); err != nil {
-				panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
-			}
-
-			editLogin(url + "/")
-		} else {
-			// Use Edge
-			args[0] = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"
-
-			embedZipFileName := "embeds/edge_browser_data.zip"
-			embedZipData, err := edgeBrowserData.ReadFile(embedZipFileName)
-			if err != nil {
-				panic(fmt.Errorf("failed to read embedded zip file: %s", err))
-			}
-
-			if err := unzip(embedZipData, extractPath); err != nil {
-				panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
-			}
-
-			editLogin(url + "/")
+		browsers = []WebBrowserInfo{
+			{"chrome", "C:/Program Files/Google/Chrome/Application/chrome.exe"},
+			{"chrome", os.Getenv("LocalAppData") + "/Google/Chrome/Application/chrome.exe"},
+			{"chromium", os.Getenv("LocalAppData") + "/Chromium/Application/chrome.exe"},
+			{"msedge", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"},
+		}
+	case "linux":
+		// args = []string{"xdg-open"}
+		browsers = []WebBrowserInfo{
+			{"chrome", "/usr/bin/google-chrome"},
+			{"chromium", "/usr/bin/chromium-browser"},
+			{"msedge", "/usr/bin/msedge"},
 		}
 	default:
-		extractPath := "browser_data"
+		panic(fmt.Errorf("os not support"))
+	}
 
-		// args = []string{"xdg-open"}
+	extractPath := "browser_data"
 
-		// Use chrome if exist
-		args[0] = "/usr/bin/google-chrome"
-		if _, err := os.Stat(args[0]); os.IsNotExist(err) {
-			args[0] = "/usr/bin/chromium-browser"
+	// Find web browser binary
+	foundWebBrowser := ""
+	for _, b := range browsers {
+		if _, err := os.Stat(b.Path); !os.IsNotExist(err) {
+			args[0] = b.Path
+			foundWebBrowser = b.Name
+			break
+		}
+	}
+
+	embedArchiveFileName := ""
+	if foundWebBrowser == "msedge" {
+		// Use MS-Edge
+		embedArchiveFileName = "embeds/edge_browser_data.zip"
+		embedZipData, err := edgeBrowserData.ReadFile(embedArchiveFileName)
+		if err != nil {
+			panic(fmt.Errorf("failed to read embedded zip file: %s", err))
 		}
 
-		embedTgzFileName := "embeds/chrome_browser_data.tar.gz"
-		embedTgzData, err := chromeBrowserData.ReadFile(embedTgzFileName)
+		if err := unzip(embedZipData, extractPath); err != nil {
+			panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
+		}
+	} else {
+		// Use Chrome or Chromium
+		embedArchiveFileName = "embeds/chrome_browser_data.tar.gz"
+		embedTgzData, err := chromeBrowserData.ReadFile(embedArchiveFileName)
 		if err != nil {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
@@ -116,9 +122,9 @@ func openBrowser(url string) bool {
 		if err := untar(embedTgzData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
-
-		editLogin(url + "/")
 	}
+
+	editLogin(url + "/")
 
 	cmdBrowser = exec.Command(args[0], append(args[1:], url)...)
 	return cmdBrowser.Start() == nil
