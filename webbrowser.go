@@ -97,6 +97,7 @@ func openBrowser(url string) bool {
 			foundWebBrowser = b.Name
 			break
 		}
+		panic(fmt.Errorf("chrome or chromium or msedge not found"))
 	}
 
 	embedArchiveFileName := ""
