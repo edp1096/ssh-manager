@@ -64,7 +64,7 @@ func openBrowser(url string) bool {
 		"--disable-features=Translate",
 	}
 
-	browsers := []WebBrowserInfo{}
+	var browsers []WebBrowserInfo
 
 	switch runtime.GOOS {
 	// case "darwin":
