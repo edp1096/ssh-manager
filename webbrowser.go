@@ -38,6 +38,8 @@ func editLogin(url string) {
 }
 
 func openBrowser(url string) bool {
+	var browsers []WebBrowserInfo
+
 	userAgent := "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 Edg/124.0.0.0"
 	dataPath := filepath.FromSlash(binaryPath + "/browser_data")
 
@@ -63,8 +65,6 @@ func openBrowser(url string) bool {
 		"--disable-translate",
 		"--disable-features=Translate",
 	}
-
-	var browsers []WebBrowserInfo
 
 	switch runtime.GOOS {
 	// case "darwin":
