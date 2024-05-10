@@ -526,7 +526,7 @@ func runServer() {
 	mux.HandleFunc("POST /hosts", handleAddEditHost)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
-	mux.HandleFunc("/", handleStaticFiles)
+	mux.HandleFunc("GET /", handleStaticFiles)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
