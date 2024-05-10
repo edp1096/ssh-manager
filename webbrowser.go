@@ -17,7 +17,7 @@ type WebBrowserInfo struct {
 	Path string
 }
 
-func editLoginData(url string) {
+func editBrowserDataLogins(url string) {
 	dbPath := "./browser_data/Default/Login Data"
 
 	db, err := sql.Open("sqlite", dbPath)
@@ -126,7 +126,7 @@ func openBrowser(url string) bool {
 		panic("no available browser") // User should not meet this
 	}
 
-	editLoginData(url + "/")
+	editBrowserDataLogins(url + "/")
 
 	cmdBrowser = exec.Command(args[0], append(args[1:], url)...)
 	return cmdBrowser.Start() == nil
