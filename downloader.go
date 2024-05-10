@@ -89,19 +89,26 @@ func downloadWindowsTerminal() error {
 	}
 
 	extractPath := "."
-	fileZipData, err2 := os.ReadFile(wtFname)
-	if err2 != nil {
-		return fmt.Errorf("failed to read zip file: %s", err2)
+	fileZipData, err := os.ReadFile(wtFname)
+	if err != nil {
+		return fmt.Errorf("failed to read zip file: %s", err)
 	}
 
-	if err2 = unzip(fileZipData, extractPath); err2 != nil {
-		return fmt.Errorf("failed to unzip file: %s", err2)
+	err = unzip(fileZipData, extractPath)
+	if err != nil {
+		return fmt.Errorf("failed to unzip file: %s", err)
 	}
 
 	pattern := "terminal-*"
 	newPrefix := "windows-terminal"
-	if err2 = renameFolders(pattern, newPrefix); err2 != nil {
-		return fmt.Errorf("failed to rename folder: %s", err2)
+	err = renameFolders(pattern, newPrefix)
+	if err != nil {
+		return fmt.Errorf("failed to rename folder: %s", err)
+	}
+
+	err = os.Remove(wtFname)
+	if err != nil {
+		fmt.Printf("failed to delete %s: %s", wtFname, err)
 	}
 
 	return nil
