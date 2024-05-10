@@ -66,7 +66,6 @@ func openBrowser(url string) bool {
 		"--disable-features=Translate",
 	}
 
-	embedArchiveFileName := ""
 	switch runtime.GOOS {
 	case "windows":
 		browsers = []WebBrowserInfo{
@@ -75,14 +74,12 @@ func openBrowser(url string) bool {
 			{"chromium", os.Getenv("LocalAppData") + "/Chromium/Application/chrome.exe"},
 			{"msedge", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"},
 		}
-		embedArchiveFileName = "embeds/browser_data.zip"
 	case "linux":
 		browsers = []WebBrowserInfo{
 			{"chrome", "/usr/bin/google-chrome"},
 			{"chromium", "/usr/bin/chromium-browser"},
 			{"msedge", "/usr/bin/msedge"},
 		}
-		embedArchiveFileName = "embeds/browser_data.tar.gz"
 	default:
 		panic(fmt.Errorf("os not support"))
 	}
@@ -103,8 +100,10 @@ func openBrowser(url string) bool {
 		panic(fmt.Errorf("chrome or chromium or msedge not found"))
 	}
 
-	switch filepath.Ext(embedArchiveFileName)[1:] {
-	case "zip":
+	embedArchiveFileName := ""
+	switch foundWebBrowser {
+	case "msedge":
+		embedArchiveFileName = "embeds/browser_data.zip"
 		embedZipData, err := BrowserDataZip.ReadFile(embedArchiveFileName)
 		if err != nil {
 			panic(fmt.Errorf("failed to read embedded zip file: %s", err))
@@ -113,7 +112,8 @@ func openBrowser(url string) bool {
 		if err := unzip(embedZipData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
 		}
-	case "gz":
+	case "chrome", "chromium":
+		embedArchiveFileName = "embeds/browser_data.tar.gz"
 		embedTgzData, err := BrowserDataTarGz.ReadFile(embedArchiveFileName)
 		if err != nil {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
@@ -122,6 +122,8 @@ func openBrowser(url string) bool {
 		if err := untar(embedTgzData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
+	default:
+		panic("no available browser") // User should not meet this
 	}
 
 	editLogin(url + "/")
