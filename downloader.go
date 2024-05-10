@@ -41,10 +41,7 @@ func downloadFile(uri, dest, fname string) error {
 	}
 	defer resp.Body.Close()
 
-	// filename := filepath.Base(uri)
-	filename := fname
-
-	filePath := filepath.Join(dest, filename)
+	filePath := filepath.Join(dest, fname)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %v", err)
@@ -71,15 +68,40 @@ func downloadWindowsTerminal() error {
 		return fmt.Errorf("failed to get latest release URLs: %v", err)
 	}
 
+	wtFname := "windows-terminal.zip"
+
+	isDownloaded := false
 	for _, uri := range uris {
 		if !strings.Contains(uri, "x64") || !strings.Contains(uri, "zip") {
 			continue
 		}
 
-		err = downloadFile(uri, ".", "windows-terminal.zip")
+		err = downloadFile(uri, ".", wtFname)
 		if err != nil {
 			return fmt.Errorf("failed to download file: %v", err)
 		}
+		isDownloaded = true
+		break
+	}
+
+	if !isDownloaded {
+		return fmt.Errorf("download nothing")
+	}
+
+	extractPath := "."
+	fileZipData, err2 := os.ReadFile(wtFname)
+	if err2 != nil {
+		return fmt.Errorf("failed to read zip file: %s", err2)
+	}
+
+	if err2 = unzip(fileZipData, extractPath); err2 != nil {
+		return fmt.Errorf("failed to unzip file: %s", err2)
+	}
+
+	pattern := "terminal-*"
+	newPrefix := "windows-terminal"
+	if err2 = renameFolders(pattern, newPrefix); err2 != nil {
+		return fmt.Errorf("failed to rename folder: %s", err2)
 	}
 
 	return nil

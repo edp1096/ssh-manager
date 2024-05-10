@@ -74,25 +74,6 @@ func main() {
 				if err != nil {
 					panic(fmt.Errorf("downloadWindowsTerminal: %s", err))
 				}
-
-				wtFname := "windows-terminal.zip"
-
-				// extractPath := "windows-terminal"
-				extractPath := "."
-				fileZipData, err2 := os.ReadFile(wtFname)
-				if err2 != nil {
-					panic(fmt.Errorf("failed to read zip file: %s", err2))
-				}
-
-				if err2 = unzip(fileZipData, extractPath); err2 != nil {
-					panic(fmt.Errorf("failed to unzip file: %s", err2))
-				}
-
-				pattern := "terminal-*"
-				newPrefix := "windows-terminal"
-				if err2 = renameFolders(pattern, newPrefix); err2 != nil {
-					panic(fmt.Errorf("failed to rename folder: %s", err2))
-				}
 			}
 		}
 	} else {
