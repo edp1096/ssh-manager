@@ -51,10 +51,11 @@ func openBrowser(url string) bool {
 		// "--window-position=0,0",
 		"--window-size=920,600",
 		"--user-agent=" + userAgent,
-		"--enable-local-file-accesses",
+		"--password-store=basic",
 		"--no-initial-navigation",
 		"--no-default-browser-check",
 		"--allow-file-access-from-files",
+		"--enable-local-file-accesses",
 
 		"--disable-background-mode",
 		"--no-experiments",
@@ -74,10 +75,11 @@ func openBrowser(url string) bool {
 			{"chromium", os.Getenv("LocalAppData") + "/Chromium/Application/chrome.exe"},
 			{"msedge", "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"},
 		}
-	case "linux":
+	case "freebsd", "linux":
 		browsers = []WebBrowserInfo{
 			{"chrome", "/usr/bin/google-chrome"},
 			{"chromium", "/usr/bin/chromium-browser"},
+			{"chromium", "/usr/local/share/chromium/chrome"},
 			{"msedge", "/usr/bin/msedge"},
 		}
 	default:

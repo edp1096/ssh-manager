@@ -45,11 +45,11 @@ endif
 	go mod tidy
 	go env -w GOFLAGS=-trimpath
 
-	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 linux/amd64 linux/arm linux/arm64" ./ssh-client
-	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s -H=windowsgui" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 linux/amd64 linux/arm linux/arm64"
+	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64" ./ssh-client
+	$(dest)/gox -mod="readonly" -ldflags="-X main.Version=$(version) -w -s -H=windowsgui" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64"
 	rm $(dest)/gox*
 
-	go run ./builder/archiver -osarch "windows/amd64 linux/amd64 linux/arm linux/arm64"
+	go run ./builder/archiver -osarch "windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64"
 	rm $(dest)/ssh-client_*
 	rm $(dest)/my-ssh-manager_*
 
