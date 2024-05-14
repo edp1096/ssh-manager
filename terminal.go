@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type SshArgument struct {
@@ -60,7 +61,7 @@ func openWindowsTerminal(hostsFile string, categoryIndex int, hostIndex int, new
 	return
 }
 
-func openGnomeTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
+func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
 	shellRuntimePath = "tmux"
 
 	procName := "ssh-client"
@@ -70,8 +71,13 @@ func openGnomeTerminal(hostsFile string, categoryIndex int, hostIndex int, newWi
 		return -1, fmt.Errorf("error check process exist:%s", err)
 	}
 
+	cmdTerm := []string{"xterm", "-e", shellRuntimePath}
+	if checkFileExitsInEnvPath("gnome-terminal") {
+		cmdTerm = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath + " -f ./tmux.conf; exec"}
+	}
+
 	if !termExists || newWindow {
-		err = exec.Command("gnome-terminal", "--", "sh", "-c", shellRuntimePath+" -f ./tmux.conf; exec").Run()
+		err = exec.Command(cmdTerm[0], cmdTerm[1:]...).Start()
 		if err != nil {
 			return -1, fmt.Errorf("error execute tmux:%s", err)
 		}
@@ -80,6 +86,15 @@ func openGnomeTerminal(hostsFile string, categoryIndex int, hostIndex int, newWi
 		if err != nil {
 			return -1, fmt.Errorf("error execute tmux:%s", err)
 		}
+	}
+
+	// Waiting tmux launched
+	for i := 0; i < 5; i++ {
+		tmuxExists, _ := checkProcessExists(procName)
+		if tmuxExists {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
 	}
 
 	hostsDataFile := ""
@@ -94,7 +109,6 @@ func openGnomeTerminal(hostsFile string, categoryIndex int, hostIndex int, newWi
 	hostsDataFile = filepath.FromSlash(hostsDataFile)
 
 	sshclientPath := filepath.FromSlash(binaryPath + "/" + procName)
-
 	hostFileKEYB64 := base64.URLEncoding.EncodeToString(hostFileKEY)
 	sshParams := []string{sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex), "&&", "exit", "ENTER"}
 
@@ -124,7 +138,7 @@ func openSession(arg SshArgument, newWindow bool) {
 			fmt.Println("Error open terminal:", err)
 		}
 	} else {
-		_, err := openGnomeTerminal(hostsFile, categoryIndex, hostIndex, newWindow)
+		_, err := openTerminal(hostsFile, categoryIndex, hostIndex, newWindow)
 		if err != nil {
 			fmt.Println("Error open terminal:", err)
 		}

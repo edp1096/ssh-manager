@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
@@ -70,6 +71,21 @@ func exitProcess() {
 	os.RemoveAll(dataPath)
 
 	os.Exit(0)
+}
+
+func checkFileExitsInEnvPath(fname string) (result bool) {
+	paths := strings.Split(os.Getenv("PATH"), ":")
+
+	result = false
+	for _, p := range paths {
+		if _, err := os.Stat(p + "/" + fname); err == nil {
+			result = true
+			fmt.Printf("%s exists in %s\n", fname, p)
+			break
+		}
+	}
+
+	return result
 }
 
 func checkProcessExists(name string) (bool, error) {
