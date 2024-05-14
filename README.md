@@ -1,4 +1,4 @@
-SSH hosts manager for personal use
+SSH server list manager for personal use
 
 ## Usage
 ```sh
