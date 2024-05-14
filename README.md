@@ -9,7 +9,7 @@ SSH server list manager for personal use
 
 ## Requirements
 * MS-Windows - Windows Terminal, chrome or ms-edge
-* FreeBSD, Linux - gnome-terminal(or konsole or xterm), Tmux, chromium
+* FreeBSD, Linux - gnome-terminal or konsole or xterm, tmux, chromium
 
 ## Build
 ```sh
