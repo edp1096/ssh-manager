@@ -9,7 +9,7 @@ SSH hosts manager for personal use
 
 ## Requirements
 * MS-Windows - Windows Terminal, chrome or ms-edge
-* Linux - gnome-terminal, Tmux, chromium
+* FreeBSD, Linux - gnome-terminal(or konsole or xterm), Tmux, chromium
 
 ## Build
 ```sh
