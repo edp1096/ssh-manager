@@ -14,7 +14,7 @@
 }
 
 .category:hover {
-    background-color: #666;
+    background-color: #161b22;
 }
 
 .category:before {
@@ -41,21 +41,20 @@
     list-style-type: none;
     padding: 0;
     margin: 0;
-    /* display: flex; */
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
     flex-direction: row;
     justify-content: space-around;
     align-items: flex-start;
 }
 
 .category ul:hover {
-    background-color: #777;
+    border-top: 1px solid #848d97;
+    border-bottom: 1px solid #848d97;
 }
 
 .category li {
     list-style: none;
-    display: inline-flex;
-    margin-right: 20px;
-
     min-width: 15em;
 }
 
