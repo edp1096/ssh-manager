@@ -73,11 +73,11 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 
 	termBin := []string{"xterm", "-e", shellRuntimePath}
 	if checkFileExitsInEnvPath("konsole") {
-		termBin = []string{"konsole", "-e", shellRuntimePath + " -T mouse"}
+		termBin = []string{"konsole", "-e", "sh", "-c", shellRuntimePath}
 	}
-	// if checkFileExitsInEnvPath("gnome-terminal") {
-	// 	termBin = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath}
-	// }
+	if checkFileExitsInEnvPath("gnome-terminal") {
+		termBin = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath}
+	}
 
 	if !termExists || newWindow {
 		cmdTerm := exec.Command(termBin[0], termBin[1:]...)
@@ -89,6 +89,8 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 		switch termBin[0] {
 		case "gnome-terminal":
 			cmdTerm.Wait()
+		case "konsole":
+			time.Sleep(4500 * time.Millisecond)
 		default:
 			time.Sleep(1000 * time.Millisecond)
 		}
@@ -120,8 +122,7 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 	cmdTerminal = exec.Command(shellRuntimePath, shParams...)
 	err = cmdTerminal.Run()
 	if err != nil {
-		fmt.Println("Error opening terminal:", err)
-		return
+		return -1, fmt.Errorf("error opening terminal:%v", err)
 	}
 
 	pid = cmdTerminal.Process.Pid
