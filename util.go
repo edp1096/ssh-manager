@@ -79,8 +79,8 @@ func checkFileExitsInEnvPath(fname string) (result bool) {
 	result = false
 	for _, p := range paths {
 		if _, err := os.Stat(p + "/" + fname); err == nil {
+			// fmt.Printf("%s exists in %s\n", fname, p)
 			result = true
-			fmt.Printf("%s exists in %s\n", fname, p)
 			break
 		}
 	}

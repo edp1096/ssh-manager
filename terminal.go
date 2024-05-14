@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type SshArgument struct {
@@ -71,30 +70,25 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 		return -1, fmt.Errorf("error check process exist:%s", err)
 	}
 
-	cmdTerm := []string{"xterm", "-e", shellRuntimePath}
+	termBin := []string{"xterm", "-e", shellRuntimePath}
 	if checkFileExitsInEnvPath("gnome-terminal") {
-		cmdTerm = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath + " -f ./tmux.conf; exec"}
+		termBin = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath + " -f ./tmux.conf; exec"}
+	}
+	if checkFileExitsInEnvPath("konsole") {
+		termBin = []string{"konsole", "-e", shellRuntimePath + " -f ./tmux.conf"}
 	}
 
 	if !termExists || newWindow {
-		err = exec.Command(cmdTerm[0], cmdTerm[1:]...).Start()
+		cmdTerm := exec.Command(termBin[0], termBin[1:]...)
+		err := cmdTerm.Run()
 		if err != nil {
 			return -1, fmt.Errorf("error execute tmux:%s", err)
 		}
 	} else {
-		err = exec.Command("tmux", "splitw", "-h").Run()
+		err = exec.Command(shellRuntimePath, "splitw", "-h").Run()
 		if err != nil {
-			return -1, fmt.Errorf("error execute tmux:%s", err)
+			return -1, fmt.Errorf("error split tmux:%s", err)
 		}
-	}
-
-	// Waiting tmux launched
-	for i := 0; i < 5; i++ {
-		tmuxExists, _ := checkProcessExists(procName)
-		if tmuxExists {
-			break
-		}
-		time.Sleep(250 * time.Millisecond)
 	}
 
 	hostsDataFile := ""
