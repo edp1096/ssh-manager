@@ -127,7 +127,7 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 
 	pid = cmdTerminal.Process.Pid
 
-	if runtime.GOOS == "freebsd" && (!termExists || newWindow) {
+	if !termExists || newWindow {
 		cmdTerminal = exec.Command(shellRuntimePath, []string{"set-option", "-g", "mouse", "on"}...)
 		err = cmdTerminal.Run()
 		if err != nil {
