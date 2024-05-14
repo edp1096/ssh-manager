@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type SshArgument struct {
@@ -71,18 +72,25 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 	}
 
 	termBin := []string{"xterm", "-e", shellRuntimePath}
-	if checkFileExitsInEnvPath("gnome-terminal") {
-		termBin = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath + " -f ./tmux.conf; exec"}
-	}
 	if checkFileExitsInEnvPath("konsole") {
-		termBin = []string{"konsole", "-e", shellRuntimePath + " -f ./tmux.conf"}
+		termBin = []string{"konsole", "-e", shellRuntimePath + " -T mouse"}
 	}
+	// if checkFileExitsInEnvPath("gnome-terminal") {
+	// 	termBin = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath}
+	// }
 
 	if !termExists || newWindow {
 		cmdTerm := exec.Command(termBin[0], termBin[1:]...)
-		err := cmdTerm.Run()
+		err := cmdTerm.Start()
 		if err != nil {
 			return -1, fmt.Errorf("error execute tmux:%s", err)
+		}
+
+		switch termBin[0] {
+		case "gnome-terminal":
+			cmdTerm.Wait()
+		default:
+			time.Sleep(1000 * time.Millisecond)
 		}
 	} else {
 		err = exec.Command(shellRuntimePath, "splitw", "-h").Run()

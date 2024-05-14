@@ -9,7 +9,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,19 +39,19 @@ func renameFolders(pattern, newPrefix string) error {
 	return nil
 }
 
-func exportTmuxConf() {
-	data, err := tmuxConf.ReadFile("embeds/tmux.conf")
-	if err != nil {
-		fmt.Printf("cannot read file: %s", err)
-		os.Exit(1)
-	}
+// func exportTmuxConf() {
+// 	data, err := tmuxConf.ReadFile("embeds/tmux.conf")
+// 	if err != nil {
+// 		fmt.Printf("cannot read file: %s", err)
+// 		os.Exit(1)
+// 	}
 
-	err = os.WriteFile("tmux.conf", data, fs.FileMode(0644))
-	if err != nil {
-		fmt.Printf("cannot write file: %s", err)
-		os.Exit(1)
-	}
-}
+// 	err = os.WriteFile("tmux.conf", data, fs.FileMode(0644))
+// 	if err != nil {
+// 		fmt.Printf("cannot write file: %s", err)
+// 		os.Exit(1)
+// 	}
+// }
 
 func exitProcess() {
 	err := cmdBrowser.Process.Kill()
