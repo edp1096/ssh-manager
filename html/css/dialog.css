@@ -1,11 +1,35 @@
 dialog {
-    border: 2px solid rgb(80, 140, 230);
+    /* border: 2px solid rgb(80, 140, 230);
+    border-radius: 5px;
+    padding: 0.5em; */
+    background-color: #555;
+    color: #fff;
+    border: none;
     border-radius: 5px;
     padding: 0.5em;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
-dialog>h2 {
+dialog h2,
+dialog p {
+    color: #fff;
+}
+
+dialog h2 {
     margin: 0.3em;
+}
+
+dialog button {
+    background-color: #777;
+    color: #fff;
+}
+
+dialog button:hover {
+    background-color: #999;
+}
+
+dialog form p {
+    margin: 0.5em;
 }
 
 dialog>form {
