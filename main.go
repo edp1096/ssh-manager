@@ -58,9 +58,6 @@ var BrowserDataZip embed.FS
 //go:embed embeds/browser_data.tar.gz
 var BrowserDataTarGz embed.FS
 
-// //go:embed embeds/tmux.conf
-// var tmuxConf embed.FS
-
 func main() {
 	var err error
 
@@ -77,9 +74,6 @@ func main() {
 			}
 		}
 	}
-	// } else {
-	// 	exportTmuxConf()
-	// }
 
 	binaryPath, _, err = getBinaryPath()
 	if err != nil {

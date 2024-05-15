@@ -27,7 +27,6 @@ func renameFolders(pattern, newPrefix string) error {
 	}
 
 	for _, folder := range folders {
-		// newName := newPrefix + folder[len(filepath.Dir(pattern)):]
 		newName := newPrefix
 		err := os.Rename(folder, newName)
 		if err != nil {
@@ -38,20 +37,6 @@ func renameFolders(pattern, newPrefix string) error {
 
 	return nil
 }
-
-// func exportTmuxConf() {
-// 	data, err := tmuxConf.ReadFile("embeds/tmux.conf")
-// 	if err != nil {
-// 		fmt.Printf("cannot read file: %s", err)
-// 		os.Exit(1)
-// 	}
-
-// 	err = os.WriteFile("tmux.conf", data, fs.FileMode(0644))
-// 	if err != nil {
-// 		fmt.Printf("cannot write file: %s", err)
-// 		os.Exit(1)
-// 	}
-// }
 
 func exitProcess() {
 	err := cmdBrowser.Process.Kill()
