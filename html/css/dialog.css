@@ -44,6 +44,24 @@ label {
     margin-bottom: 0.2em;
 }
 
+dialog>div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 15rem;
+}
+
+dialog>div>p {
+    min-height: 3em;
+    padding-left: 0.5em;
+}
+
+dialog .dialog-button-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 dialog>form {
     display: inline-flex;
     flex-direction: column;

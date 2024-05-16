@@ -160,7 +160,7 @@ async function saveCategoryData(e) {
     noticeDialog.showModal()
     getHosts()
 
-    setTimeout(() => { noticeDialog.close() }, 2000)
+    setTimeout(() => { noticeDialog.close() }, dialogCloseWaitTime)
 
     return
 }
@@ -189,7 +189,7 @@ async function deleteCategory(idxSTR) {
     noticeDialog.showModal()
     getHosts()
 
-    setTimeout(() => { noticeDialog.close() }, 2000)
+    setTimeout(() => { noticeDialog.close() }, dialogCloseWaitTime)
 
     return
 }
@@ -315,7 +315,7 @@ async function saveHostData(e) {
     noticeDialog.showModal()
     getHosts()
 
-    setTimeout(() => { noticeDialog.close() }, 2000)
+    setTimeout(() => { noticeDialog.close() }, dialogCloseWaitTime)
 
     return
 }
@@ -345,7 +345,7 @@ async function deleteHost(categoryIdxSTR, hostIdxSTR) {
     noticeDialog.showModal()
     getHosts()
 
-    setTimeout(() => { noticeDialog.close() }, 2000)
+    setTimeout(() => { noticeDialog.close() }, dialogCloseWaitTime)
 
     return
 }

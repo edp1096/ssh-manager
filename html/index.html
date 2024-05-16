@@ -166,9 +166,11 @@
     </template>
 
     <template id="dialog-notice-template">
-        <div style="width: 15rem; height: 10rem;">
+        <div>
             <p>@@_MESSAGE_@@</p>
-            <button onclick="closeNotice(event)">Close</button>
+            <div class="dialog-button-container">
+                <button onclick="closeNotice(event)">Close</button>
+            </div>
         </div>
     </template>
 </body>

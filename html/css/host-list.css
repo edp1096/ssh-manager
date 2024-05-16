@@ -12,7 +12,8 @@
 
 .category {
     position: relative;
-    margin-bottom: 5px;
+    margin-bottom: 1em;
+    min-height: 2em;
 }
 
 .category:hover {
@@ -37,6 +38,11 @@
 
 .host-part-info {
     display: none;
+}
+
+.category>span.buttons {
+    position: absolute;
+    right: 1em;
 }
 
 .category ul {
