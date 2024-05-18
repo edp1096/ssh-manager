@@ -149,41 +149,39 @@
                 })
             }
 
-            item.subItems.forEach((subItem, newSubIdx) => {
+            for (const k in item.subItems) {
+                const newSubIdx = parseInt(k)
+                const subItem = item.subItems[newSubIdx]
+
+                loopOrig:
                 for (const i in originalData) {
                     const originalIdx = parseInt(i)
                     const originalItem = originalData[originalIdx]
 
                     const originalSubIdx = originalItem.subItems.findIndex(originalSubItem => originalSubItem.text == subItem.text)
                     if (originalSubIdx == -1) { continue }
+                    if (originalIdx == parseInt(newIdx)) {
+                        if (originalSubIdx == newSubIdx) { continue }
+                    }
 
-                    let setChange = false
                     for (const c of changes) {
-                        if (parseInt(c.before.idx) == originalIdx) { continue }
-                        if (parseInt(c.after.idx) != newIdx) { continue }
-
-                        setChange = true
-                        break
+                        if (c.before.idx == originalIdx && c.after.idx == newIdx) {
+                            if (originalSubIdx == newSubIdx) { continue loopOrig }
+                        }
                     }
 
-                    if (changes.length == 0) {
-                        if (originalIdx == newIdx) { continue }
-                        setChange = true
-                    }
-
-                    if (setChange) {
-                        subChanges.push({
-                            before: { idx: originalSubIdx, parentIdx: originalIdx },
-                            after: { idx: newSubIdx, parentIdx: newIdx }
-                        })
-                    }
-                    console.log("subChanges:", subChanges)
+                    subChanges.push({
+                        before: { idx: originalSubIdx, parentIdx: originalIdx },
+                        after: { idx: newSubIdx, parentIdx: newIdx }
+                    })
                 }
-            })
+            }
         })
 
-        changes = changes.concat(subChanges)
-        console.log(changes)
+        // changes = changes.concat(subChanges)
+        // console.log(changes)
+        console.log("main:", changes)
+        console.log("sub:", subChanges)
     }
 
     createList()
