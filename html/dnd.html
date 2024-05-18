@@ -136,10 +136,12 @@
     }
 
     function compareData() {
-        const changes = []
+        let changes = []
+        let subChanges = []
 
         data.forEach((item, newIdx) => {
-            const originalIdx = originalData.findIndex(originalItem => originalItem.text == item.text)
+            newIdx = parseInt(newIdx)
+            let originalIdx = originalData.findIndex(originalItem => originalItem.text == item.text)
             if (originalIdx > -1 && originalIdx != newIdx) {
                 changes.push({
                     before: { idx: originalIdx, parentIdx: null },
@@ -148,19 +150,39 @@
             }
 
             item.subItems.forEach((subItem, newSubIdx) => {
-                let originalSubIdx
-                originalData.forEach((originalItem, oIdx) => {
-                    originalSubIdx = originalItem.subItems.findIndex(originalSubItem => originalSubItem.text == subItem.text)
-                    if (originalSubIdx > -1 && (oIdx != newIdx || originalSubIdx != newSubIdx)) {
-                        changes.push({
-                            before: { idx: originalSubIdx, parentIdx: oIdx },
+                for (const i in originalData) {
+                    const originalIdx = parseInt(i)
+                    const originalItem = originalData[originalIdx]
+
+                    const originalSubIdx = originalItem.subItems.findIndex(originalSubItem => originalSubItem.text == subItem.text)
+                    if (originalSubIdx == -1) { continue }
+
+                    let setChange = false
+                    for (const c of changes) {
+                        if (parseInt(c.before.idx) == originalIdx) { continue }
+                        if (parseInt(c.after.idx) != newIdx) { continue }
+
+                        setChange = true
+                        break
+                    }
+
+                    if (changes.length == 0) {
+                        if (originalIdx == newIdx) { continue }
+                        setChange = true
+                    }
+
+                    if (setChange) {
+                        subChanges.push({
+                            before: { idx: originalSubIdx, parentIdx: originalIdx },
                             after: { idx: newSubIdx, parentIdx: newIdx }
                         })
                     }
-                })
+                    console.log("subChanges:", subChanges)
+                }
             })
         })
 
+        changes = changes.concat(subChanges)
         console.log(changes)
     }
 
