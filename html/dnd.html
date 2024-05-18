@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drag and Drop 2-Depth List</title>
+    <style>
+        .item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+
+        .sub-item {
+            padding: 10px;
+            margin-left: 20px;
+            background-color: #e9e9e9;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="listContainer"></div>
+</body>
+
+<script>
+    const originalData = [
+        { text: 'Item 1', subItems: [{ text: 'Sub Item 1.1' }, { text: 'Sub Item 1.2' }] },
+        { text: 'Item 2', subItems: [{ text: 'Sub Item 2.1' }] },
+        { text: 'Item 3', subItems: [] },
+        { text: 'Item 4', subItems: [] },
+        { text: 'Item 5', subItems: [] }
+    ]
+
+    let data = JSON.parse(JSON.stringify(originalData))
+
+    function createList() {
+        const container = document.getElementById('listContainer')
+        container.innerHTML = ''
+        data.forEach((item, idx) => {
+            const itemDiv = createItem(item, idx)
+            container.appendChild(itemDiv)
+            item.subItems.forEach((subItem, subIdx) => {
+                const subItemDiv = createSubItem(idx, subIdx, subItem)
+                itemDiv.appendChild(subItemDiv)
+            })
+        })
+    }
+
+    function createItem(item, idx) {
+        const itemDiv = document.createElement('div')
+        itemDiv.className = 'item'
+        itemDiv.draggable = true
+        itemDiv.dataset.idx = idx
+        itemDiv.innerHTML = item.text
+
+        itemDiv.addEventListener('dragstart', handleDragStart)
+        itemDiv.addEventListener('dragover', handleDragOver)
+        itemDiv.addEventListener('drop', handleDrop)
+
+        return itemDiv
+    }
+
+    function createSubItem(parentIdx, subIdx, subItem) {
+        const subItemDiv = document.createElement('div')
+        subItemDiv.className = 'sub-item'
+        subItemDiv.draggable = true
+        subItemDiv.dataset.parentIdx = parentIdx
+        subItemDiv.dataset.idx = subIdx
+        subItemDiv.innerHTML = subItem.text
+
+        subItemDiv.addEventListener('dragstart', handleDragStart)
+        subItemDiv.addEventListener('dragover', handleDragOver)
+        subItemDiv.addEventListener('drop', handleDrop)
+
+        return subItemDiv
+    }
+
+    function handleDragStart(e) {
+        const itemIdx = parseInt(e.target.dataset.idx)
+        const parentIdx = parseInt(e.target.dataset.parentIdx)
+
+        e.dataTransfer.setData('itemIdx', itemIdx.toString())
+        if (!isNaN(parentIdx)) {
+            e.dataTransfer.setData('parentIdx', parentIdx.toString())
+        }
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault()
+        e.stopPropagation()
+    }
+
+    function handleDrop(e) {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const itemIdx = parseInt(e.dataTransfer.getData('itemIdx'))
+        const parentIdx = parseInt(e.dataTransfer.getData('parentIdx'))
+        const targetIdx = parseInt(e.target.dataset.idx)
+        const targetParentIdx = parseInt(e.target.dataset.parentIdx)
+
+        let draggedItem
+
+        switch (true) {
+            case (isNaN(parentIdx) && isNaN(targetParentIdx)):
+                // item to item
+                draggedItem = data[itemIdx]
+                data.splice(itemIdx, 1)
+                data.splice(targetIdx, 0, draggedItem)
+                break
+            case (isNaN(parentIdx) && !isNaN(targetParentIdx)):
+                // item to sub-item
+                draggedItem = data[itemIdx]
+                data.splice(itemIdx, 1)
+                data.splice(targetParentIdx, 0, draggedItem)
+                break
+            case (!isNaN(parentIdx) && isNaN(targetParentIdx)):
+                // sub-item to item
+                draggedItem = data[parentIdx].subItems[itemIdx]
+                data[parentIdx].subItems.splice(itemIdx, 1)
+                data[targetIdx].subItems.splice(targetIdx, 0, draggedItem)
+                break
+            case (!isNaN(parentIdx) && !isNaN(targetParentIdx)):
+                // sub-item to sub-item
+                draggedItem = data[parentIdx].subItems[itemIdx]
+                data[parentIdx].subItems.splice(itemIdx, 1)
+                data[targetParentIdx].subItems.splice(targetIdx, 0, draggedItem)
+                break
+        }
+
+        compareData()
+        createList()
+    }
+
+    function compareData() {
+        const changes = []
+
+        data.forEach((item, newIdx) => {
+            const originalIdx = originalData.findIndex(originalItem => originalItem.text == item.text)
+            if (originalIdx > -1 && originalIdx != newIdx) {
+                changes.push({
+                    before: { idx: originalIdx, parentIdx: null },
+                    after: { idx: newIdx, parentIdx: null }
+                })
+            }
+
+            item.subItems.forEach((subItem, newSubIdx) => {
+                let originalSubIdx
+                originalData.forEach((originalItem, oIdx) => {
+                    originalSubIdx = originalItem.subItems.findIndex(originalSubItem => originalSubItem.text == subItem.text)
+                    if (originalSubIdx > -1 && (oIdx != newIdx || originalSubIdx != newSubIdx)) {
+                        changes.push({
+                            before: { idx: originalSubIdx, parentIdx: oIdx },
+                            after: { idx: newSubIdx, parentIdx: newIdx }
+                        })
+                    }
+                })
+            })
+        })
+
+        console.log(changes)
+    }
+
+    createList()
+</script>
+
+</html>
