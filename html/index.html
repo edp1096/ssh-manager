@@ -18,13 +18,22 @@
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
-    <button onclick="openCategoryEditDialog()">Add category</button>
-    <button onclick="getHosts()">Reload host list</button>
-    <button onclick="openChangePasswordDialog()">Change password</button>
+    <div class="button-group-left">
+        <button onclick="expandAllCategories()">Expand all categories</button>
+        <button onclick="collapseAllCategories()">Collapse all categories</button>
+    </div>
+
+    <div class="button-group-right">
+        <button onclick="openCategoryEditDialog()">Add category</button>
+        <button onclick="getHosts()">Reload host list</button>
+        <button onclick="openChangePasswordDialog()">Change password</button>
+    </div>
 
     <hr />
 
-    <div id="hosts-data-container"></div>
+    <div id="hosts-data-container">
+        <ul class="categories"></ul>
+    </div>
 
     <dialog id="dialog-category-edit" onclose="saveCategoryData(event)"></dialog>
     <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
@@ -39,7 +48,7 @@
             </p>
 
             <p>
-                <button value="confirm">Submit</button>
+                <button value="confirm" class="ok">Submit</button>
             </p>
         </form>
     </dialog>
@@ -81,18 +90,18 @@
 
     <template id="category-buttons-template">
         <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`)">Add host</button>
-        <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)">Rename category</button>
-        <button onclick="deleteCategory('@@_CATEGORY_IDX_@@')">Delete category</button>
+        <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)" class="warning">Rename category</button>
+        <button onclick="deleteCategory('@@_CATEGORY_IDX_@@')" class="critical">Delete category</button>
     </template>
 
     <template id="category-data-template">
-        <ul class="categories">
-            <li class="category">
-                <span class="category-name">@@_CATEGORY_NAME_@@</span>
-                <span class="buttons">@@_CATEGORY_BUTTONS_@@</span>
-                @@_HOST_DATA_@@
-            </li>
-        </ul>
+        <!-- <ul class="categories"> -->
+        <li class="category">
+            <span class="category-name">@@_CATEGORY_NAME_@@</span>
+            <span class="buttons">@@_CATEGORY_BUTTONS_@@</span>
+            @@_HOST_DATA_@@
+        </li>
+        <!-- </ul> -->
     </template>
 
     <template id="hosts-data-template">
@@ -106,9 +115,9 @@
             <li>
                 <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">Open new window</button>
                 <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Open new panel</button>
-                <span class="button-section-divider">|</span>
-                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Edit</button>
-                <button onclick="deleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Delete</button>
+                <div class="button-section-divider"></div>
+                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="warning">Edit</button>
+                <button onclick="deleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="critical">Delete</button>
             </li>
         </ul>
     </template>
@@ -159,8 +168,9 @@
             </div>
 
             <div>
-                <button type="button" onclick="cancelHostEditDialog()">Cancel</button>
-                <button value="confirm">Save</button>
+                <button onclick="cancelHostEditDialog()" class="cancel" type="button">Cancel</button>
+                <div class="button-section-divider"></div>
+                <button value="confirm" class="ok">Save</button>
             </div>
         </form>
     </template>

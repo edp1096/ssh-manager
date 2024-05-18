@@ -3,6 +3,7 @@
     overflow-y: scroll;
     scrollbar-color: #3e4c60 #010409;
     scrollbar-width: thin;
+    line-height: 2em;
 }
 
 .categories {
@@ -34,6 +35,9 @@
 
 .category.active .host-part-info {
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .host-part-info {
@@ -43,6 +47,7 @@
 .category>span.buttons {
     position: absolute;
     right: 1em;
+    top: -0.1em;
 }
 
 .category ul {
@@ -58,6 +63,7 @@
 
 .category ul:hover {
     border-color: #56616d;
+    color: #fff;
 }
 
 .category li {

@@ -10,7 +10,8 @@ async function getHosts() {
     const tmplHost = document.querySelector("#hosts-data-template").innerHTML
     const tmplCategoryButtons = document.querySelector("#category-buttons-template").innerHTML
     const tmplCategory = document.querySelector("#category-data-template").innerHTML
-    const hostsContainer = document.querySelector("#hosts-data-container")
+    // const hostsContainer = document.querySelector("#hosts-data-container")
+    const hostsContainer = document.querySelector("#hosts-data-container>.categories")
 
     const r = await fetch("/hosts?hosts-file=" + hostsFile)
     if (r.ok) {
@@ -70,6 +71,24 @@ async function getHosts() {
 
         hostsData = json["host-categories"]
         return
+    }
+}
+
+function expandAllCategories() {
+    const cats = document.querySelector(".categories");
+    for (const cat of cats.children) {
+         if (!cat.classList.contains("active")) {
+            cat.classList.add("active");
+        }
+    }
+}
+
+function collapseAllCategories() {
+    const cats = document.querySelector(".categories");
+    for (const cat of cats.children) {
+         if (cat.classList.contains("active")) {
+            cat.classList.remove("active");
+        }
     }
 }
 

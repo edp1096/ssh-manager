@@ -9,7 +9,8 @@ body {
     width: 100%;
     height: calc(100vh - 16px);
     background-color: #010409;
-    color: #848d97;
+    /* color: #848d97; */
+    color: #b7bdc4;
     font-size: 0.9em;
 }
 
@@ -22,20 +23,94 @@ button {
     border: 2px solid #56616d;
     border-radius: 0.2em;
     background: #010409;
-    color: #fff;
+    color: #b7bdc4;
     padding: 4px 8px;
 }
 
 button:hover {
     cursor: pointer;
     background-color: #b1bac439;
+    color: #fff;
 }
 
-span.button-section-divider {
-    padding-left: 0.2em;
-    padding-right: 0.2em;
+button.ok {
+    border: 2px solid #28a745;
+    border-radius: 0.2em;
+    background: #28a745;
+    color: #ffffff;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.3s, border 0.3s;
+}
+
+button.ok:hover {
+    background: #218838;
+    border: 2px solid #218838;
+}
+
+button.cancel {
+    border: 2px solid #6c757d;
+    border-radius: 0.2em;
+    background: #6c757d;
+    color: #ffffff;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.3s, border 0.3s;
+}
+
+button.cancel:hover {
+    background: #5a6268;
+    border: 2px solid #5a6268;
+}
+
+button.warning {
+    border: 2px solid #e0a800;
+    border-radius: 0.2em;
+    background: #ffc107;
+    color: #212529;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.3s, border 0.3s;
+}
+
+button.warning:hover {
+    background: #e0a800;
+    border: 2px solid #ffc107;
+}
+
+button.critical {
+    border: 2px solid #d9534f;
+    border-radius: 0.2em;
+    background: #c9302c;
+    color: #ffffff;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background 0.3s, border 0.3s;
+}
+
+button.critical:hover {
+    background: #d9534f;
+    border: 2px solid #c9302c;
+}
+
+div.button-section-divider {
+    display: inline-block;
 }
 
 hr {
     width: 100%;
+}
+
+
+.button-group-left,
+.button-group-right {
+    margin-bottom: 0.5em;
+}
+
+.button-group-left {
+    float: left;
+}
+
+.button-group-right {
+    float: right;
 }
