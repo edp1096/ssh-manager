@@ -51,11 +51,11 @@ endif
 
 	go run ./builder/archiver -osarch "windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64"
 	rm $(dest)/ssh-client_*
-	rm $(dest)/my-ssh-manager_*
+	rm $(dest)/ssh-manager_*
 
 clean:
 	rm -rf $(dest)/*.exe
-	rm -rf $(dest)/my-ssh-manager*
+	rm -rf $(dest)/ssh-manager*
 	rm -rf $(dest)/ssh-client*
 	rm -rf $(dest)/browser_data
 	rm -rf dist

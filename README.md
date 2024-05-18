@@ -2,9 +2,9 @@ SSH host manager for personal using
 
 ## Usage
 ```sh
-./my-ssh-manager
+./ssh-manager
 # or
-./my-ssh-manager &
+./ssh-manager &
 ```
 
 ## Requirements

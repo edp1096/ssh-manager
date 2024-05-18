@@ -16,7 +16,7 @@ import (
 func main() {
 	src := "./bin"
 	dest := "./dist"
-	pkgName := "my-ssh-manager"
+	pkgName := "ssh-manager"
 
 	if _, err := os.Stat(dest); os.IsNotExist(err) {
 		err := os.Mkdir(dest, 0755)

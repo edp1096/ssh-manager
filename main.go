@@ -1,4 +1,4 @@
-package main // import "my-ssh-manager"
+package main // import "ssh-manager"
 
 import (
 	"embed"

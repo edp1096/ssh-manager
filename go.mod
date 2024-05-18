@@ -1,4 +1,4 @@
-module my-ssh-manager
+module ssh-manager
 
 go 1.22.2
 
