@@ -7,6 +7,13 @@ function preventCtrlWheel(e) {
     if (e.ctrlKey && e.deltaY != 0) { e.preventDefault() }
 }
 
+function preventDrag(e) {
+    tagsAllow = ["BUTTON", "INPUT", "TEXTAREA"]
+    if (tagsAllow.includes(e.target.tagName)) { return }
+    e.preventDefault()
+    return false
+}
+
 async function preventKeys(e) {
     // Function keys - F1 ~ F12
     if (e.code && e.code.startsWith("F")) {

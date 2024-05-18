@@ -49,7 +49,7 @@ func openBrowser(url string) bool {
 		"--app=" + url,
 		// "--auto-open-devtools-for-tabs ",
 		// "--window-position=0,0",
-		"--window-size=864,520",
+		"--window-size=896,520",
 		"--user-agent=" + userAgent,
 		"--password-store=basic",
 		"--no-initial-navigation",

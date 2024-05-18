@@ -8,7 +8,7 @@
     <title>SSH Manager</title>
     <!-- <link rel="icon" href="data:,"> -->
 
-    <!-- https://www.svgrepo.com/svg/366485/terminal -->
+    <!-- source: https://www.svgrepo.com/svg/366485/terminal -->
     <link rel="icon" href="/favicon.svg">
     <link rel="alternate icon" href="/favicon.png">
 
@@ -17,10 +17,11 @@
     <link rel="stylesheet" href="/css/dialog.css" />
 </head>
 
-<body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)">
+<!-- <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)" onmousedown="return false"> -->
+<body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)" onmousedown="preventDrag(event)">
     <div class="button-group-left">
-        <button onclick="expandAllCategories()">Expand all categories</button>
-        <button onclick="collapseAllCategories()">Collapse all categories</button>
+        <button onclick="expandAllCategories()">Expand all</button>
+        <button onclick="collapseAllCategories()">Collapse all</button>
     </div>
 
     <div class="button-group-right">
@@ -38,6 +39,7 @@
     <dialog id="dialog-category-edit" onclose="saveCategoryData(event)"></dialog>
     <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
     <dialog id="dialog-notice"></dialog>
+    <dialog id="dialog-confirm" onclose="doSpecificJob(event)"></dialog>
 
     <dialog id="dialog-enter-password" onclose="enterPassword()">
         <h2>Enter password</h2>
@@ -65,10 +67,10 @@
                 <input type="password" id="change-password-new" name="password-new" required autocomplete="off" />
             </p>
 
-            <p>
-                <button type="button" onclick="cancelChangePasswordDialog()">Cancel</button>
-                <button value="confirm">Submit</button>
-            </p>
+            <div>
+                <button onclick="cancelChangePasswordDialog()" class="cancel" type="button">Cancel</button>
+                <button value="confirm" class="ok">Submit</button>
+            </div>
         </form>
     </dialog>
 
@@ -82,16 +84,17 @@
             </div>
 
             <div>
-                <button type="button" onclick="cancelCategoryEditDialog()">Cancel</button>
-                <button value="confirm">Save</button>
+                <button onclick="cancelCategoryEditDialog()" class="cancel" type="button">Cancel</button>
+                <button value="confirm" class="ok">Save</button>
             </div>
         </form>
     </template>
 
     <template id="category-buttons-template">
         <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`)">Add host</button>
-        <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)" class="warning">Rename category</button>
-        <button onclick="deleteCategory('@@_CATEGORY_IDX_@@')" class="critical">Delete category</button>
+        <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)">Rename category</button>
+        <!-- <button onclick="deleteCategory('@@_CATEGORY_IDX_@@')" class="critical">Delete category</button> -->
+        <button onclick="openDeleteCategory('@@_CATEGORY_IDX_@@')" class="critical">Delete category</button>
     </template>
 
     <template id="category-data-template">
@@ -105,7 +108,7 @@
     </template>
 
     <template id="hosts-data-template">
-        <ul class="host-part-info" ondblclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)" onmousedown="return false">
+        <ul class="host-part-info" ondblclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">
             <li class="part-name">
                 <span class="label">Name:</span> <span>@@_NAME_@@</span>
             </li>
@@ -116,8 +119,9 @@
                 <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">Open new window</button>
                 <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Open new panel</button>
                 <div class="button-section-divider"></div>
-                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="warning">Edit</button>
-                <button onclick="deleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="critical">Delete</button>
+                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Edit</button>
+                <!-- <button onclick="deleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="critical">Delete</button> -->
+                <button onclick="openDeleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="critical">Delete</button>
             </li>
         </ul>
     </template>
@@ -169,7 +173,6 @@
 
             <div>
                 <button onclick="cancelHostEditDialog()" class="cancel" type="button">Cancel</button>
-                <div class="button-section-divider"></div>
                 <button value="confirm" class="ok">Save</button>
             </div>
         </form>
@@ -179,9 +182,22 @@
         <div>
             <p>@@_MESSAGE_@@</p>
             <div class="dialog-button-container">
-                <button onclick="closeNotice(event)">Close</button>
+                <button onclick="closeNotice(event)" class="ok">Close</button>
             </div>
         </div>
+    </template>
+
+    <template id="dialog-confirm-template">
+        <form method="dialog">
+            <input type="hidden" name="job-type" />
+            <input type="hidden" name="datas" />
+
+            <p>@@_MESSAGE_@@</p>
+            <div>
+                <button onclick="cancelConfirmDialog()" class="cancel" type="button">Cancel</button>
+                <button value="confirm" class="ok">Ok</button>
+            </div>
+        </form>
     </template>
 </body>
 

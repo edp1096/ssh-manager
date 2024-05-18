@@ -4,13 +4,14 @@ const categoryEditDialogTMPL = document.querySelector('#dialog-category-edit-tem
 const hostEditDialogTMPL = document.querySelector('#dialog-host-edit-template')
 const noticeDialogTMPL = document.querySelector('#dialog-notice-template')
 const noticeDialog = document.querySelector('#dialog-notice')
+const confirmDialogTMPL = document.querySelector('#dialog-confirm-template')
+const confirmDialog = document.querySelector('#dialog-confirm')
 
 
 async function getHosts() {
     const tmplHost = document.querySelector("#hosts-data-template").innerHTML
     const tmplCategoryButtons = document.querySelector("#category-buttons-template").innerHTML
     const tmplCategory = document.querySelector("#category-data-template").innerHTML
-    // const hostsContainer = document.querySelector("#hosts-data-container")
     const hostsContainer = document.querySelector("#hosts-data-container>.categories")
 
     const r = await fetch("/hosts?hosts-file=" + hostsFile)
@@ -77,7 +78,7 @@ async function getHosts() {
 function expandAllCategories() {
     const cats = document.querySelector(".categories");
     for (const cat of cats.children) {
-         if (!cat.classList.contains("active")) {
+        if (!cat.classList.contains("active")) {
             cat.classList.add("active");
         }
     }
@@ -86,7 +87,7 @@ function expandAllCategories() {
 function collapseAllCategories() {
     const cats = document.querySelector(".categories");
     for (const cat of cats.children) {
-         if (cat.classList.contains("active")) {
+        if (cat.classList.contains("active")) {
             cat.classList.remove("active");
         }
     }
@@ -370,7 +371,7 @@ async function deleteHost(categoryIdxSTR, hostIdxSTR) {
 }
 
 function closeNotice(e) {
-    /* Close when click outside of dialog */
+    /* TODO: Close when click outside of dialog */
     // const target = e.target
     // const rect = target.getBoundingClientRect()
     // if (rect.left > e.clientX || rect.right < e.clientX ||
@@ -380,4 +381,64 @@ function closeNotice(e) {
     // }
 
     noticeDialog.close()
+}
+
+function cancelConfirmDialog() {
+    confirmDialog.innerHTML = ""
+    confirmDialog.close()
+
+    const datas = confirmDialogTMPL.content.querySelector("input[name='datas']")
+    Object.keys(datas.dataset).forEach((k) => {
+        delete datas.dataset[k]
+    })
+}
+
+async function doSpecificJob(e) {
+    const d = e.target
+    if (d.returnValue != 'confirm') {
+        d.innerHTML = ""
+        return
+    }
+
+    d.returnValue = ""
+
+    const jobType = confirmDialogTMPL.content.querySelector("input[name='job-type']").value
+    const datas = confirmDialogTMPL.content.querySelector("input[name='datas']")
+
+    switch (jobType) {
+        case "delete-category":
+            await deleteCategory(datas.dataset.categoryIdx)
+            break
+        case "delete-host":
+            await deleteHost(datas.dataset.categoryIdx, datas.dataset.hostIdx)
+            break
+    }
+
+    Object.keys(datas.dataset).forEach((k) => {
+        delete datas.dataset[k]
+    })
+}
+
+function openConfirm(message = "Press 'Ok' to proceed.") {
+    confirmDialog.innerHTML = confirmDialogTMPL.innerHTML.replaceAll("@@_MESSAGE_@@", message)
+    confirmDialog.showModal()
+}
+
+function openDeleteCategory(categoryIdxSTR) {
+    confirmDialogTMPL.content.querySelector("input[name='job-type']").value = "delete-category"
+
+    const datas = confirmDialogTMPL.content.querySelector("input[name='datas']")
+    datas.dataset.categoryIdx = categoryIdxSTR
+
+    openConfirm()
+}
+
+function openDeleteHost(categoryIdxSTR, hostIdxSTR) {
+    confirmDialogTMPL.content.querySelector("input[name='job-type']").value = "delete-host"
+
+    const datas = confirmDialogTMPL.content.querySelector("input[name='datas']")
+    datas.dataset.categoryIdx = categoryIdxSTR
+    datas.dataset.hostIdx = hostIdxSTR
+
+    openConfirm()
 }

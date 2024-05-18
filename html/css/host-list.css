@@ -21,6 +21,10 @@
     background-color: #161b22;
 }
 
+.category:hover>.category-name {
+    color: #fff;
+}
+
 .category:before {
     content: "▶";
     position: absolute;

@@ -24,7 +24,9 @@ button {
     border-radius: 0.2em;
     background: #010409;
     color: #b7bdc4;
-    padding: 4px 8px;
+    padding: 0.3em 0.5em;
+    margin-left: 0.2em;
+    margin-right: 0.2em;
 }
 
 button:hover {
@@ -37,8 +39,8 @@ button.ok {
     border: 2px solid #28a745;
     border-radius: 0.2em;
     background: #28a745;
-    color: #ffffff;
-    padding: 4px 8px;
+    /* color: #ffffff; */
+    padding: 0.3em 0.5em;
     cursor: pointer;
     transition: background 0.3s, border 0.3s;
 }
@@ -52,8 +54,8 @@ button.cancel {
     border: 2px solid #6c757d;
     border-radius: 0.2em;
     background: #6c757d;
-    color: #ffffff;
-    padding: 4px 8px;
+    /* color: #ffffff; */
+    padding: 0.3em 0.5em;
     cursor: pointer;
     transition: background 0.3s, border 0.3s;
 }
@@ -68,7 +70,7 @@ button.warning {
     border-radius: 0.2em;
     background: #ffc107;
     color: #212529;
-    padding: 4px 8px;
+    padding: 0.3em 0.5em;
     cursor: pointer;
     transition: background 0.3s, border 0.3s;
 }
@@ -82,8 +84,8 @@ button.critical {
     border: 2px solid #d9534f;
     border-radius: 0.2em;
     background: #c9302c;
-    color: #ffffff;
-    padding: 4px 8px;
+    /* color: #ffffff; */
+    padding: 0.3em 0.5em;
     cursor: pointer;
     transition: background 0.3s, border 0.3s;
 }
@@ -100,7 +102,6 @@ div.button-section-divider {
 hr {
     width: 100%;
 }
-
 
 .button-group-left,
 .button-group-right {
