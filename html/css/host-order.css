@@ -6,6 +6,20 @@
     z-index: 100;
 }
 
+#order-lists {
+    height: calc(100vh - 5.1em);
+    overflow-y: auto;
+}
+
+#order-buttons {
+    display: flex;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+
 .item {
     padding: 10px;
     margin-bottom: 5px;

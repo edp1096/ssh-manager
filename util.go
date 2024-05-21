@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -214,4 +215,12 @@ func loadHostData(fileName string, key []byte, decryptedData interface{}) error 
 	}
 
 	return nil
+}
+
+func StructDeepCopy(src, dst interface{}) error {
+	b, err := json.Marshal(src)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, dst)
 }

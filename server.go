@@ -29,6 +29,26 @@ type ChangePassword struct {
 	PasswordNEW string `json:"password-new"`
 }
 
+type ReorderIdxInfo struct {
+	Idx       int `json:"idx"`
+	ParentIdx int `json:"parentIdx"`
+}
+
+type ReorderInfo struct {
+	Before ReorderIdxInfo `json:"before"`
+	After  ReorderIdxInfo `json:"after"`
+}
+
+type ReorderHosts struct {
+	Main []ReorderInfo `json:"main"`
+	Sub  []ReorderInfo `json:"sub"`
+}
+
+type ReorderRequest struct {
+	Hosts []HostCategory `json:"hosts"`
+	Order ReorderHosts   `json:"order"`
+}
+
 func getAvailablePort() (port int, err error) {
 	portBegin := 10000
 	portEnd := 50000
@@ -41,7 +61,7 @@ func getAvailablePort() (port int, err error) {
 		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 		if err == nil {
 			ln.Close()
-			// fmt.Printf("available port: %d\n", port)
+			fmt.Printf("available port: %d\n", port)
 			break
 		}
 	}
@@ -62,6 +82,7 @@ func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, m, err := conn.ReadMessage()
 		if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+			log.Println(err)
 			break
 		}
 
@@ -395,6 +416,99 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var body ReorderRequest
+	var hostsOLD, hostsNEW HostList
+	var ordering ReorderHosts
+
+	params := r.URL.Query()
+	hostsFile := params.Get("hosts-file")
+	if strings.TrimSpace(hostsFile) == "" {
+		http.Error(w, "require host-file", http.StatusBadRequest)
+		return
+	}
+
+	err = loadHostData(hostsFile, hostFileKEY, &hostsOLD)
+	if err != nil {
+		http.Error(w, "host-file not exists", http.StatusBadRequest)
+		return
+	}
+
+	bodyJSON, err := io.ReadAll(io.Reader(r.Body))
+	if err != nil {
+		http.Error(w, "Request body reading failed", http.StatusInternalServerError)
+		return
+	}
+
+	err = json.Unmarshal(bodyJSON, &body)
+	if err != nil {
+		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
+		return
+	}
+
+	ordering = body.Order
+
+	_ = StructDeepCopy(hostsOLD, &hostsNEW)
+
+	mainMoveMap := map[int]int{}
+
+	for _, o := range ordering.Main {
+		hostsNEW.Categories[o.After.Idx] = hostsOLD.Categories[o.Before.Idx]
+		mainMoveMap[o.Before.Idx] = o.After.Idx
+	}
+	log.Println(mainMoveMap)
+
+	// TODO: use mainMoveMap. At this time, o.before, o.after first
+	for _, o := range ordering.Sub {
+		bpidx := o.Before.ParentIdx
+		bidx := o.Before.Idx
+		apidx := o.After.ParentIdx
+		aidx := o.After.Idx
+
+		log.Println("idxs1:", bpidx, bidx, apidx, aidx)
+
+		el := hostsOLD.Categories[bpidx].Hosts[bidx]
+
+		if bp, exists := mainMoveMap[o.Before.ParentIdx]; exists {
+			bpidx = bp
+		}
+
+		log.Println("idxs2:", bpidx, bidx, apidx, aidx)
+
+		// if ap, exists := mainMoveMap[o.After.ParentIdx]; exists {
+		// 	apidx = ap
+		// }
+
+		hostsNEW.Categories[apidx].Hosts = append(hostsNEW.Categories[apidx].Hosts, HostInfo{})
+		copy(hostsNEW.Categories[apidx].Hosts[aidx+1:], hostsNEW.Categories[apidx].Hosts[aidx:])
+		hostsNEW.Categories[apidx].Hosts[aidx] = el
+
+		log.Println(bpidx, apidx, len(hostsNEW.Categories[bpidx].Hosts))
+		if bpidx == apidx {
+			log.Println("==", hostsNEW.Categories[bpidx].Hosts, bidx)
+			// if bidx+2 <= len(hostsNEW.Categories[bpidx].Hosts) {
+			// 	hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx+1], hostsNEW.Categories[bpidx].Hosts[bidx+2:]...)
+			// } else {
+			// 	hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx], hostsNEW.Categories[bpidx].Hosts[bidx+1:]...)
+			// }
+			// hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx+1], hostsNEW.Categories[bpidx].Hosts[bidx+2:]...)
+		} else {
+			log.Println("!=", hostsNEW.Categories[bpidx].Hosts)
+			hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx], hostsNEW.Categories[bpidx].Hosts[bidx+1:]...)
+		}
+	}
+
+	log.Println(hostsNEW)
+
+	result := map[string]string{"message": "success"}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	json.NewEncoder(w).Encode(result)
+}
+
 func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var hosts HostList
@@ -524,6 +638,7 @@ func runServer() {
 	mux.HandleFunc("POST /categories", handleAddEditCategory)
 	mux.HandleFunc("DELETE /categories", handleDeleteCategory)
 	mux.HandleFunc("POST /hosts", handleAddEditHost)
+	mux.HandleFunc("PATCH /hosts", handleReorderHosts)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
 	mux.HandleFunc("GET /", handleStaticFiles)

@@ -7,6 +7,7 @@ function createList() {
     orderData.forEach((item, idx) => {
         const itemDiv = createItem(item, idx)
         container.appendChild(itemDiv)
+        if (!item.hosts) { return }
         item.hosts.forEach((subItem, subIdx) => {
             const subItemDiv = createSubItem(idx, subIdx, subItem)
             itemDiv.appendChild(subItemDiv)
@@ -84,6 +85,9 @@ function handleDrop(e) {
             break
         case (!isNaN(parentIdx) && isNaN(targetParentIdx)):
             // sub-item to item
+            if (!orderData[targetIdx].hosts) {
+                orderData[targetIdx].hosts = []
+            }
             draggedItem = orderData[parentIdx].hosts[itemIdx]
             orderData[parentIdx].hosts.splice(itemIdx, 1)
             orderData[targetIdx].hosts.splice(targetIdx, 0, draggedItem)
@@ -123,17 +127,22 @@ function compareData() {
                 const originalIdx = parseInt(i)
                 const originalItem = hostsData[originalIdx]
 
+                if (!originalItem.hosts) { continue }
+
                 const originalSubIdx = originalItem.hosts.findIndex(originalSubItem => originalSubItem.name == subItem.name)
+
                 if (originalSubIdx == -1) { continue }
-                if (originalIdx == parseInt(newIdx)) {
-                    if (originalSubIdx == newSubIdx) { continue }
-                }
+                // if (originalIdx == parseInt(newIdx)) {
+                //     if (originalSubIdx == newSubIdx) { continue }
+                // }
 
                 for (const c of changes) {
-                    if (c.before.idx == originalIdx && c.after.idx == newIdx) {
-                        if (originalSubIdx == newSubIdx) { continue loopOrig }
+                    if (parseInt(c.before.idx) == originalIdx && parseInt(c.after.idx) == parseInt(newIdx)) {
+                        if (parseInt(originalSubIdx) == newSubIdx) { continue loopOrig }
                     }
+                    console.log(originalIdx, c.before.idx, c.after.idx, newIdx, originalSubIdx, newSubIdx, subItem.name)
                 }
+
 
                 subChanges.push({
                     before: { idx: originalSubIdx, parentIdx: originalIdx },
@@ -145,10 +154,7 @@ function compareData() {
 
     // console.log("main:", changes)
     // console.log("sub:", subChanges)
-    orderRequests = {
-        "main": changes,
-        "sub": subChanges
-    }
+    orderRequests = { "main": changes, "sub": subChanges }
 }
 
 function closeReorderMode() {
@@ -156,8 +162,23 @@ function closeReorderMode() {
     document.querySelector("#order-container").style.display = "none"
 }
 
-function saveReorderedList() {
-    console.log(orderRequests)
+async function saveReorderedList() {
+    const data = {
+        "hosts": orderData,
+        "order": orderRequests
+    }
+
+    const r = await fetch("/hosts?hosts-file=" + hostsFile, {
+        method: "PATCH",
+        body: JSON.stringify(data)
+    })
+
+    if (r.ok) {
+        const response = await r.json()
+        console.log(response)
+    }
+
+    getHosts()
     closeReorderMode()
 }
 
