@@ -486,16 +486,20 @@ func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
 
 		log.Println(bpidx, apidx, len(hostsNEW.Categories[bpidx].Hosts))
 		if bpidx == apidx {
-			log.Println("==", hostsNEW.Categories[bpidx].Hosts, bidx)
-			// if bidx+2 <= len(hostsNEW.Categories[bpidx].Hosts) {
-			// 	hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx+1], hostsNEW.Categories[bpidx].Hosts[bidx+2:]...)
-			// } else {
-			// 	hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx], hostsNEW.Categories[bpidx].Hosts[bidx+1:]...)
-			// }
-			// hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx+1], hostsNEW.Categories[bpidx].Hosts[bidx+2:]...)
+			log.Println("==1", hostsNEW.Categories[bpidx].Hosts, bidx, len(hostsNEW.Categories[bpidx].Hosts))
+			if bidx+1 < len(hostsNEW.Categories[bpidx].Hosts) {
+				log.Println("+1")
+				hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx+1], hostsNEW.Categories[bpidx].Hosts[bidx+2:]...)
+			} else {
+				log.Println("0")
+				hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx], hostsNEW.Categories[bpidx].Hosts[bidx+1:]...)
+			}
+			// hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx], hostsNEW.Categories[bpidx].Hosts[bidx:]...)
+			log.Println("==2", hostsNEW.Categories[bpidx].Hosts, bidx, len(hostsNEW.Categories[bpidx].Hosts))
 		} else {
-			log.Println("!=", hostsNEW.Categories[bpidx].Hosts)
+			log.Println("!=1", hostsNEW.Categories[bpidx].Hosts)
 			hostsNEW.Categories[bpidx].Hosts = append(hostsNEW.Categories[bpidx].Hosts[:bidx], hostsNEW.Categories[bpidx].Hosts[bidx+1:]...)
+			log.Println("!=2", hostsNEW.Categories[bpidx].Hosts)
 		}
 	}
 

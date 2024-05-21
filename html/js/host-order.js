@@ -107,17 +107,24 @@ function handleDrop(e) {
 function compareData() {
     let changes = []
     let subChanges = []
+    let changesMap = {}
 
-    orderData.forEach((item, newIdx) => {
-        newIdx = parseInt(newIdx)
+    for (const i in orderData) {
+        const newIdx = parseInt(i)
+        const item = orderData[i]
         let originalIdx = hostsData.findIndex(originalItem => originalItem.name == item.name)
+        // if (originalIdx != newIdx) {
         if (originalIdx > -1 && originalIdx != newIdx) {
             changes.push({
                 before: { idx: originalIdx, parentIdx: null },
                 after: { idx: newIdx, parentIdx: null }
             })
+            changesMap[parseInt(originalIdx)] = parseInt(newIdx)
         }
+    }
 
+    orderData.forEach((item, newIdx) => {
+        newIdx = parseInt(newIdx)
         for (const k in item.hosts) {
             const newSubIdx = parseInt(k)
             const subItem = item.hosts[newSubIdx]
@@ -140,9 +147,10 @@ function compareData() {
                     if (parseInt(c.before.idx) == originalIdx && parseInt(c.after.idx) == parseInt(newIdx)) {
                         if (parseInt(originalSubIdx) == newSubIdx) { continue loopOrig }
                     }
-                    console.log(originalIdx, c.before.idx, c.after.idx, newIdx, originalSubIdx, newSubIdx, subItem.name)
                 }
 
+                if ((!changesMap[originalIdx] || changesMap[originalIdx] == parseInt(newIdx)) && originalSubIdx == newSubIdx) { continue }
+                console.log("2:", originalIdx, newIdx, changesMap[originalIdx], originalSubIdx, newSubIdx, subItem.name)
 
                 subChanges.push({
                     before: { idx: originalSubIdx, parentIdx: originalIdx },
