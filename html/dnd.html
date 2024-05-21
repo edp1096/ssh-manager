@@ -34,12 +34,12 @@
         { text: 'Item 5', subItems: [] }
     ]
 
-    let data = JSON.parse(JSON.stringify(originalData))
+    let orderData = JSON.parse(JSON.stringify(originalData))
 
     function createList() {
         const container = document.getElementById('listContainer')
         container.innerHTML = ''
-        data.forEach((item, idx) => {
+        orderData.forEach((item, idx) => {
             const itemDiv = createItem(item, idx)
             container.appendChild(itemDiv)
             item.subItems.forEach((subItem, subIdx) => {
@@ -107,27 +107,27 @@
         switch (true) {
             case (isNaN(parentIdx) && isNaN(targetParentIdx)):
                 // item to item
-                draggedItem = data[itemIdx]
-                data.splice(itemIdx, 1)
-                data.splice(targetIdx, 0, draggedItem)
+                draggedItem = orderData[itemIdx]
+                orderData.splice(itemIdx, 1)
+                orderData.splice(targetIdx, 0, draggedItem)
                 break
             case (isNaN(parentIdx) && !isNaN(targetParentIdx)):
                 // item to sub-item
-                draggedItem = data[itemIdx]
-                data.splice(itemIdx, 1)
-                data.splice(targetParentIdx, 0, draggedItem)
+                draggedItem = orderData[itemIdx]
+                orderData.splice(itemIdx, 1)
+                orderData.splice(targetParentIdx, 0, draggedItem)
                 break
             case (!isNaN(parentIdx) && isNaN(targetParentIdx)):
                 // sub-item to item
-                draggedItem = data[parentIdx].subItems[itemIdx]
-                data[parentIdx].subItems.splice(itemIdx, 1)
-                data[targetIdx].subItems.splice(targetIdx, 0, draggedItem)
+                draggedItem = orderData[parentIdx].subItems[itemIdx]
+                orderData[parentIdx].subItems.splice(itemIdx, 1)
+                orderData[targetIdx].subItems.splice(targetIdx, 0, draggedItem)
                 break
             case (!isNaN(parentIdx) && !isNaN(targetParentIdx)):
                 // sub-item to sub-item
-                draggedItem = data[parentIdx].subItems[itemIdx]
-                data[parentIdx].subItems.splice(itemIdx, 1)
-                data[targetParentIdx].subItems.splice(targetIdx, 0, draggedItem)
+                draggedItem = orderData[parentIdx].subItems[itemIdx]
+                orderData[parentIdx].subItems.splice(itemIdx, 1)
+                orderData[targetParentIdx].subItems.splice(targetIdx, 0, draggedItem)
                 break
         }
 
@@ -139,7 +139,7 @@
         let changes = []
         let subChanges = []
 
-        data.forEach((item, newIdx) => {
+        orderData.forEach((item, newIdx) => {
             newIdx = parseInt(newIdx)
             let originalIdx = originalData.findIndex(originalItem => originalItem.text == item.text)
             if (originalIdx > -1 && originalIdx != newIdx) {

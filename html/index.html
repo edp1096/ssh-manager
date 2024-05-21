@@ -12,11 +12,15 @@
     <link rel="alternate icon" href="/favicon.png">
 
     <link rel="stylesheet" href="/css/style.css" />
-    <link rel="stylesheet" href="/css/host-list.css" />
+    <link rel="stylesheet" href="/css/host-control.css" />
+    <link rel="stylesheet" href="/css/host-order.css" />
     <link rel="stylesheet" href="/css/dialog.css" />
 </head>
 
-<body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)" onkeydown="preventKeys(event)" onmousedown="preventDrag(event)">
+<body oncontextmenu="contextMenu(event); return false">
+    <!-- list reordering - working -->
+    <div id="order-container"></div>
+
     <div class="button-group-left">
         <button onclick="expandAllCategories()">Expand all</button>
         <button onclick="collapseAllCategories()">Collapse all</button>
@@ -24,7 +28,8 @@
 
     <div class="button-group-right">
         <button onclick="openCategoryEditDialog()">Add category</button>
-        <button onclick="getHosts()">Reload host list</button>
+        <button onclick="getHosts()">Reload list</button>
+        <button onclick="setReorderMode()">Reorder list</button>
         <button onclick="openChangePasswordDialog()">Change password</button>
     </div>
 
@@ -204,6 +209,7 @@
 <script src="/js/ws.js"></script>
 <script src="/js/input-events.js"></script>
 <script src="/js/host-control.js"></script>
+<script src="/js/host-order.js"></script>
 <script src="/js/scripts.js"></script>
 
 </html>
