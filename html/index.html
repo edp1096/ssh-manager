@@ -19,7 +19,13 @@
 
 <body oncontextmenu="contextMenu(event); return false">
     <!-- list reordering - working -->
-    <div id="order-container"></div>
+    <div id="order-container">
+        <div id="order-lists"></div>
+        <div id="order-buttons">
+            <button onclick="closeReorderMode()" class="cancel">Cancel</button>
+            <button onclick="saveReorderedList()" class="ok">Save</button>
+        </div>
+    </div>
 
     <div class="button-group-left">
         <button onclick="expandAllCategories()">Expand all</button>

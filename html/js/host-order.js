@@ -1,7 +1,8 @@
 let orderData
+let orderRequests
 
 function createList() {
-    const container = document.getElementById('order-container')
+    const container = document.querySelector('#order-lists')
     container.innerHTML = ''
     orderData.forEach((item, idx) => {
         const itemDiv = createItem(item, idx)
@@ -142,17 +143,29 @@ function compareData() {
         }
     })
 
-    console.log("main:", changes)
-    console.log("sub:", subChanges)
+    // console.log("main:", changes)
+    // console.log("sub:", subChanges)
+    orderRequests = {
+        "main": changes,
+        "sub": subChanges
+    }
+}
+
+function closeReorderMode() {
+    orderData = []
+    document.querySelector("#order-container").style.display = "none"
+}
+
+function saveReorderedList() {
+    console.log(orderRequests)
+    closeReorderMode()
 }
 
 function setReorderMode() {
     orderData = JSON.parse(JSON.stringify(hostsData))
     createList()
 
-    // document.querySelector("body").removeEventListener("mousedown", preventDrag)
     const target = document.querySelector("body")
-    // const listenerList = getEventListeners(target)
     target.removeEventListener('mousedown', preventDrag)
 
     document.querySelector("#order-container").style.display = "block"
