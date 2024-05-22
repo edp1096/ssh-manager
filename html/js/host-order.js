@@ -100,69 +100,7 @@ function handleDrop(e) {
             break
     }
 
-    compareData()
     createList()
-}
-
-function compareData() {
-    let changes = []
-    let subChanges = []
-    let changesMap = {}
-
-    for (const i in orderData) {
-        const newIdx = parseInt(i)
-        const item = orderData[i]
-        let originalIdx = hostsData.findIndex(originalItem => originalItem.name == item.name)
-        // if (originalIdx != newIdx) {
-        if (originalIdx > -1 && originalIdx != newIdx) {
-            changes.push({
-                before: { idx: originalIdx, parentIdx: null },
-                after: { idx: newIdx, parentIdx: null }
-            })
-            changesMap[parseInt(originalIdx)] = parseInt(newIdx)
-        }
-    }
-
-    orderData.forEach((item, newIdx) => {
-        newIdx = parseInt(newIdx)
-        for (const k in item.hosts) {
-            const newSubIdx = parseInt(k)
-            const subItem = item.hosts[newSubIdx]
-
-            loopOrig:
-            for (const i in hostsData) {
-                const originalIdx = parseInt(i)
-                const originalItem = hostsData[originalIdx]
-
-                if (!originalItem.hosts) { continue }
-
-                const originalSubIdx = originalItem.hosts.findIndex(originalSubItem => originalSubItem.name == subItem.name)
-
-                if (originalSubIdx == -1) { continue }
-                // if (originalIdx == parseInt(newIdx)) {
-                //     if (originalSubIdx == newSubIdx) { continue }
-                // }
-
-                for (const c of changes) {
-                    if (parseInt(c.before.idx) == originalIdx && parseInt(c.after.idx) == parseInt(newIdx)) {
-                        if (parseInt(originalSubIdx) == newSubIdx) { continue loopOrig }
-                    }
-                }
-
-                if ((!changesMap[originalIdx] || changesMap[originalIdx] == parseInt(newIdx)) && originalSubIdx == newSubIdx) { continue }
-                console.log("2:", originalIdx, newIdx, changesMap[originalIdx], originalSubIdx, newSubIdx, subItem.name)
-
-                subChanges.push({
-                    before: { idx: originalSubIdx, parentIdx: originalIdx },
-                    after: { idx: newSubIdx, parentIdx: newIdx }
-                })
-            }
-        }
-    })
-
-    // console.log("main:", changes)
-    // console.log("sub:", subChanges)
-    orderRequests = { "main": changes, "sub": subChanges }
 }
 
 function closeReorderMode() {
@@ -171,10 +109,7 @@ function closeReorderMode() {
 }
 
 async function saveReorderedList() {
-    const data = {
-        "hosts": orderData,
-        "order": orderRequests
-    }
+    const data = { "host-categories": orderData }
 
     const r = await fetch("/hosts?hosts-file=" + hostsFile, {
         method: "PATCH",

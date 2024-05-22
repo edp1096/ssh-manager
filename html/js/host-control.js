@@ -297,6 +297,7 @@ async function saveHostData(e) {
         username: username,
         password: password,
         "private-key-text": privateKeyText,
+        "unique-id": createUUID()
     }
 
     let params = `hosts-file=${hostsFile}`

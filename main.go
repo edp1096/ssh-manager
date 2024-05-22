@@ -26,6 +26,7 @@ type HostInfo struct {
 	Username       string `json:"username"`
 	Password       string `json:"-"`
 	PrivateKeyText string `json:"private-key-text"`
+	UniqueID       string `json:"unique-id"`
 }
 
 type HostRequestInfo struct {
@@ -36,6 +37,7 @@ type HostRequestInfo struct {
 	Username       string `json:"username"`
 	Password       string `json:"password"`
 	PrivateKeyText string `json:"private-key-text"`
+	UniqueID       string `json:"unique-id"`
 }
 
 var shellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"

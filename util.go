@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -217,10 +216,33 @@ func loadHostData(fileName string, key []byte, decryptedData interface{}) error 
 	return nil
 }
 
-func StructDeepCopy(src, dst interface{}) error {
-	b, err := json.Marshal(src)
-	if err != nil {
-		return err
+func RemoveIndexItem[T any](s []T, index int) []T {
+	if index < 0 || index >= len(s) {
+		return s
 	}
-	return json.Unmarshal(b, dst)
+
+	copy(s[index:], s[index+1:])
+
+	var zero T
+	s[len(s)-1] = zero
+	s = s[:len(s)-1]
+
+	return s
+}
+
+func FindPasswordByUUID(categories []HostCategory, uuid string) (password string, found bool) {
+	password = ""
+	found = false
+
+	for _, c := range categories {
+		for _, h := range c.Hosts {
+			if h.UniqueID == uuid {
+				password = h.Password
+				found = true
+				return password, found
+			}
+		}
+	}
+
+	return password, found
 }
