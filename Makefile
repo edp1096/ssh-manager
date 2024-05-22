@@ -23,9 +23,8 @@ ifeq ($(GO_OS),windows)
 endif
 
 	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
-#	go build -ldflags "-w -s $(WINDOWS_HIDE)" -trimpath -o $(dest)/
+	go build -ldflags "-w -s $(WINDOWS_HIDE)" -trimpath -o $(dest)/
 #	go build -ldflags "-w -s" -trimpath -o $(dest)/
-	go build -gcflags=all="-N -l" -o $(dest)/
 
 
 dist: clean
