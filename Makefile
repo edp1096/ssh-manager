@@ -1,3 +1,6 @@
+.PHONY: default
+default: build
+
 dest = bin
 GO_OS := $(shell go env GOOS)
 GO_ARCH := $(shell go env GOARCH)
@@ -30,7 +33,7 @@ build: syso
 
 dev: syso
 	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
-	go build -ldflags "-w -s -X 'main.VERSION=$(VERSION_DEV)'" -trimpath -o $(dest)/
+	go build -ldflags "-X 'main.VERSION=$(VERSION_DEV)'" -o $(dest)/
 
 
 dist: clean syso

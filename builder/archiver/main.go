@@ -13,66 +13,6 @@ import (
 	"strings"
 )
 
-func main() {
-	src := "./bin"
-	dest := "./dist"
-	pkgName := "ssh-manager"
-
-	if _, err := os.Stat(dest); os.IsNotExist(err) {
-		err := os.Mkdir(dest, 0755)
-		if err != nil {
-			fmt.Printf("error creating directory: %v\n", err)
-			return
-		}
-		fmt.Println("directory created:", dest)
-	} else if err != nil {
-		fmt.Printf("error checking directory existence: %v\n", err)
-		return
-	}
-
-	currentOS := runtime.GOOS
-	currentARCH := runtime.GOARCH
-
-	defaultOsArch := fmt.Sprintf("%s/%s", currentOS, currentARCH)
-
-	osarch := flag.String("osarch", defaultOsArch, "OS/ARCH list")
-	flag.Parse()
-
-	osarchList := strings.Fields(*osarch)
-	for _, oa := range osarchList {
-		oas := strings.Split(oa, "/")
-		osName := oas[0]
-		archName := oas[1]
-		extName := ""
-		if osName == "windows" {
-			extName = ".exe"
-		}
-
-		executablePaths := []string{
-			filepath.Join(src, "ssh-client"),
-			filepath.Join(src, pkgName),
-		}
-		trailName := "_" + osName + "_" + archName + extName
-
-		zipFilePath := ""
-		if osName == "windows" {
-			zipFilePath = filepath.Join(dest, pkgName+"_"+osName+"_"+archName+".zip")
-			if err := zipFiles(executablePaths, zipFilePath, extName, trailName); err != nil {
-				fmt.Println("Error zip files:", err)
-				return
-			}
-		} else {
-			zipFilePath = filepath.Join(dest, pkgName+"_"+osName+"_"+archName+".tar.gz")
-			if err := tarGzFiles(executablePaths, zipFilePath, extName, trailName); err != nil {
-				fmt.Println("Error tar.gz files:", err)
-				return
-			}
-		}
-
-		fmt.Println("Created compressed file:", zipFilePath)
-	}
-}
-
 func zipFiles(sourcePaths []string, target, extName, trailName string) error {
 	zipFile, err := os.Create(target)
 	if err != nil {
@@ -161,4 +101,64 @@ func addFileToTar(tarWriter *tar.Writer, sourcePath, extName, trailName string) 
 	}
 
 	return nil
+}
+
+func main() {
+	src := "./bin"
+	dest := "./dist"
+	pkgName := "ssh-manager"
+
+	if _, err := os.Stat(dest); os.IsNotExist(err) {
+		err := os.Mkdir(dest, 0755)
+		if err != nil {
+			fmt.Printf("error creating directory: %v\n", err)
+			return
+		}
+		fmt.Println("directory created:", dest)
+	} else if err != nil {
+		fmt.Printf("error checking directory existence: %v\n", err)
+		return
+	}
+
+	currentOS := runtime.GOOS
+	currentARCH := runtime.GOARCH
+
+	defaultOsArch := fmt.Sprintf("%s/%s", currentOS, currentARCH)
+
+	osarch := flag.String("osarch", defaultOsArch, "OS/ARCH list")
+	flag.Parse()
+
+	osarchList := strings.Fields(*osarch)
+	for _, oa := range osarchList {
+		oas := strings.Split(oa, "/")
+		osName := oas[0]
+		archName := oas[1]
+		extName := ""
+		if osName == "windows" {
+			extName = ".exe"
+		}
+
+		executablePaths := []string{
+			filepath.Join(src, "ssh-client"),
+			filepath.Join(src, pkgName),
+		}
+		trailName := "_" + osName + "_" + archName + extName
+
+		zipFilePath := ""
+		if osName == "windows" {
+			zipFilePath = filepath.Join(dest, pkgName+"_"+osName+"_"+archName+".zip")
+			if err := zipFiles(executablePaths, zipFilePath, extName, trailName); err != nil {
+				fmt.Println("Error zip files:", err)
+				return
+			}
+		} else {
+			zipFilePath = filepath.Join(dest, pkgName+"_"+osName+"_"+archName+".tar.gz")
+			if err := tarGzFiles(executablePaths, zipFilePath, extName, trailName); err != nil {
+				fmt.Println("Error tar.gz files:", err)
+				return
+			}
+		}
+
+		fmt.Println("Created compressed file:", zipFilePath)
+	}
 }
