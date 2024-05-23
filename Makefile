@@ -2,43 +2,38 @@ dest = bin
 GO_OS := $(shell go env GOOS)
 GO_ARCH := $(shell go env GOARCH)
 
+VERSION_DIST := 0.0.15
+VERSION_DEV := dev
+
 ifeq ($(GO_OS),windows)
 	WINDOWS_HIDE := -H=windowsgui
 else
 	WINDOWS_HIDE :=
 endif
 
-ifndef version
-	VERSION_DIST = 0.0.15
-	VERSION_DEV = dev
-endif
 
-build:
+syso:
 ifeq ($(GO_OS),windows)
 	go get -d github.com/akavel/rsrc
 	go build -o bin/ github.com/akavel/rsrc
+#	bin/rsrc -arch amd64 -ico ./html/icon/favicon.ico -o rsrc_windows_arm64.syso
 	bin/rsrc -arch $(GO_ARCH) -ico ./html/icon/favicon.ico -o rsrc_$(GO_OS)_$(GO_ARCH).syso
 	go mod tidy
 	rm $(dest)/rsrc*
 endif
 
+
+build: syso
 	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
-#	go build -ldflags "-w -s -X 'main.VERSION=$(VERSION_DEV)' $(WINDOWS_HIDE)" -trimpath -o $(dest)/
+	go build -ldflags "-w -s -X 'main.VERSION=$(VERSION_DEV)' $(WINDOWS_HIDE)" -trimpath -o $(dest)/
+
+
+dev: syso
+	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
 	go build -ldflags "-w -s -X 'main.VERSION=$(VERSION_DEV)'" -trimpath -o $(dest)/
 
 
-dist: clean
-ifeq ($(GO_OS),windows)
-	go get -d github.com/akavel/rsrc
-	go build -o bin/ github.com/akavel/rsrc
-	bin/rsrc -arch amd64 -ico ./html/icon/favicon.ico -o rsrc_windows_amd64.syso
-#	bin/rsrc -arch amd64 -ico ./html/icon/favicon.ico -o rsrc_windows_arm64.syso
-#	bin/rsrc -arch amd64 -ico ./html/icon/favicon.ico -o rsrc_linux_amd64.syso
-#	bin/rsrc -arch arm -ico ./html/icon/favicon.ico -o rsrc_linux_arm.syso
-#	bin/rsrc -arch arm64 -ico ./html/icon/favicon.ico -o rsrc_linux_arm64.syso
-	rm $(dest)/rsrc*
-endif
-
+dist: clean syso
 	go get -d github.com/mitchellh/gox
 	go mod edit -replace github.com/mitchellh/gox=github.com/edp1096/gox@latest
 	go build -mod=readonly -o $(dest)/ github.com/mitchellh/gox
@@ -52,6 +47,7 @@ endif
 	go run ./builder/archiver -osarch "windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64"
 	rm $(dest)/ssh-client_*
 	rm $(dest)/ssh-manager_*
+
 
 clean:
 	rm -rf $(dest)/*.exe
