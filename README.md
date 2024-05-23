@@ -16,10 +16,9 @@ SSH host manager for personal using
     * tmux
     * chromium or chrome
 
-## First run
-* Password
-    * First time - create `hosts.dat` with entered password
-    * Then - Password is required when `hosts.dat` open
+## Password asking when executing
+    * First time - Create `hosts.dat` with the password
+    * Then - Open `hosts.dat` with the password
 
 ## Build
 ```sh
