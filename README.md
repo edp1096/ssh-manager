@@ -17,8 +17,8 @@ SSH host manager for personal using
     * chromium or chrome
 
 ## Password asking when executing
-    * First time - Create `hosts.dat` with the password
-    * Then - Open `hosts.dat` with the password
+* First time - Create `hosts.dat` with the password
+* Then - Open `hosts.dat` with the password
 
 ## Build
 ```sh
