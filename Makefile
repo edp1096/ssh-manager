@@ -5,8 +5,9 @@ dest = bin
 GO_OS := $(shell go env GOOS)
 GO_ARCH := $(shell go env GOARCH)
 
-VERSION_DIST := 0.0.15
+VERSION := $(shell git describe --tags)
 VERSION_DEV := dev
+VERSION_DIST := $(shell git describe --abbrev=0 --tags)
 
 ifeq ($(GO_OS),windows)
 	WINDOWS_HIDE := -H=windowsgui
@@ -28,7 +29,7 @@ endif
 
 build: syso
 	go build -ldflags "-w -s" -trimpath -o $(dest)/ ssh-client/
-	go build -ldflags "-w -s -X 'main.VERSION=$(VERSION_DEV)' $(WINDOWS_HIDE)" -trimpath -o $(dest)/
+	go build -ldflags "-w -s -X 'main.VERSION=$(VERSION)' $(WINDOWS_HIDE)" -trimpath -o $(dest)/
 
 
 dev: syso
