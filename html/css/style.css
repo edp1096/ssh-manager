@@ -24,7 +24,9 @@ button {
     border-radius: 0.2em;
     background: #010409;
     color: #b7bdc4;
-    padding: 0.3em 0.5em;
+    /* padding: 0.3em 0.5em; */
+    padding-top: 0.2em;
+    padding-bottom: 0.2em;
     margin-left: 0.2em;
     margin-right: 0.2em;
 }
@@ -85,7 +87,7 @@ button.critical {
     border-radius: 0.2em;
     background: #c9302c;
     /* color: #ffffff; */
-    padding: 0.3em 0.5em;
+    /* padding: 0.3em 0.5em; */
     cursor: pointer;
     transition: background 0.3s, border 0.3s;
 }

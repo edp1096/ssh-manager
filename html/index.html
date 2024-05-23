@@ -8,10 +8,12 @@
     <title>SSH Manager</title>
 
     <!-- source: https://www.svgrepo.com/svg/366485/terminal -->
-    <link rel="icon" href="/favicon.svg">
-    <link rel="alternate icon" href="/favicon.png">
+    <link rel="icon" href="/icon/favicon.svg">
+    <link rel="alternate icon" href="/icon/favicon.png">
 
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/material-icons.css" />
+    <link rel="stylesheet" href="/css/material-symbols-outlined.css" />
     <link rel="stylesheet" href="/css/host-control.css" />
     <link rel="stylesheet" href="/css/host-order.css" />
     <link rel="stylesheet" href="/css/dialog.css" />
@@ -28,15 +30,27 @@
     </div>
 
     <div class="button-group-left">
-        <button onclick="expandAllCategories()">Expand all</button>
-        <button onclick="collapseAllCategories()">Collapse all</button>
+        <button onclick="expandAllCategories()" title="Expand all">
+            <span class="material-symbols-outlined">expand_all</span>
+        </button>
+        <button onclick="collapseAllCategories()" title="Collapse all">
+            <span class="material-symbols-outlined">collapse_all</span>
+        </button>
+        <button onclick="getHosts()" title="Reload host list">
+            <span class="material-symbols-outlined">refresh</span>
+        </button>
     </div>
 
     <div class="button-group-right">
-        <button onclick="openCategoryEditDialog()">Add category</button>
-        <button onclick="getHosts()">Reload list</button>
-        <button onclick="setReorderMode()">Reorder list</button>
-        <button onclick="openChangePasswordDialog()">Change password</button>
+        <button onclick="openCategoryEditDialog()" title="Add category">
+            <span class="material-symbols-outlined">create_new_folder</span>
+        </button>
+        <button onclick="setReorderMode()" title="Reorder host list">
+            <span class="material-symbols-outlined">low_priority</span>
+        </button>
+        <button onclick="openChangePasswordDialog()" title="Change password of host file">
+            <span class="material-symbols-outlined">lock</span>
+        </button>
     </div>
 
     <hr />
@@ -100,10 +114,15 @@
     </template>
 
     <template id="category-buttons-template">
-        <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`)">Add host</button>
-        <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)">Rename category</button>
-        <!-- <button onclick="deleteCategory('@@_CATEGORY_IDX_@@')" class="critical">Delete category</button> -->
-        <button onclick="openDeleteCategory('@@_CATEGORY_IDX_@@')" class="critical">Delete category</button>
+        <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`)" title="Add host">
+            <span class="material-symbols-outlined">add</span>
+        </button>
+        <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)" title="Rename category">
+            <span class="material-symbols-outlined">border_color</span>
+        </button>
+        <button onclick="openDeleteCategory('@@_CATEGORY_IDX_@@')" class="critical" title="Delete category">
+            <span class="material-symbols-outlined">delete</span>
+        </button>
     </template>
 
     <template id="category-data-template">
@@ -125,12 +144,19 @@
                 <span class="label">Address:</span> <span>@@_ADDRESS_@@:@@_PORT_@@</span>
             </li>
             <li>
-                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">Open new window</button>
-                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Open new panel</button>
+                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)" title="Open new window">
+                    <span class="material-symbols-outlined">terminal</span>
+                </button>
+                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" title="Open new panel">
+                    <span class="material-symbols-outlined">dock_to_right</span>
+                </button>
                 <div class="button-section-divider"></div>
-                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)">Edit</button>
-                <!-- <button onclick="deleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="critical">Delete</button> -->
-                <button onclick="openDeleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="critical">Delete</button>
+                <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" title="Edit host">
+                    <span class="material-symbols-outlined">edit</span>
+                </button>
+                <button onclick="openDeleteHost(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" class="critical" title="Delete host">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
             </li>
         </ul>
     </template>

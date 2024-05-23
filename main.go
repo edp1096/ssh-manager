@@ -60,6 +60,8 @@ var BrowserDataZip embed.FS
 //go:embed embeds/browser_data.tar.gz
 var BrowserDataTarGz embed.FS
 
+var VERSION string
+
 func main() {
 	var err error
 
