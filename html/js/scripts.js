@@ -142,9 +142,8 @@ async function changeHostFilePassword(e) {
 }
 
 function init() {
-    document.querySelector("body").addEventListener("keydown", preventKeys)
-    document.querySelector("body").addEventListener("mousedown", preventDrag)
-    document.querySelector("body").addEventListener("mousewheel", preventCtrlWheel)
+    document.addEventListener("keydown", preventKeys)
+    document.addEventListener("mousedown", preventDrag)
 
     document.querySelector("#dialog-enter-password").showModal()
 }

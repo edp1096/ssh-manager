@@ -29,7 +29,8 @@ async function preventKeys(e) {
     // Ctrl
     if (e.ctrlKey) {
         if (e.ctrlKey && e.code == "KeyA") {
-            return
+            tagsAllow = ["INPUT", "TEXTAREA"]
+            if (tagsAllow.includes(e.target.tagName)) { return }
         }
         if (e.ctrlKey && e.code == "KeyC") {
             return
@@ -48,6 +49,7 @@ async function preventKeys(e) {
         }
         e.preventDefault()
     }
+
     // Alt
     if (e.altKey) {
         e.preventDefault()

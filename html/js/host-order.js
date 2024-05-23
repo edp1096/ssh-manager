@@ -106,6 +106,7 @@ function handleDrop(e) {
 function closeReorderMode() {
     orderData = []
     document.querySelector("#order-container").style.display = "none"
+    document.addEventListener('mousedown', preventDrag)
 }
 
 async function saveReorderedList() {
@@ -129,8 +130,6 @@ function setReorderMode() {
     orderData = JSON.parse(JSON.stringify(hostsData))
     createList()
 
-    const target = document.querySelector("body")
-    target.removeEventListener('mousedown', preventDrag)
-
+    document.removeEventListener('mousedown', preventDrag)
     document.querySelector("#order-container").style.display = "block"
 }

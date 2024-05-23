@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="/css/dialog.css" />
 </head>
 
-<body oncontextmenu="contextMenu(event); return false">
+<body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)">
     <!-- list reordering - working -->
     <div id="order-container">
         <div id="order-lists"></div>
