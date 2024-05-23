@@ -437,7 +437,6 @@ func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
 			password, found := FindPasswordByUUID(hostsOLD.Categories, nh.UniqueID)
 			if found {
 				hostsNEW.Categories[i].Hosts[j].Password = password
-				break
 			}
 		}
 	}
