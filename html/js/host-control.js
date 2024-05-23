@@ -129,12 +129,14 @@ function moveKeyFileToPrivateKeyText(el) {
 
 function openCategoryEditDialog(categoryIdxSTR = null) {
     const tmpl = categoryEditDialogTMPL.innerHTML
-    categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "New category")
-
-    if (categoryIdxSTR) {
+    if (!categoryIdxSTR) {
+        categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "New category")
+    } else {
+        categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "Edit category")
         const d = categoryEditDialog
         const idx = parseInt(categoryIdxSTR) - 1
         d.querySelector("input#category-idx").value = idx
+        d.querySelector("input#category-name").value = hostsData[idx].name
     }
 
     categoryEditDialog.showModal()
