@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -33,6 +32,8 @@ type ReorderRequest struct {
 	HostList HostList `json:"hosts"`
 }
 
+var WebSocketConns []int
+
 func getAvailablePort() (port int, err error) {
 	portBegin := 10000
 	portEnd := 50000
@@ -45,7 +46,7 @@ func getAvailablePort() (port int, err error) {
 		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 		if err == nil {
 			ln.Close()
-			fmt.Printf("available port: %d\n", port)
+			// fmt.Printf("available port: %d\n", port)
 			break
 		}
 	}
@@ -61,20 +62,20 @@ func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer exitProcess()
+	defer func() { WebSocketConns = WebSocketConns[1:] }()
 	defer conn.Close()
 
+	WebSocketConns = append(WebSocketConns, 1)
 	for {
-		_, m, err := conn.ReadMessage()
-		if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-			log.Println(err)
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			// fmt.Println(err)
 			break
 		}
-
-		if strings.Contains(string(m), "document title|") {
-			ms := strings.Split(string(m), "|")
-			browserWindowTitle = ms[1]
-			continue
-		}
+		// if websocket.IsCloseError(err, websocket.CloseNormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
+		// 	// fmt.Println(err)
+		// 	break
+		// }
 	}
 }
 
@@ -387,7 +388,7 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 
 	err = saveHostData(hostsFile, hostFileKEY, &hosts)
 	if err != nil {
-		log.Println(err)
+		// fmt.Println(err)
 		http.Error(w, "error saving host data file", http.StatusInternalServerError)
 		return
 	}
@@ -432,7 +433,7 @@ func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
 	hostsNEW = body.HostList
 
 	for i, nc := range hostsNEW.Categories {
-		log.Println(nc.Name)
+		// fmt.Println(nc.Name)
 		for j, nh := range nc.Hosts {
 			password, found := FindPasswordByUUID(hostsOLD.Categories, nh.UniqueID)
 			if found {

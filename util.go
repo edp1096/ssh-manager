@@ -39,6 +39,12 @@ func renameFolders(pattern, newPrefix string) error {
 }
 
 func exitProcess() {
+	// Wait for browser refresh checking
+	time.Sleep(500 * time.Millisecond)
+	if len(WebSocketConns) > 0 {
+		return
+	}
+
 	err := cmdBrowser.Process.Kill()
 	if err != nil {
 		if runtime.GOOS == "windows" {
