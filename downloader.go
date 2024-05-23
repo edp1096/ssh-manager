@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -70,9 +72,15 @@ func downloadWindowsTerminal() error {
 
 	wtFname := "windows-terminal.zip"
 
+	archs := []string{"x86", "x64", "arm64"}
+	arch := runtime.GOARCH
+	if !slices.Contains(archs, arch) {
+		return fmt.Errorf("architecture is not supported: %v", arch)
+	}
+
 	isDownloaded := false
 	for _, uri := range uris {
-		if !strings.Contains(uri, "x64") || !strings.Contains(uri, "zip") {
+		if !strings.Contains(uri, arch) || !strings.Contains(uri, "zip") {
 			continue
 		}
 
