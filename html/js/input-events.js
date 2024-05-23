@@ -54,4 +54,11 @@ async function preventKeys(e) {
     if (e.altKey) {
         e.preventDefault()
     }
+
+    // Tab
+    if (e.code == "Tab") {
+        tagsAllow = ["BUTTON", "INPUT", "TEXTAREA"]
+        if (tagsAllow.includes(e.target.tagName)) { return }
+        e.preventDefault()
+    }
 }
