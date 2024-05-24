@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"ssh-manager/pkg/arc"
+	"ssh-manager/pkg/archiver"
 	"ssh-manager/pkg/utils"
 )
 
@@ -91,16 +91,16 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 		panic(fmt.Errorf("chrome or chromium or msedge not found"))
 	}
 
-	var archiveData arc.Archiver
+	var archiveData archiver.Archiver
 	switch foundWebBrowser {
 	case "msedge":
-		archiveData = arc.Zip{
+		archiveData = archiver.Zip{
 			FileName:   "embeds/browser_data.zip",
 			TargetPath: extractPath,
 			FSdata:     BrowserData,
 		}
 	case "chrome", "chromium":
-		archiveData = arc.Tgz{
+		archiveData = archiver.Tgz{
 			FileName:   "embeds/browser_data.tar.gz",
 			TargetPath: extractPath,
 			FSdata:     BrowserData,

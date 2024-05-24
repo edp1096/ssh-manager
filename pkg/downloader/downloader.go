@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"ssh-manager/pkg/arc"
+	"ssh-manager/pkg/archiver"
 	"ssh-manager/pkg/utils"
 )
 
@@ -106,7 +106,7 @@ func DownloadWindowsTerminal() error {
 		return fmt.Errorf("failed to read zip file: %s", err)
 	}
 
-	err = arc.UnZip(fileZipData, extractPath)
+	err = archiver.UnZip(fileZipData, extractPath)
 	if err != nil {
 		return fmt.Errorf("failed to unzip file: %s", err)
 	}
