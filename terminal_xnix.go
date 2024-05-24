@@ -20,8 +20,8 @@ func CheckTerminalExist() {
 	ShellRuntimePath = "tmux"
 
 	if !utils.CheckFileExitsInEnvPath(ShellRuntimePath) {
-		fmt.Println("tmux not found")
-		fmt.Println("please install tmux first")
+		fmt.Println("tmux not found in path environment.")
+		fmt.Println("please install tmux.")
 		os.Exit(1)
 	}
 }
