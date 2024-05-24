@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	_ "modernc.org/sqlite"
-
 	"ssh-manager/internal/browser"
 	"ssh-manager/pkg/arc"
 )

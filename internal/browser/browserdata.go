@@ -3,6 +3,8 @@ package browser
 import (
 	"database/sql"
 	"log"
+
+	_ "modernc.org/sqlite"
 )
 
 func EditBrowserDataLogins(url string) {

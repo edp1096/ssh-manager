@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -15,7 +16,15 @@ import (
 	"ssh-manager/pkg/utils"
 )
 
-func CheckTerminalExist() {}
+func CheckTerminalExist() {
+	ShellRuntimePath = "tmux"
+
+	if !utils.CheckFileExitsInEnvPath(ShellRuntimePath) {
+		fmt.Println("tmux not found")
+		fmt.Println("please install tmux first")
+		os.Exit(1)
+	}
+}
 
 // func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
 func openTerminal(arg SshArgument) (pid int, err error) {
@@ -23,8 +32,6 @@ func openTerminal(arg SshArgument) (pid int, err error) {
 	categoryIndex := arg.CategoryIndex
 	hostIndex := arg.HostIndex
 	newWindow := arg.NewWindow
-
-	ShellRuntimePath = "tmux"
 
 	procName := "ssh-client"
 	termExists, err := utils.CheckProcessExists(procName)
