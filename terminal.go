@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"ssh-manager/pkg/utils"
 )
 
 type SshArgument struct {
@@ -19,7 +21,7 @@ type SshArgument struct {
 
 func openWindowsTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
 	procName := "ssh-client.exe"
-	termExists, err := CheckProcessExists(procName)
+	termExists, err := utils.CheckProcessExists(procName)
 	if err != nil {
 		return -1, fmt.Errorf("proc error: %s", err)
 	}
@@ -65,17 +67,16 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 	ShellRuntimePath = "tmux"
 
 	procName := "ssh-client"
-	termExists, err := CheckProcessExists(procName)
-	// termExists, err := checkProcessExists(shellRuntimePath)
+	termExists, err := utils.CheckProcessExists(procName)
 	if err != nil {
 		return -1, fmt.Errorf("error check process exist:%s", err)
 	}
 
 	termBin := []string{"xterm", "-e", ShellRuntimePath}
-	if CheckFileExitsInEnvPath("konsole") {
+	if utils.CheckFileExitsInEnvPath("konsole") {
 		termBin = []string{"konsole", "-e", "sh", "-c", ShellRuntimePath}
 	}
-	if CheckFileExitsInEnvPath("gnome-terminal") {
+	if utils.CheckFileExitsInEnvPath("gnome-terminal") {
 		termBin = []string{"gnome-terminal", "--", "sh", "-c", ShellRuntimePath}
 	}
 

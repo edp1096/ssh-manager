@@ -10,6 +10,8 @@ import (
 	"runtime"
 
 	_ "modernc.org/sqlite"
+
+	"ssh-manager/pkg/arc"
 )
 
 type WebBrowserInfo struct {
@@ -118,7 +120,7 @@ func OpenBrowser(url string) bool {
 			panic(fmt.Errorf("failed to read embedded zip file: %s", err))
 		}
 
-		if err := UnZip(embedZipData, extractPath); err != nil {
+		if err := arc.UnZip(embedZipData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
 		}
 	case "chrome", "chromium":
@@ -128,7 +130,7 @@ func OpenBrowser(url string) bool {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
 
-		if err := UnTar(embedTgzData, extractPath); err != nil {
+		if err := arc.UnTar(embedTgzData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
 	default:

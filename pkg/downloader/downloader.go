@@ -1,4 +1,4 @@
-package main
+package downloader
 
 import (
 	"encoding/json"
@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"ssh-manager/pkg/arc"
+	"ssh-manager/pkg/utils"
 )
 
 func getGithubReleaseLatestUris(owner, repo string) ([]string, error) {
@@ -103,14 +106,14 @@ func DownloadWindowsTerminal() error {
 		return fmt.Errorf("failed to read zip file: %s", err)
 	}
 
-	err = UnZip(fileZipData, extractPath)
+	err = arc.UnZip(fileZipData, extractPath)
 	if err != nil {
 		return fmt.Errorf("failed to unzip file: %s", err)
 	}
 
 	pattern := "terminal-*"
 	newPrefix := "windows-terminal"
-	err = RenameFolders(pattern, newPrefix)
+	err = utils.RenameFolders(pattern, newPrefix)
 	if err != nil {
 		return fmt.Errorf("failed to rename folder: %s", err)
 	}

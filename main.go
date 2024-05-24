@@ -7,6 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+
+	"ssh-manager/pkg/downloader"
+	"ssh-manager/pkg/utils"
 )
 
 type HostList struct {
@@ -70,7 +73,7 @@ func main() {
 			ShellRuntimePath = cwd + "/windows-terminal/wt.exe"
 
 			if _, err := os.Stat(ShellRuntimePath); os.IsNotExist(err) {
-				err = DownloadWindowsTerminal()
+				err = downloader.DownloadWindowsTerminal()
 				if err != nil {
 					panic(fmt.Errorf("downloadWindowsTerminal: %s", err))
 				}
@@ -78,7 +81,7 @@ func main() {
 		}
 	}
 
-	BinaryPath, _, err = GetBinaryPath()
+	BinaryPath, _, err = utils.GetBinaryPath()
 	if err != nil {
 		fmt.Printf("error get binary path: %s", err)
 	}

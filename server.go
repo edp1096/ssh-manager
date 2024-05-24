@@ -2,10 +2,14 @@ package main
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	crand "crypto/rand"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
+	mrand "math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +21,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"ssh-manager/pkg/utils"
 )
 
 type EnterPassword struct {
@@ -38,8 +44,8 @@ func getAvailablePort() (port int, err error) {
 	portBegin := 10000
 	portEnd := 50000
 
-	source := rand.NewSource(time.Now().UnixNano())
-	randGen := rand.New(source)
+	source := mrand.NewSource(time.Now().UnixNano())
+	randGen := mrand.New(source)
 
 	for {
 		port = randGen.Intn(portEnd-portBegin) + portBegin
@@ -56,6 +62,120 @@ func getAvailablePort() (port int, err error) {
 	return
 }
 
+func ExitProcess() {
+	// Wait for browser refresh checking
+	time.Sleep(500 * time.Millisecond)
+	if len(WebSocketConns) > 0 {
+		return
+	}
+
+	CmdBrowser.Process.Kill()
+
+	time.Sleep(100 * time.Millisecond)
+
+	// Remove browser_data
+	dataPath := filepath.FromSlash(BinaryPath + "/browser_data")
+	os.RemoveAll(dataPath)
+
+	os.Exit(0)
+}
+
+func FindPasswordByUUID(categories []HostCategory, uuid string) (password string, found bool) {
+	password = ""
+	found = false
+
+	for _, c := range categories {
+		for _, h := range c.Hosts {
+			if h.UniqueID == uuid {
+				password = h.Password
+				found = true
+				return password, found
+			}
+		}
+	}
+
+	return password, found
+}
+
+func SaveHostData(fileName string, key []byte, data interface{}) error {
+	var buf bytes.Buffer
+	iv := make([]byte, aes.BlockSize)
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := gob.NewEncoder(&buf)
+	err = encoder.Encode(data)
+	if err != nil {
+		return err
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.ReadFull(crand.Reader, iv)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(iv)
+	if err != nil {
+		return err
+	}
+
+	stream := cipher.NewCFBEncrypter(block, iv)
+
+	writer := &cipher.StreamWriter{S: stream, W: file}
+	_, err = writer.Write(buf.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func LoadHostData(fileName string, key []byte, decryptedData interface{}) error {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return fmt.Errorf("loadHostData/open: %s", err)
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("loadHostData/Stat: %s", err)
+	}
+
+	encryptedData := make([]byte, fileInfo.Size())
+	_, err = io.ReadFull(file, encryptedData)
+	if err != nil {
+		return fmt.Errorf("loadHostData/ReadFull: %s", err)
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return fmt.Errorf("loadHostData/NewCipher: %s", err)
+	}
+	iv := encryptedData[:aes.BlockSize]
+	stream := cipher.NewCFBDecrypter(block, iv)
+
+	encryptedData = encryptedData[aes.BlockSize:]
+
+	reader := cipher.StreamReader{S: stream, R: bytes.NewReader(encryptedData)}
+	decoder := gob.NewDecoder(&reader)
+	err = decoder.Decode(decryptedData)
+	if err != nil {
+		return fmt.Errorf("loadHostData/Decode: %s", err)
+	}
+
+	return nil
+}
+
 func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -63,21 +183,18 @@ func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not open websocket connection", http.StatusBadRequest)
 		return
 	}
-	defer exitProcess()
+	defer ExitProcess()
 	defer func() { WebSocketConns = WebSocketConns[1:] }()
 	defer conn.Close()
 
 	WebSocketConns = append(WebSocketConns, 1)
 	for {
 		_, _, err := conn.ReadMessage()
+		// if websocket.IsCloseError(err, websocket.CloseNormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
 		if err != nil {
 			// fmt.Println(err)
 			break
 		}
-		// if websocket.IsCloseError(err, websocket.CloseNormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
-		// 	// fmt.Println(err)
-		// 	break
-		// }
 	}
 }
 
@@ -106,7 +223,7 @@ func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	HostFileKEY, err = GenerateKey(data.Password)
+	HostFileKEY, err = utils.GenerateKey(data.Password)
 	if err != nil {
 		http.Error(w, "failed to generate key", http.StatusInternalServerError)
 		return
@@ -158,13 +275,13 @@ func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hostFileKeyOLD, err := GenerateKey(data.PasswordOLD)
+	hostFileKeyOLD, err := utils.GenerateKey(data.PasswordOLD)
 	if err != nil {
 		http.Error(w, "failed to generate key", http.StatusInternalServerError)
 		return
 	}
 
-	hostFileKeyNEW, err := GenerateKey(data.PasswordNEW)
+	hostFileKeyNEW, err := utils.GenerateKey(data.PasswordNEW)
 	if err != nil {
 		http.Error(w, "failed to generate key", http.StatusInternalServerError)
 		return
@@ -469,7 +586,6 @@ func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// idxSTR := strings.TrimSpace(params.Get("idx"))
 	categoryIdxSTR := strings.TrimSpace(params.Get("category-idx"))
 	hostIdxSTR := strings.TrimSpace(params.Get("host-idx"))
 
@@ -602,7 +718,7 @@ func RunServer() {
 			if err.Error() != "http: Server closed" {
 				fmt.Println("err server running:", err)
 			}
-			exitProcess()
+			ExitProcess()
 		}
 		wg.Done()
 	}()
