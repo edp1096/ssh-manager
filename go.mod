@@ -32,3 +32,5 @@ require (
 	modernc.org/strutil v1.2.0 // indirect
 	modernc.org/token v1.1.0 // indirect
 )
+
+replace github.com/mitchellh/gox => github.com/edp1096/gox v0.0.0-20240429132002-732d358d175e
