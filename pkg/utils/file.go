@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func GetBinaryPath() (binPath, binName string, err error) {
+func GetCWD() (binPath, binName string, err error) {
 	fullPath, err := os.Executable()
 	if err != nil {
 		return "", "", err

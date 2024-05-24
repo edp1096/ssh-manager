@@ -2,15 +2,10 @@ package main
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	crand "crypto/rand"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
-	mrand "math/rand"
-	"net"
+
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,6 +17,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"ssh-manager/internal/host"
+	"ssh-manager/pkg/model"
 	"ssh-manager/pkg/utils"
 )
 
@@ -35,32 +32,12 @@ type ChangePassword struct {
 }
 
 type ReorderRequest struct {
-	HostList HostList `json:"hosts"`
+	HostList model.HostList `json:"hosts"`
 }
 
 var WebSocketConns []int
-
-func getAvailablePort() (port int, err error) {
-	portBegin := 10000
-	portEnd := 50000
-
-	source := mrand.NewSource(time.Now().UnixNano())
-	randGen := mrand.New(source)
-
-	for {
-		port = randGen.Intn(portEnd-portBegin) + portBegin
-		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-		if err == nil {
-			ln.Close()
-			if VERSION == "dev" {
-				fmt.Printf("available port: %d\n", port)
-			}
-			break
-		}
-	}
-
-	return
-}
+var AvailablePort int
+var Server *http.Server
 
 func ExitProcess() {
 	// Wait for browser refresh checking
@@ -74,13 +51,13 @@ func ExitProcess() {
 	time.Sleep(100 * time.Millisecond)
 
 	// Remove browser_data
-	dataPath := filepath.FromSlash(BinaryPath + "/browser_data")
+	dataPath := filepath.FromSlash(WorkingDir + "/browser_data")
 	os.RemoveAll(dataPath)
 
 	os.Exit(0)
 }
 
-func FindPasswordByUUID(categories []HostCategory, uuid string) (password string, found bool) {
+func FindPasswordByUUID(categories []model.HostCategory, uuid string) (password string, found bool) {
 	password = ""
 	found = false
 
@@ -95,85 +72,6 @@ func FindPasswordByUUID(categories []HostCategory, uuid string) (password string
 	}
 
 	return password, found
-}
-
-func SaveHostData(fileName string, key []byte, data interface{}) error {
-	var buf bytes.Buffer
-	iv := make([]byte, aes.BlockSize)
-
-	file, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	encoder := gob.NewEncoder(&buf)
-	err = encoder.Encode(data)
-	if err != nil {
-		return err
-	}
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.ReadFull(crand.Reader, iv)
-	if err != nil {
-		return err
-	}
-
-	_, err = file.Write(iv)
-	if err != nil {
-		return err
-	}
-
-	stream := cipher.NewCFBEncrypter(block, iv)
-
-	writer := &cipher.StreamWriter{S: stream, W: file}
-	_, err = writer.Write(buf.Bytes())
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func LoadHostData(fileName string, key []byte, decryptedData interface{}) error {
-	file, err := os.Open(fileName)
-	if err != nil {
-		return fmt.Errorf("loadHostData/open: %s", err)
-	}
-	defer file.Close()
-
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return fmt.Errorf("loadHostData/Stat: %s", err)
-	}
-
-	encryptedData := make([]byte, fileInfo.Size())
-	_, err = io.ReadFull(file, encryptedData)
-	if err != nil {
-		return fmt.Errorf("loadHostData/ReadFull: %s", err)
-	}
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return fmt.Errorf("loadHostData/NewCipher: %s", err)
-	}
-	iv := encryptedData[:aes.BlockSize]
-	stream := cipher.NewCFBDecrypter(block, iv)
-
-	encryptedData = encryptedData[aes.BlockSize:]
-
-	reader := cipher.StreamReader{S: stream, R: bytes.NewReader(encryptedData)}
-	decoder := gob.NewDecoder(&reader)
-	err = decoder.Decode(decryptedData)
-	if err != nil {
-		return fmt.Errorf("loadHostData/Decode: %s", err)
-	}
-
-	return nil
 }
 
 func handleConnectionWatchdog(w http.ResponseWriter, r *http.Request) {
@@ -202,7 +100,7 @@ func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var data EnterPassword
 
-	hosts := HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+	hosts := model.GetEmptyHostList()
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -230,14 +128,14 @@ func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := os.Stat(hostsFile); os.IsNotExist(err) {
-		err = SaveHostData(hostsFile, HostFileKEY, &hosts)
+		err = host.SaveHostData(hostsFile, HostFileKEY, &hosts)
 		if err != nil {
 			http.Error(w, "failed to create host data", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	err = LoadHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.LoadHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
 		http.Error(w, "failed to to load host data", http.StatusInternalServerError)
 		return
@@ -254,7 +152,7 @@ func handleEnterPassword(w http.ResponseWriter, r *http.Request) {
 func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var data ChangePassword
-	var hosts HostList
+	var hosts model.HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -292,13 +190,13 @@ func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = LoadHostData(hostsFile, hostFileKeyOLD, &hosts)
+	err = host.LoadHostData(hostsFile, hostFileKeyOLD, &hosts)
 	if err != nil {
 		http.Error(w, "failed to to load host data", http.StatusInternalServerError)
 		return
 	}
 
-	err = SaveHostData(hostsFile, hostFileKeyNEW, &hosts)
+	err = host.SaveHostData(hostsFile, hostFileKeyNEW, &hosts)
 	if err != nil {
 		http.Error(w, "failed to create host data", http.StatusInternalServerError)
 		return
@@ -316,7 +214,7 @@ func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
 
 func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var hosts HostList
+	var hosts model.HostList
 
 	params := r.URL.Query()
 	hostsFile := params.Get("hosts-file")
@@ -325,9 +223,9 @@ func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = LoadHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.LoadHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
-		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+		hosts = model.GetEmptyHostList()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -338,8 +236,8 @@ func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 
 func handleAddEditCategory(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var categoryRequest HostCategory
-	var hosts HostList
+	var categoryRequest model.HostCategory
+	var hosts model.HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -362,9 +260,9 @@ func handleAddEditCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = LoadHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.LoadHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
-		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+		hosts = model.GetEmptyHostList()
 	}
 
 	categoryIDX := 0
@@ -387,7 +285,7 @@ func handleAddEditCategory(w http.ResponseWriter, r *http.Request) {
 		hosts.Categories[categoryIDX] = categoryRequest
 	}
 
-	err = SaveHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.SaveHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
 		http.Error(w, "error saving host data file", http.StatusInternalServerError)
 		return
@@ -403,7 +301,7 @@ func handleAddEditCategory(w http.ResponseWriter, r *http.Request) {
 
 func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var hosts HostList
+	var hosts model.HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -414,9 +312,9 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 	idxSTR := strings.TrimSpace(params.Get("idx"))
 
-	err = LoadHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.LoadHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
-		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+		hosts = model.GetEmptyHostList()
 	}
 
 	if idxSTR == "" {
@@ -433,7 +331,7 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		hosts.Categories = slices.Delete(hosts.Categories, int(idx), int(idx+1))
 	}
 
-	err = SaveHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.SaveHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
 		http.Error(w, "error saving host data file", http.StatusInternalServerError)
 		return
@@ -449,8 +347,8 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var hostRequest HostRequestInfo
-	var hosts HostList
+	var hostRequest model.HostRequestInfo
+	var hosts model.HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -474,9 +372,9 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = LoadHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.LoadHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
-		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+		hosts = model.GetEmptyHostList()
 	}
 
 	categoryIDX := 0
@@ -493,7 +391,7 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hostIdxSTR == "" {
-		hosts.Categories[categoryIDX].Hosts = append(hosts.Categories[categoryIDX].Hosts, HostInfo(hostRequest))
+		hosts.Categories[categoryIDX].Hosts = append(hosts.Categories[categoryIDX].Hosts, model.HostInfo(hostRequest))
 	} else {
 		hostIDX, _ := strconv.ParseInt(hostIdxSTR, 10, 64)
 
@@ -502,10 +400,10 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 			hostRequest.Password = hosts.Categories[categoryIDX].Hosts[hostIDX].Password
 		}
 
-		hosts.Categories[categoryIDX].Hosts[hostIDX] = HostInfo(hostRequest)
+		hosts.Categories[categoryIDX].Hosts[hostIDX] = model.HostInfo(hostRequest)
 	}
 
-	err = SaveHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.SaveHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
 		// fmt.Println(err)
 		http.Error(w, "error saving host data file", http.StatusInternalServerError)
@@ -523,7 +421,7 @@ func handleAddEditHost(w http.ResponseWriter, r *http.Request) {
 func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var body ReorderRequest
-	var hostsOLD, hostsNEW HostList
+	var hostsOLD, hostsNEW model.HostList
 
 	params := r.URL.Query()
 	hostsFile := params.Get("hosts-file")
@@ -532,7 +430,7 @@ func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = LoadHostData(hostsFile, HostFileKEY, &hostsOLD)
+	err = host.LoadHostData(hostsFile, HostFileKEY, &hostsOLD)
 	if err != nil {
 		http.Error(w, "host-file not exists", http.StatusBadRequest)
 		return
@@ -561,7 +459,7 @@ func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = SaveHostData(hostsFile, HostFileKEY, &hostsNEW)
+	err = host.SaveHostData(hostsFile, HostFileKEY, &hostsNEW)
 	if err != nil {
 		http.Error(w, "failed to save host data", http.StatusInternalServerError)
 		return
@@ -577,7 +475,7 @@ func handleReorderHosts(w http.ResponseWriter, r *http.Request) {
 
 func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var hosts HostList
+	var hosts model.HostList
 
 	params := r.URL.Query()
 	hostsFile := strings.TrimSpace(params.Get("hosts-file"))
@@ -589,9 +487,9 @@ func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
 	categoryIdxSTR := strings.TrimSpace(params.Get("category-idx"))
 	hostIdxSTR := strings.TrimSpace(params.Get("host-idx"))
 
-	err = LoadHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.LoadHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
-		hosts = HostList{Categories: []HostCategory{{Name: "Default", Hosts: []HostInfo{}}}}
+		hosts = model.GetEmptyHostList()
 	}
 
 	categoryIDX := 0
@@ -621,7 +519,7 @@ func handleDeleteHost(w http.ResponseWriter, r *http.Request) {
 		hosts.Categories[categoryIDX].Hosts = slices.Delete(hosts.Categories[categoryIDX].Hosts, int(hostIDX), int(hostIDX+1))
 	}
 
-	err = SaveHostData(hostsFile, HostFileKEY, &hosts)
+	err = host.SaveHostData(hostsFile, HostFileKEY, &hosts)
 	if err != nil {
 		http.Error(w, "error saving host data file", http.StatusInternalServerError)
 		return
@@ -652,12 +550,12 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newWindow := false
+	arg.NewWindow = false
 	if windowMode == "new_window" {
-		newWindow = true
+		arg.NewWindow = true
 	}
 
-	openSession(arg, newWindow)
+	openSession(arg)
 }
 
 func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
@@ -687,9 +585,12 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 func RunServer() {
 	var err error
 
-	AvailablePort, err = getAvailablePort()
+	AvailablePort, err = utils.GetAvailablePort()
 	if err != nil {
 		panic(err)
+	}
+	if VERSION == "dev" {
+		fmt.Printf("available port: %d\n", AvailablePort)
 	}
 
 	listen := "localhost:" + strconv.Itoa(AvailablePort)

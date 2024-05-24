@@ -1,9 +1,7 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +9,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"ssh-manager/internal/browser"
 	"ssh-manager/pkg/arc"
 )
 
@@ -19,31 +18,11 @@ type WebBrowserInfo struct {
 	Path string
 }
 
-func editBrowserDataLogins(url string) {
-	dbPath := "./browser_data/Default/Login Data"
-
-	db, err := sql.Open("sqlite", dbPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("UPDATE logins SET origin_url = ?, signon_realm = ? WHERE id = (SELECT id FROM logins LIMIT 1)", url, url, 3)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = db.Exec("UPDATE stats SET origin_domain = ? WHERE update_time = (SELECT update_time FROM stats LIMIT 1)", url)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func OpenBrowser(url string) bool {
 	var browsers []WebBrowserInfo
 
 	userAgent := "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 Edg/124.0.0.0"
-	dataPath := filepath.FromSlash(BinaryPath + "/browser_data")
+	dataPath := filepath.FromSlash(WorkingDir + "/browser_data")
 
 	args := []string{
 		"browser_command_here",
@@ -137,7 +116,7 @@ func OpenBrowser(url string) bool {
 		panic("no available browser") // User should not meet this
 	}
 
-	editBrowserDataLogins(url + "/")
+	browser.EditBrowserDataLogins(url + "/")
 
 	CmdBrowser = exec.Command(args[0], append(args[1:], url)...)
 	return CmdBrowser.Start() == nil
