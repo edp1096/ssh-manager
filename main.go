@@ -9,7 +9,7 @@ import (
 
 var HostFileKEY []byte = []byte("0123456789!#$%^&*()abcdefghijklm")
 
-//go:embed html/*
+//go:embed web/*
 var EmbedFiles embed.FS
 
 //go:embed embeds/browser_data.zip embeds/browser_data.tar.gz

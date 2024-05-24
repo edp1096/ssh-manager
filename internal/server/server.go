@@ -586,7 +586,7 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 		fname = "index.html"
 	}
 
-	file, err := EmbedFiles.ReadFile("html/" + fname)
+	file, err := EmbedFiles.ReadFile("web/" + fname)
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return

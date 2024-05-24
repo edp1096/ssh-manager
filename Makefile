@@ -20,8 +20,8 @@ syso:
 ifeq ($(GO_OS),windows)
 	go get -d github.com/akavel/rsrc
 	go build -o bin/ github.com/akavel/rsrc
-#	bin/rsrc -arch amd64 -ico ./html/icon/favicon.ico -o rsrc_windows_arm64.syso
-	bin/rsrc -arch $(GO_ARCH) -ico ./html/icon/favicon.ico -o rsrc_$(GO_OS)_$(GO_ARCH).syso
+#	bin/rsrc -arch amd64 -ico ./web/icon/favicon.ico -o rsrc_windows_arm64.syso
+	bin/rsrc -arch $(GO_ARCH) -ico ./web/icon/favicon.ico -o rsrc_$(GO_OS)_$(GO_ARCH).syso
 	go mod tidy
 	rm $(dest)/rsrc*
 endif
@@ -48,7 +48,7 @@ dist: clean syso
 	$(dest)/gox -mod="readonly" -ldflags="-X main.VERSION=$(VERSION_DIST) -w -s -H=windowsgui" -output="$(dest)/{{.Dir}}_{{.OS}}_{{.Arch}}" -osarch="windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64"
 	rm $(dest)/gox*
 
-	go run ./builder/archiver -osarch "windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64"
+	go run ./tools/archiver -osarch "windows/amd64 freebsd/amd64 linux/amd64 linux/arm linux/arm64"
 	rm $(dest)/ssh-client_*
 	rm $(dest)/ssh-manager_*
 
