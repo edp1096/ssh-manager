@@ -10,9 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -45,14 +43,7 @@ func exitProcess() {
 		return
 	}
 
-	err := CmdBrowser.Process.Kill()
-	if err != nil {
-		if runtime.GOOS == "windows" {
-			exec.Command("taskkill", "/fi", "windowtitle eq "+BrowserWindowTitle).Run()
-		} else {
-			exec.Command("pkill", "-f", BrowserWindowTitle).Run()
-		}
-	}
+	CmdBrowser.Process.Kill()
 
 	time.Sleep(100 * time.Millisecond)
 

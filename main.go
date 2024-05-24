@@ -43,12 +43,11 @@ type HostRequestInfo struct {
 var ShellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
 var HostFileKEY []byte = []byte("0123456789!#$%^&*()abcdefghijklm")
 var (
-	CmdTerminal        *exec.Cmd
-	CmdBrowser         *exec.Cmd
-	BrowserWindowTitle string
-	Server             *http.Server
-	BinaryPath         string
-	AvailablePort      int
+	CmdTerminal   *exec.Cmd
+	CmdBrowser    *exec.Cmd
+	Server        *http.Server
+	BinaryPath    string
+	AvailablePort int
 )
 
 //go:embed html/*
