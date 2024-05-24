@@ -26,7 +26,7 @@ import (
 	"ssh-manager/pkg/utils"
 )
 
-type MiscData struct {
+type InitData struct {
 	HostFileKEY []byte
 	EmbedFiles  embed.FS
 	BrowserData embed.FS
@@ -603,7 +603,7 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 	w.Write(file)
 }
 
-func RunServer(misc MiscData) {
+func RunServer(misc InitData) {
 	var err error
 
 	WorkingDir, _, err = utils.GetCWD()

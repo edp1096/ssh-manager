@@ -18,7 +18,7 @@ var BrowserData embed.FS
 var VERSION string
 
 func main() {
-	data := server.MiscData{
+	data := server.InitData{
 		HostFileKEY: HostFileKEY,
 		EmbedFiles:  EmbedFiles,
 		BrowserData: BrowserData,
