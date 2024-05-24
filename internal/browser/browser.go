@@ -1,14 +1,15 @@
-package main
+package browser
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 
-	"ssh-manager/internal/browser"
 	"ssh-manager/pkg/arc"
+	"ssh-manager/pkg/utils"
 )
 
 type WebBrowserInfo struct {
@@ -16,11 +17,13 @@ type WebBrowserInfo struct {
 	Path string
 }
 
-func OpenBrowser(url string) bool {
+func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 	var browsers []WebBrowserInfo
 
+	workingDir, _, _ := utils.GetCWD()
+
 	userAgent := "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 Edg/124.0.0.0"
-	dataPath := filepath.FromSlash(WorkingDir + "/browser_data")
+	dataPath := filepath.FromSlash(workingDir + "/browser_data")
 
 	args := []string{
 		"browser_command_here",
@@ -28,7 +31,7 @@ func OpenBrowser(url string) bool {
 		"--app=" + url,
 		// "--auto-open-devtools-for-tabs ",
 		// "--window-position=0,0",
-		"--window-size=896,520",
+		"--window-size=720,520",
 		"--user-agent=" + userAgent,
 		"--password-store=basic",
 		"--no-initial-navigation",
@@ -88,34 +91,27 @@ func OpenBrowser(url string) bool {
 		panic(fmt.Errorf("chrome or chromium or msedge not found"))
 	}
 
-	embedArchiveFileName := ""
+	var archiveData arc.Archiver
 	switch foundWebBrowser {
 	case "msedge":
-		embedArchiveFileName = "embeds/browser_data.zip"
-		embedZipData, err := BrowserDataZip.ReadFile(embedArchiveFileName)
-		if err != nil {
-			panic(fmt.Errorf("failed to read embedded zip file: %s", err))
-		}
-
-		if err := arc.UnZip(embedZipData, extractPath); err != nil {
-			panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
+		archiveData = arc.Zip{
+			FileName:   "embeds/browser_data.zip",
+			TargetPath: extractPath,
+			FSdata:     BrowserData,
 		}
 	case "chrome", "chromium":
-		embedArchiveFileName = "embeds/browser_data.tar.gz"
-		embedTgzData, err := BrowserDataTarGz.ReadFile(embedArchiveFileName)
-		if err != nil {
-			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
-		}
-
-		if err := arc.UnTar(embedTgzData, extractPath); err != nil {
-			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
+		archiveData = arc.Tgz{
+			FileName:   "embeds/browser_data.tar.gz",
+			TargetPath: extractPath,
+			FSdata:     BrowserData,
 		}
 	default:
 		panic("no available browser") // User should not meet this
 	}
 
-	browser.EditBrowserDataLogins(url + "/")
+	archiveData.UnArchive()
+	EditBrowserDataLogins(url + "/")
 
-	CmdBrowser = exec.Command(args[0], append(args[1:], url)...)
-	return CmdBrowser.Start() == nil
+	cmdBrowser := exec.Command(args[0], append(args[1:], url)...)
+	return cmdBrowser, cmdBrowser.Start() == nil
 }

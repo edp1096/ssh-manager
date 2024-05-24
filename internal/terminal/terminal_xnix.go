@@ -1,7 +1,7 @@
 //go:build !windows
 // +build !windows
 
-package main
+package terminal
 
 import (
 	"encoding/base64"
@@ -27,11 +27,14 @@ func CheckTerminalExist() {
 }
 
 // func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
-func openTerminal(arg SshArgument) (pid int, err error) {
+func openTerminal(arg SshClientArgument) (pid int, err error) {
+	WorkingDir, _, _ = utils.GetCWD()
+
 	hostsFile := arg.HostsFile
 	categoryIndex := arg.CategoryIndex
 	hostIndex := arg.HostIndex
 	newWindow := arg.NewWindow
+	HostFileKEY := arg.HostFileKEY
 
 	procName := "ssh-client"
 	termExists, err := utils.CheckProcessExists(procName)

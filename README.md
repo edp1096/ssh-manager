@@ -1,5 +1,6 @@
 SSH host manager for personal using
 
+
 ## Usage
 ```sh
 ./ssh-manager
@@ -8,13 +9,9 @@ SSH host manager for personal using
 ```
 
 ## Requirements
-* MS-Windows
-    * Windows Terminal - Download automatically if default installation is not exist
-    * chrome or ms-edge
-* FreeBSD, Linux
-    * gnome-terminal or konsole or xterm
-    * tmux
-    * chromium or chrome
+* chrome or chromium or ms-edge
+* MS-Windows - Windows Terminal (Download automatically if default installation is not exist)
+* FreeBSD, Linux - gnome-terminal or konsole or xterm, tmux
 
 ## Password asking when executing
 * First time - Create `hosts.dat` with the password

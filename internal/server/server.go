@@ -1,10 +1,12 @@
-package main
+package server
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
+	"os/exec"
 
 	"net/http"
 	"os"
@@ -17,10 +19,19 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"ssh-manager/internal/browser"
 	"ssh-manager/internal/host"
+	"ssh-manager/internal/terminal"
 	"ssh-manager/pkg/model"
 	"ssh-manager/pkg/utils"
 )
+
+type MiscData struct {
+	HostFileKEY []byte
+	EmbedFiles  embed.FS
+	BrowserData embed.FS
+	Version     string
+}
 
 type EnterPassword struct {
 	Password string `json:"password"`
@@ -35,9 +46,17 @@ type ReorderRequest struct {
 	HostList model.HostList `json:"hosts"`
 }
 
-var WebSocketConns []int
-var AvailablePort int
-var Server *http.Server
+var (
+	WorkingDir     string
+	Server         *http.Server
+	AvailablePort  int
+	WebSocketConns []int
+	cmdBrowser     *exec.Cmd
+	EmbedFiles     embed.FS
+	BrowserData    embed.FS
+	VERSION        string
+	HostFileKEY    []byte
+)
 
 func ExitProcess() {
 	// Wait for browser refresh checking
@@ -46,7 +65,7 @@ func ExitProcess() {
 		return
 	}
 
-	CmdBrowser.Process.Kill()
+	cmdBrowser.Process.Kill()
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -543,7 +562,7 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var arg SshArgument
+	var arg terminal.SshClientArgument
 	err = json.Unmarshal(body, &arg)
 	if err != nil {
 		http.Error(w, "Invalid JSON data", http.StatusBadRequest)
@@ -555,7 +574,9 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 		arg.NewWindow = true
 	}
 
-	openSession(arg)
+	arg.HostFileKEY = HostFileKEY
+
+	terminal.OpenSession(arg)
 }
 
 func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
@@ -582,8 +603,21 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 	w.Write(file)
 }
 
-func RunServer() {
+func RunServer(misc MiscData) {
 	var err error
+
+	WorkingDir, _, err = utils.GetCWD()
+	if err != nil {
+		fmt.Printf("error get binary path: %s", err)
+	}
+	if VERSION == "dev" {
+		fmt.Println("WorkingDir:", WorkingDir)
+	}
+
+	EmbedFiles = misc.EmbedFiles
+	BrowserData = misc.BrowserData
+	VERSION = misc.Version
+	HostFileKEY = misc.HostFileKEY
 
 	AvailablePort, err = utils.GetAvailablePort()
 	if err != nil {
@@ -624,7 +658,7 @@ func RunServer() {
 		wg.Done()
 	}()
 
-	OpenBrowser("http://" + listen)
+	cmdBrowser, _ = browser.OpenBrowser("http://"+listen, BrowserData)
 
 	wg.Wait()
 }
