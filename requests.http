@@ -1,7 +1,10 @@
-@port = 15854
+@port = 38065
 
 ### HTML Page
 GET http://localhost:{{port}} HTTP/1.1
+
+### Get version
+GET http://localhost:{{port}}/version HTTP/1.1
 
 
 ### Get host list

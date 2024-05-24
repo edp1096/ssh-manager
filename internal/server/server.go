@@ -579,6 +579,12 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 	terminal.OpenSession(arg)
 }
 
+func handleGetVersion(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(VERSION))
+}
+
 func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 	fname := r.URL.Path[1:] // remove first slash
 
@@ -641,6 +647,7 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("PATCH /hosts", handleReorderHosts)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
+	mux.HandleFunc("GET /version", handleGetVersion)
 	mux.HandleFunc("GET /", handleStaticFiles)
 
 	var wg sync.WaitGroup

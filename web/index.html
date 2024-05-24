@@ -11,16 +11,16 @@
     <link rel="icon" href="/icon/favicon.svg">
     <link rel="alternate icon" href="/icon/favicon.png">
 
-    <link rel="stylesheet" href="/css/style.css" />
-    <link rel="stylesheet" href="/css/material-icons.css" />
-    <link rel="stylesheet" href="/css/material-symbols-outlined.css" />
-    <link rel="stylesheet" href="/css/host-control.css" />
-    <link rel="stylesheet" href="/css/host-order.css" />
-    <link rel="stylesheet" href="/css/dialog.css" />
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/material-icons.css">
+    <link rel="stylesheet" href="/css/material-symbols-outlined.css">
+    <link rel="stylesheet" href="/css/host-control.css">
+    <link rel="stylesheet" href="/css/host-order.css">
+    <link rel="stylesheet" href="/css/dialog.css">
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)">
-    <!-- list reordering - working -->
+    <!-- list reordering -->
     <div id="order-container">
         <div id="order-lists"></div>
         <div id="order-buttons">
@@ -51,9 +51,12 @@
         <button onclick="openChangePasswordDialog()" title="Change password of host file">
             <span class="material-symbols-outlined">lock</span>
         </button>
+        <button onclick="getApplicationVersion()" title="Info">
+            <span class="material-symbols-outlined">info</span>
+        </button>
     </div>
 
-    <hr />
+    <hr>
 
     <div id="hosts-data-container">
         <ul class="categories"></ul>
@@ -69,7 +72,7 @@
         <form method="dialog">
             <p>
                 <label for="enter-password-input">Password:</label>
-                <input type="password" id="enter-password-input" name="enter-password" required autocomplete="off" />
+                <input type="password" id="enter-password-input" name="enter-password" required autocomplete="off">
             </p>
 
             <p>
@@ -83,11 +86,11 @@
         <form method="dialog">
             <p>
                 <label for="enter-password-input">Previous password:</label>
-                <input type="password" id="change-password-old" name="password-old" required autocomplete="off" />
+                <input type="password" id="change-password-old" name="password-old" required autocomplete="off">
             </p>
             <p>
                 <label for="enter-password-input">New password:</label>
-                <input type="password" id="change-password-new" name="password-new" required autocomplete="off" />
+                <input type="password" id="change-password-new" name="password-new" required autocomplete="off">
             </p>
 
             <div>
@@ -100,10 +103,10 @@
     <template id="dialog-category-edit-template">
         <h2>@@_TITLE_@@</h2>
         <form method="dialog">
-            <input type="hidden" id="category-idx" value="" />
+            <input type="hidden" id="category-idx" value="">
             <div>
                 <label for="category-name">Category name:</label>
-                <input id="category-name" required />
+                <input id="category-name" required>
             </div>
 
             <div>
@@ -164,40 +167,40 @@
     <template id="dialog-host-edit-template">
         <h2>@@_TITLE_@@</h2>
         <form method="dialog">
-            <input type="hidden" id="category-idx" value="" />
-            <input type="hidden" id="idx" value="" />
-            <input type="hidden" id="auth-type-orig" value="" />
+            <input type="hidden" id="category-idx" value="">
+            <input type="hidden" id="idx" value="">
+            <input type="hidden" id="auth-type-orig" value="">
             <div>
                 <label for="host-edit-name">Name:</label>
-                <input type="text" id="host-edit-name" name="name" required autocomplete="off" />
+                <input type="text" id="host-edit-name" name="name" required autocomplete="off">
             </div>
             <div>
                 <label for="host-edit-address">Address:</label>
-                <input id="host-edit-address" name="address" required autocomplete="off" placeholder="IP or domain" />
+                <input id="host-edit-address" name="address" required autocomplete="off" placeholder="IP or domain">
             </div>
             <div>
                 <label for="host-edit-port">Port:</label>
-                <input id="host-edit-port" type="number" name="port" autocomplete="off" placeholder="22 is default if empty" />
+                <input id="host-edit-port" type="number" name="port" autocomplete="off" placeholder="22 is default if empty">
             </div>
             <div>
                 <label for="host-edit-username">Username:</label>
-                <input id="host-edit-username" name="username" required autocomplete="off" />
+                <input id="host-edit-username" name="username" required autocomplete="off">
             </div>
 
-            <hr />
+            <hr>
 
             <div>
-                <label for="use-password">Password</label><input onchange="setAuthType()" type="radio" id="use-password" name="auth-type" checked />
-                <label for="use-private-key-text">Private Key</label><input onchange="setAuthType()" type="radio" id="use-private-key-text" name="auth-type" />
+                <label for="use-password">Password</label><input onchange="setAuthType()" type="radio" id="use-password" name="auth-type" checked>
+                <label for="use-private-key-text">Private Key</label><input onchange="setAuthType()" type="radio" id="use-private-key-text" name="auth-type">
             </div>
             <div>
                 <label for="host-edit-password">Password:</label>
-                <input type="password" id="host-edit-password" name="password" required />
+                <input type="password" id="host-edit-password" name="password" required>
             </div>
 
             <div>
                 <label for="host-edit-private-key-file">Private key📂:</label>
-                <input type="file" id="host-edit-private-key-file" onchange="moveKeyFileToPrivateKeyText(event)" />
+                <input type="file" id="host-edit-private-key-file" onchange="moveKeyFileToPrivateKeyText(event)">
                 <textarea id="host-edit-private-key-text" name="private-key-text" required placeholder="Copy & paste or click 'Private key📂' text for pem file opening"></textarea>
             </div>
 
@@ -224,8 +227,8 @@
 
     <template id="dialog-confirm-template">
         <form method="dialog">
-            <input type="hidden" name="job-type" />
-            <input type="hidden" name="datas" />
+            <input type="hidden" name="job-type">
+            <input type="hidden" name="datas">
 
             <p>@@_MESSAGE_@@</p>
             <div>

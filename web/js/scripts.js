@@ -141,6 +141,23 @@ async function changeHostFilePassword(e) {
     return
 }
 
+async function getApplicationVersion() {
+    const r = await fetch("/version")
+    if (r.ok) {
+        const version = await r.text()
+        const message = `SSH Manager
+        
+        Ver. ${version}`.replace(/\n/g, "<br>")
+
+        const noticeDialogTMPL = document.querySelector('#dialog-notice-template')
+        const noticeDialog = document.querySelector('#dialog-notice')
+
+        const tmpl = noticeDialogTMPL.innerHTML
+        noticeDialog.innerHTML = tmpl.replaceAll("@@_MESSAGE_@@", message)
+        noticeDialog.showModal()
+    }
+}
+
 function init() {
     document.addEventListener("keydown", preventKeys)
     document.addEventListener("mousedown", preventDrag)
