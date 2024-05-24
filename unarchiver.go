@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-func unzip(zipFile []byte, targetFolder string) error {
+func UnZip(zipFile []byte, targetFolder string) error {
 	if _, err := os.Stat(targetFolder); os.IsNotExist(err) {
 		os.Mkdir(targetFolder, os.ModePerm)
 	}
@@ -64,7 +64,7 @@ func unzip(zipFile []byte, targetFolder string) error {
 	return nil
 }
 
-func untar(tarFile []byte, targetFolder string) error {
+func UnTar(tarFile []byte, targetFolder string) error {
 	if _, err := os.Stat(targetFolder); os.IsNotExist(err) {
 		os.Mkdir(targetFolder, os.ModePerm)
 	}

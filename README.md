@@ -9,7 +9,7 @@ SSH host manager for personal using
 
 ## Requirements
 * MS-Windows
-    * Windows Terminal
+    * Windows Terminal - Download automatically if default installation is not exist
     * chrome or ms-edge
 * FreeBSD, Linux
     * gnome-terminal or konsole or xterm

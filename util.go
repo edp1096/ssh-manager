@@ -20,7 +20,7 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func renameFolders(pattern, newPrefix string) error {
+func RenameFolders(pattern, newPrefix string) error {
 	folders, err := filepath.Glob(pattern)
 	if err != nil {
 		return err
@@ -45,25 +45,25 @@ func exitProcess() {
 		return
 	}
 
-	err := cmdBrowser.Process.Kill()
+	err := CmdBrowser.Process.Kill()
 	if err != nil {
 		if runtime.GOOS == "windows" {
-			exec.Command("taskkill", "/fi", "windowtitle eq "+browserWindowTitle).Run()
+			exec.Command("taskkill", "/fi", "windowtitle eq "+BrowserWindowTitle).Run()
 		} else {
-			exec.Command("pkill", "-f", browserWindowTitle).Run()
+			exec.Command("pkill", "-f", BrowserWindowTitle).Run()
 		}
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
 	// Remove browser_data
-	dataPath := filepath.FromSlash(binaryPath + "/browser_data")
+	dataPath := filepath.FromSlash(BinaryPath + "/browser_data")
 	os.RemoveAll(dataPath)
 
 	os.Exit(0)
 }
 
-func checkFileExitsInEnvPath(fname string) (result bool) {
+func CheckFileExitsInEnvPath(fname string) (result bool) {
 	paths := strings.Split(os.Getenv("PATH"), ":")
 
 	result = false
@@ -78,7 +78,7 @@ func checkFileExitsInEnvPath(fname string) (result bool) {
 	return result
 }
 
-func checkProcessExists(name string) (bool, error) {
+func CheckProcessExists(name string) (bool, error) {
 	var err error
 	var result bool = false
 
@@ -101,7 +101,7 @@ func checkProcessExists(name string) (bool, error) {
 	return result, nil
 }
 
-func getBinaryPath() (binPath, binName string, err error) {
+func GetBinaryPath() (binPath, binName string, err error) {
 	fullPath, err := os.Executable()
 	if err != nil {
 		return "", "", err
@@ -121,7 +121,7 @@ func getBinaryPath() (binPath, binName string, err error) {
 // 	return cwd, err
 // }
 
-func generateKey(password string) (key []byte, err error) {
+func GenerateKey(password string) (key []byte, err error) {
 	// salt := make([]byte, 16)
 	// _, err = rand.Read(salt)
 	// if err != nil {
@@ -137,7 +137,7 @@ func generateKey(password string) (key []byte, err error) {
 	return key, nil
 }
 
-func saveHostData(fileName string, key []byte, data interface{}) error {
+func SaveHostData(fileName string, key []byte, data interface{}) error {
 	var buf bytes.Buffer
 	iv := make([]byte, aes.BlockSize)
 
@@ -179,7 +179,7 @@ func saveHostData(fileName string, key []byte, data interface{}) error {
 	return nil
 }
 
-func loadHostData(fileName string, key []byte, decryptedData interface{}) error {
+func LoadHostData(fileName string, key []byte, decryptedData interface{}) error {
 	// encryptedData := make([]byte, 4096)
 
 	file, err := os.Open(fileName)

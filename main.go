@@ -40,19 +40,19 @@ type HostRequestInfo struct {
 	UniqueID       string `json:"unique-id"`
 }
 
-var shellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
-var hostFileKEY []byte = []byte("0123456789!#$%^&*()abcdefghijklm")
+var ShellRuntimePath = os.Getenv("LocalAppData") + "/Microsoft/WindowsApps/wt.exe"
+var HostFileKEY []byte = []byte("0123456789!#$%^&*()abcdefghijklm")
 var (
-	cmdTerminal        *exec.Cmd
-	cmdBrowser         *exec.Cmd
-	browserWindowTitle string
-	server             *http.Server
-	binaryPath         string
-	availablePort      int
+	CmdTerminal        *exec.Cmd
+	CmdBrowser         *exec.Cmd
+	BrowserWindowTitle string
+	Server             *http.Server
+	BinaryPath         string
+	AvailablePort      int
 )
 
 //go:embed html/*
-var embedFiles embed.FS
+var EmbedFiles embed.FS
 
 //go:embed embeds/browser_data.zip
 var BrowserDataZip embed.FS
@@ -66,12 +66,12 @@ func main() {
 	var err error
 
 	if runtime.GOOS == "windows" {
-		if _, err := os.Stat(shellRuntimePath); os.IsNotExist(err) {
+		if _, err := os.Stat(ShellRuntimePath); os.IsNotExist(err) {
 			cwd, _ := os.Getwd()
-			shellRuntimePath = cwd + "/windows-terminal/wt.exe"
+			ShellRuntimePath = cwd + "/windows-terminal/wt.exe"
 
-			if _, err := os.Stat(shellRuntimePath); os.IsNotExist(err) {
-				err = downloadWindowsTerminal()
+			if _, err := os.Stat(ShellRuntimePath); os.IsNotExist(err) {
+				err = DownloadWindowsTerminal()
 				if err != nil {
 					panic(fmt.Errorf("downloadWindowsTerminal: %s", err))
 				}
@@ -79,10 +79,10 @@ func main() {
 		}
 	}
 
-	binaryPath, _, err = getBinaryPath()
+	BinaryPath, _, err = GetBinaryPath()
 	if err != nil {
 		fmt.Printf("error get binary path: %s", err)
 	}
 
-	runServer()
+	RunServer()
 }

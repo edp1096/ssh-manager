@@ -19,7 +19,7 @@ type SshArgument struct {
 
 func openWindowsTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
 	procName := "ssh-client.exe"
-	termExists, err := checkProcessExists(procName)
+	termExists, err := CheckProcessExists(procName)
 	if err != nil {
 		return -1, fmt.Errorf("proc error: %s", err)
 	}
@@ -32,11 +32,11 @@ func openWindowsTerminal(hostsFile string, categoryIndex int, hostIndex int, new
 	shParams := []string{}
 	shParams = append(shParams, splitParams...)
 
-	sshclientPath := filepath.FromSlash(binaryPath + "/" + procName)
+	sshclientPath := filepath.FromSlash(BinaryPath + "/" + procName)
 
 	hostsDataFile := ""
 	if strings.HasPrefix(hostsFile, "./") {
-		hostsDataFile = binaryPath + "/" + filepath.Base(hostsFile)
+		hostsDataFile = BinaryPath + "/" + filepath.Base(hostsFile)
 	} else {
 		hostsDataFile, err = filepath.Abs(hostsFile)
 		if err != nil {
@@ -45,38 +45,38 @@ func openWindowsTerminal(hostsFile string, categoryIndex int, hostIndex int, new
 	}
 	hostsDataFile = filepath.FromSlash(hostsDataFile)
 
-	hostFileKEYB64 := base64.URLEncoding.EncodeToString(hostFileKEY)
+	hostFileKEYB64 := base64.URLEncoding.EncodeToString(HostFileKEY)
 
 	sshParams := []string{sshclientPath, "-f", hostsDataFile, "-k", hostFileKEYB64, "-ci", strconv.Itoa(categoryIndex), "-hi", strconv.Itoa(hostIndex)}
 	shParams = append(shParams, sshParams...)
 
-	cmdTerminal = exec.Command(shellRuntimePath, shParams...)
-	err = cmdTerminal.Run()
+	CmdTerminal = exec.Command(ShellRuntimePath, shParams...)
+	err = CmdTerminal.Run()
 	if err != nil {
 		fmt.Println("Error opening terminal:", err)
 		return
 	}
 
-	pid = cmdTerminal.Process.Pid
+	pid = CmdTerminal.Process.Pid
 	return
 }
 
 func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow bool) (pid int, err error) {
-	shellRuntimePath = "tmux"
+	ShellRuntimePath = "tmux"
 
 	procName := "ssh-client"
-	termExists, err := checkProcessExists(procName)
+	termExists, err := CheckProcessExists(procName)
 	// termExists, err := checkProcessExists(shellRuntimePath)
 	if err != nil {
 		return -1, fmt.Errorf("error check process exist:%s", err)
 	}
 
-	termBin := []string{"xterm", "-e", shellRuntimePath}
-	if checkFileExitsInEnvPath("konsole") {
-		termBin = []string{"konsole", "-e", "sh", "-c", shellRuntimePath}
+	termBin := []string{"xterm", "-e", ShellRuntimePath}
+	if CheckFileExitsInEnvPath("konsole") {
+		termBin = []string{"konsole", "-e", "sh", "-c", ShellRuntimePath}
 	}
-	if checkFileExitsInEnvPath("gnome-terminal") {
-		termBin = []string{"gnome-terminal", "--", "sh", "-c", shellRuntimePath}
+	if CheckFileExitsInEnvPath("gnome-terminal") {
+		termBin = []string{"gnome-terminal", "--", "sh", "-c", ShellRuntimePath}
 	}
 
 	if !termExists || newWindow {
@@ -95,7 +95,7 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 			time.Sleep(1000 * time.Millisecond)
 		}
 	} else {
-		err = exec.Command(shellRuntimePath, "splitw", "-h").Run()
+		err = exec.Command(ShellRuntimePath, "splitw", "-h").Run()
 		if err != nil {
 			return -1, fmt.Errorf("error split tmux:%s", err)
 		}
@@ -103,7 +103,7 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 
 	hostsDataFile := ""
 	if strings.HasPrefix(hostsFile, "./") {
-		hostsDataFile = binaryPath + "/" + filepath.Base(hostsFile)
+		hostsDataFile = BinaryPath + "/" + filepath.Base(hostsFile)
 	} else {
 		hostsDataFile, err = filepath.Abs(hostsFile)
 		if err != nil {
@@ -112,24 +112,24 @@ func openTerminal(hostsFile string, categoryIndex int, hostIndex int, newWindow 
 	}
 	hostsDataFile = filepath.FromSlash(hostsDataFile)
 
-	sshclientPath := filepath.FromSlash(binaryPath + "/" + procName)
-	hostFileKEYB64 := base64.URLEncoding.EncodeToString(hostFileKEY)
+	sshclientPath := filepath.FromSlash(BinaryPath + "/" + procName)
+	hostFileKEYB64 := base64.URLEncoding.EncodeToString(HostFileKEY)
 	sshParams := []string{sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex), "&&", "exit", "ENTER"}
 
 	shParams := []string{"send"}
 	shParams = append(shParams, sshParams...)
 
-	cmdTerminal = exec.Command(shellRuntimePath, shParams...)
-	err = cmdTerminal.Run()
+	CmdTerminal = exec.Command(ShellRuntimePath, shParams...)
+	err = CmdTerminal.Run()
 	if err != nil {
 		return -1, fmt.Errorf("error opening terminal:%v", err)
 	}
 
-	pid = cmdTerminal.Process.Pid
+	pid = CmdTerminal.Process.Pid
 
 	if !termExists || newWindow {
-		cmdTerminal = exec.Command(shellRuntimePath, []string{"set-option", "-g", "mouse", "on"}...)
-		err = cmdTerminal.Run()
+		CmdTerminal = exec.Command(ShellRuntimePath, []string{"set-option", "-g", "mouse", "on"}...)
+		err = CmdTerminal.Run()
 		if err != nil {
 			return -1, fmt.Errorf("error opening terminal:%v", err)
 		}

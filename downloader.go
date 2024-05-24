@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 )
 
@@ -59,7 +58,7 @@ func downloadFile(uri, dest, fname string) error {
 	return nil
 }
 
-func downloadWindowsTerminal() error {
+func DownloadWindowsTerminal() error {
 	var err error
 
 	owner := "microsoft"
@@ -72,11 +71,13 @@ func downloadWindowsTerminal() error {
 
 	wtFname := "windows-terminal.zip"
 
-	archs := []string{"x86", "x64", "arm64"}
+	winArchs := map[string]string{"386": "x86", "amd64": "x64", "arm": "arm64"}
 	arch := runtime.GOARCH
-	if !slices.Contains(archs, arch) {
+	// if !slices.Contains(archs, arch) {
+	if _, ok := winArchs[arch]; !ok {
 		return fmt.Errorf("architecture is not supported: %v", arch)
 	}
+	arch = winArchs[arch]
 
 	isDownloaded := false
 	for _, uri := range uris {
@@ -102,14 +103,14 @@ func downloadWindowsTerminal() error {
 		return fmt.Errorf("failed to read zip file: %s", err)
 	}
 
-	err = unzip(fileZipData, extractPath)
+	err = UnZip(fileZipData, extractPath)
 	if err != nil {
 		return fmt.Errorf("failed to unzip file: %s", err)
 	}
 
 	pattern := "terminal-*"
 	newPrefix := "windows-terminal"
-	err = renameFolders(pattern, newPrefix)
+	err = RenameFolders(pattern, newPrefix)
 	if err != nil {
 		return fmt.Errorf("failed to rename folder: %s", err)
 	}

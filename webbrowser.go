@@ -37,11 +37,11 @@ func editBrowserDataLogins(url string) {
 	}
 }
 
-func openBrowser(url string) bool {
+func OpenBrowser(url string) bool {
 	var browsers []WebBrowserInfo
 
 	userAgent := "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 Edg/124.0.0.0"
-	dataPath := filepath.FromSlash(binaryPath + "/browser_data")
+	dataPath := filepath.FromSlash(BinaryPath + "/browser_data")
 
 	args := []string{
 		"browser_command_here",
@@ -118,7 +118,7 @@ func openBrowser(url string) bool {
 			panic(fmt.Errorf("failed to read embedded zip file: %s", err))
 		}
 
-		if err := unzip(embedZipData, extractPath); err != nil {
+		if err := UnZip(embedZipData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to unzip embedded zip file: %s", err))
 		}
 	case "chrome", "chromium":
@@ -128,7 +128,7 @@ func openBrowser(url string) bool {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
 
-		if err := untar(embedTgzData, extractPath); err != nil {
+		if err := UnTar(embedTgzData, extractPath); err != nil {
 			panic(fmt.Errorf("failed to extract embedded tar.gz file: %s", err))
 		}
 	default:
@@ -137,6 +137,6 @@ func openBrowser(url string) bool {
 
 	editBrowserDataLogins(url + "/")
 
-	cmdBrowser = exec.Command(args[0], append(args[1:], url)...)
-	return cmdBrowser.Start() == nil
+	CmdBrowser = exec.Command(args[0], append(args[1:], url)...)
+	return CmdBrowser.Start() == nil
 }
