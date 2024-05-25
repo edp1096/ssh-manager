@@ -53,8 +53,13 @@ func openTerminal(arg SshClientArgument) (pid int, err error) {
 	}
 
 	splitParams := []string{"-w", "0", "sp"}
-	if !termExists || newWindow {
+	switch true {
+	case !termExists || newWindow:
 		splitParams = []string{}
+	case arg.SplitVertical:
+		splitParams = append(splitParams, "-H")
+	case !arg.SplitVertical:
+		splitParams = append(splitParams, "-V")
 	}
 
 	shParams := []string{}

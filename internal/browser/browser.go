@@ -22,7 +22,7 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 
 	workingDir, _, _ := utils.GetCWD()
 
-	// userAgent := "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 Edg/124.0.0.0"
+	userAgent := "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 Edg/124.0.0.0"
 	dataPath := filepath.FromSlash(workingDir + "/browser_data")
 
 	// url = url + "?system-os=" +
@@ -34,7 +34,7 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 		// "--auto-open-devtools-for-tabs ",
 		// "--window-position=0,0",
 		"--window-size=720,520",
-		// "--user-agent=" + userAgent,
+		"--user-agent=" + userAgent,
 		"--password-store=basic",
 		"--no-initial-navigation",
 		"--no-default-browser-check",
