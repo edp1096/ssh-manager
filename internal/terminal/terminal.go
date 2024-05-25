@@ -11,6 +11,7 @@ type SshClientArgument struct {
 	HostIndex     int    `json:"host-index"`
 	NewWindow     bool
 	HostFileKEY   []byte
+	SplitVertical bool
 }
 
 var (

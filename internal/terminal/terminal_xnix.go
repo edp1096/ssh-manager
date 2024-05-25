@@ -66,7 +66,12 @@ func openTerminal(arg SshClientArgument) (pid int, err error) {
 			time.Sleep(1000 * time.Millisecond)
 		}
 	} else {
-		err = exec.Command(ShellRuntimePath, "splitw", "-h").Run()
+		opts := []string{"splitw"}
+		if !arg.SplitVertical {
+			opts = append(opts, "-h")
+		}
+
+		err = exec.Command(ShellRuntimePath, opts...).Run()
 		if err != nil {
 			return -1, fmt.Errorf("error split tmux:%s", err)
 		}

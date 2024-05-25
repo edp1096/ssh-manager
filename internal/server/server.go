@@ -574,6 +574,11 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 		arg.NewWindow = true
 	}
 
+	arg.SplitVertical = false
+	if windowMode == "split_vertical" {
+		arg.SplitVertical = true
+	}
+
 	arg.HostFileKEY = HostFileKEY
 
 	terminal.OpenSession(arg)

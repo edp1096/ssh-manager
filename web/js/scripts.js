@@ -159,6 +159,18 @@ async function getApplicationVersion() {
 }
 
 function init() {
+    // const urlParams = new URLSearchParams(window.location.search)
+    // const systemOS = urlParams.get("system-os")
+    // if (systemOS == "windows") {
+    //     document.querySelectorAll(".tmux").forEach((e) => { e.style.display = "none" })
+    // } else {
+    // }
+    document.querySelectorAll("template").forEach((t) => {
+        t.content.querySelectorAll(".wt").forEach((e) => {
+            e.remove()
+        })
+    })
+
     document.addEventListener("keydown", preventKeys)
     document.addEventListener("mousedown", preventDrag)
 
