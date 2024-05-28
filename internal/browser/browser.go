@@ -41,6 +41,7 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 		"--allow-file-access-from-files",
 		"--enable-local-file-accesses",
 
+		// "--remote-debugging-port=9222",
 		"--disable-background-mode",
 		"--no-experiments",
 		"--no-proxy-server",
