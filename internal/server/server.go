@@ -592,6 +592,10 @@ func handleGetVersion(w http.ResponseWriter, r *http.Request) {
 
 func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 	fname := r.URL.Path[1:] // remove first slash
+	if strings.HasPrefix(fname, "templates/") {
+		http.NotFound(w, r)
+		return
+	}
 
 	if fname == "" {
 		fname = "index.html"
