@@ -172,7 +172,7 @@ async function saveCategoryData(e) {
     if (r.ok) {
         const response = await r.json()
         if (response.message == "success") {
-            message = "done to add."
+            message = "done to add/edit."
         }
     }
 
