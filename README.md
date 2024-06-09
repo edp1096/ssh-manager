@@ -1,3 +1,5 @@
+![screenshot](doc/screenshot.png)
+
 SSH host manager for personal using
 
 
