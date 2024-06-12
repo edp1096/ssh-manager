@@ -292,6 +292,8 @@ async function saveHostData(e) {
             break
     }
 
+    const description = d.querySelector("dialog textarea[name='description']").value
+
     const hostData = {
         name: name,
         address: address,
@@ -299,6 +301,7 @@ async function saveHostData(e) {
         username: username,
         password: password,
         "private-key-text": privateKeyText,
+        "description": description,
         "unique-id": createUUID()
     }
 
