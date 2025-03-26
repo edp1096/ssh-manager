@@ -124,3 +124,14 @@ dialog::backdrop {
     background-color: rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(1px);
 }
+
+
+dialog #show-password {
+    display: none;
+}
+
+dialog #show-password-selector {
+    position: absolute;
+    right: 1em;
+    cursor: pointer;
+}

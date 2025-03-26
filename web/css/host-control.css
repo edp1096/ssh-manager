@@ -73,6 +73,7 @@
 .category li {
     list-style: none;
     min-width: 15em;
+    cursor: default;
 }
 
 .category li.part-name {

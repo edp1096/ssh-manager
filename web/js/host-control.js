@@ -376,6 +376,15 @@ async function deleteHost(categoryIdxSTR, hostIdxSTR) {
     return
 }
 
+async function showSavedPassword() {
+    const d = hostEditDialog.querySelector("dialog input#host-edit-password")
+    if (d.getAttribute("type") == "password") {
+        d.setAttribute("type", "text")
+    } else {
+        d.setAttribute("type", "password")
+    }
+}
+
 function closeNotice(e) {
     /* TODO: Close when click outside of dialog */
     // const target = e.target

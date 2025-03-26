@@ -46,6 +46,7 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 		"--no-experiments",
 		"--no-proxy-server",
 		// "--ignore-autocomplete-off-autofill",
+		"--disable-extensions",
 		"--disable-speech-api",
 		"--disable-logging",
 		"--disable-translate",
