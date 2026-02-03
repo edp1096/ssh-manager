@@ -18,11 +18,16 @@ import (
 // 	}
 // }
 
-func setResizeControl(sess *ssh.Session, tty *gotty.TTY, w, h int) {
+func setResizeControl(sess *ssh.Session, tty *gotty.TTY, pw io.WriteCloser, w, h int) {
 	go func() {
 		for ws := range tty.SIGWINCH() {
 			w, h = ws.W, ws.H
+			
+			// Update remote terminal size
 			sess.WindowChange(h, w)
+			
+			// Send Ctrl+L to refresh display on remote
+			pw.Write([]byte{12})
 		}
 	}()
 }

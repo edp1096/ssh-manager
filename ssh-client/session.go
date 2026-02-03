@@ -52,17 +52,11 @@ func openSession() (err error) {
 	}
 	defer tty.Close()
 
-	// termType := "xterm-256color" // Cursor on vi/vim not work
-	// termType := "vt100" // Cursor on vi/vim not work
-	// termType := "vt220" // No color on vi/vim
-	// termType := "vt320" // No color on shell
 	termType := "linux"
-	w, h, err := tty.Size() // term.GetSize do not work on windows so, use mattn/go-tty
+	w, h, err := tty.Size()
 	if err != nil {
 		w, h = 0, 0
 	}
-
-	setResizeControl(sess, tty, w, h)
 
 	clean, err := tty.Raw()
 	if err != nil {
@@ -79,7 +73,7 @@ func openSession() (err error) {
 	if err != nil {
 		return fmt.Errorf("sess.StdinPipe: %v", err)
 	}
-	// sess.Stdin = os.Stdin
+
 	sess.Stdout = os.Stdout
 	sess.Stderr = os.Stderr
 
@@ -88,6 +82,7 @@ func openSession() (err error) {
 		return fmt.Errorf("sess.Shell: %v", err)
 	}
 
+	setResizeControl(sess, tty, pw, w, h)
 	setEventControl(pw, tty)
 
 	sess.Wait()
