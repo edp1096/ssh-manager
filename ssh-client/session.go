@@ -52,7 +52,12 @@ func openSession() (err error) {
 	}
 	defer tty.Close()
 
-	termType := "linux"
+	// termType := "xterm-256color" // Cursor on vi/vim not work
+	// termType := "vt100" // Cursor on vi/vim not work
+	// termType := "vt220" // No color on vi/vim
+	// termType := "vt320" // No color on shell
+	// termType := "linux" // No color on shell
+	termType := "xterm-256color"
 	w, h, err := tty.Size()
 	if err != nil {
 		w, h = 0, 0
@@ -66,7 +71,20 @@ func openSession() (err error) {
 
 	err = sess.RequestPty(termType, h, w, modes)
 	if err != nil {
-		return fmt.Errorf("sess.RequestPty: %s", err)
+		// Fallback to basic xterm
+		termType = "xterm"
+		sess.Close()
+
+		sess, err = conn.NewSession()
+		if err != nil {
+			return fmt.Errorf("conn.NewSession (fallback): %v", err)
+		}
+		defer sess.Close()
+
+		err = sess.RequestPty(termType, h, w, modes)
+		if err != nil {
+			return fmt.Errorf("sess.RequestPty (fallback): %s", err)
+		}
 	}
 
 	pw, err := sess.StdinPipe()
