@@ -52,8 +52,8 @@ func openSession() (err error) {
 	}
 	defer tty.Close()
 
-	// termType := "xterm-256color" // Cursor on vi/vim not work
-	// termType := "vt100" // Cursor on vi/vim not work
+	// termType := "xterm-256color"
+	// termType := "vt100"
 	// termType := "vt220" // No color on vi/vim
 	// termType := "vt320" // No color on shell
 	// termType := "linux" // No color on shell
