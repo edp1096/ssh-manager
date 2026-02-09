@@ -90,10 +90,14 @@ func openTerminal(arg SshClientArgument) (pid int, err error) {
 
 	sshclientPath := filepath.FromSlash(WorkingDir + "/" + procName)
 	hostFileKEYB64 := base64.URLEncoding.EncodeToString(HostFileKEY)
-	sshParams := []string{sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex), "&&", "exit", "ENTER"}
+	sshParams := []string{"clear && tmux clear-history; " + sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex), "&&", "exit", "ENTER"}
 
 	shParams := []string{"send"}
 	shParams = append(shParams, sshParams...)
+
+	// cmdStr := "clear && tmux clear-history; " + sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex) + " && exit"
+	// shParams := []string{"send-keys", cmdStr, "Enter"}
+	// CmdTerminal = exec.Command(ShellRuntimePath, shParams...)
 
 	CmdTerminal = exec.Command(ShellRuntimePath, shParams...)
 	err = CmdTerminal.Run()
