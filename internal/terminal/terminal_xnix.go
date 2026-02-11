@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -90,14 +89,13 @@ func openTerminal(arg SshClientArgument) (pid int, err error) {
 
 	sshclientPath := filepath.FromSlash(WorkingDir + "/" + procName)
 	hostFileKEYB64 := base64.URLEncoding.EncodeToString(HostFileKEY)
-	sshParams := []string{"clear && tmux clear-history; " + sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex), "&&", "exit", "ENTER"}
+	// sshParams := []string{" clear && tmux clear-history; " + sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex), "&&", "exit", "ENTER"}
+	// shParams := []string{"send-keys"}
+	// shParams = append(shParams, sshParams...)
 
-	shParams := []string{"send"}
-	shParams = append(shParams, sshParams...)
-
-	// cmdStr := "clear && tmux clear-history; " + sshclientPath + " -f " + hostsDataFile + " -k " + hostFileKEYB64 + " -ci " + strconv.Itoa(categoryIndex) + " -hi " + strconv.Itoa(hostIndex) + " && exit"
-	// shParams := []string{"send-keys", cmdStr, "Enter"}
-	// CmdTerminal = exec.Command(ShellRuntimePath, shParams...)
+	mainCmd := fmt.Sprintf("clear && tmux clear-history; %s -f %s -k %s -ci %d -hi %d", sshclientPath, hostsDataFile, hostFileKEYB64, categoryIndex, hostIndex)
+	cmdStr := fmt.Sprintf("  %s; history -d $(history 1 | awk '{print $1}'); exit", mainCmd)
+	shParams := []string{"send-keys", cmdStr, "C-m"}
 
 	CmdTerminal = exec.Command(ShellRuntimePath, shParams...)
 	err = CmdTerminal.Run()
