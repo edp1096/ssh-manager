@@ -22,12 +22,12 @@ func setResizeControl(sess *ssh.Session, tty *gotty.TTY, pw io.WriteCloser, w, h
 	go func() {
 		for ws := range tty.SIGWINCH() {
 			w, h = ws.W, ws.H
-			
+
 			// Update remote terminal size
 			sess.WindowChange(h, w)
-			
-			// Send Ctrl+L to refresh display on remote
-			pw.Write([]byte{12})
+
+			// 리사이즈 후 화면 리프레시 (필요시에만)
+			// pw.Write([]byte{12})
 		}
 	}()
 }
@@ -39,6 +39,7 @@ func setEventControl(pw io.WriteCloser, tty *gotty.TTY) {
 			r, err := tty.ReadRune()
 			if err != nil {
 				fmt.Println("tty.ReadRune:", err)
+				continue
 			}
 
 			if r == rune(0) {
