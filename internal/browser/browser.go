@@ -51,6 +51,7 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 		"--disable-logging",
 		"--disable-translate",
 		"--disable-features=Translate",
+		"--disable-features=msEdgeTranslate",
 	}
 
 	switch runtime.GOOS {
