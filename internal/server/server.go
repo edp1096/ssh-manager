@@ -64,6 +64,7 @@ func ExitProcess() {
 	if len(WebSocketConns) > 0 {
 		return
 	}
+	terminal.Cleanup()
 
 	cmdBrowser.Process.Kill()
 
@@ -603,7 +604,16 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 
 	arg.HostFileKEY = HostFileKEY
 
-	terminal.OpenSession(arg)
+	if err := terminal.OpenSession(arg); err != nil {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func handleTerminalStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(terminal.Status())
 }
 
 func handleGetVersion(w http.ResponseWriter, r *http.Request) {
@@ -679,6 +689,7 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("PATCH /hosts", handleReorderHosts)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
+	mux.HandleFunc("GET /terminal/status", handleTerminalStatus)
 	mux.HandleFunc("GET /version", handleGetVersion)
 	mux.HandleFunc("GET /", handleStaticFiles)
 

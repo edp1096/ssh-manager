@@ -1,7 +1,6 @@
 package terminal
 
 import (
-	"fmt"
 	"os/exec"
 )
 
@@ -20,9 +19,7 @@ var (
 	CmdTerminal      *exec.Cmd
 )
 
-func OpenSession(arg SshClientArgument) {
+func OpenSession(arg SshClientArgument) error {
 	_, err := openTerminal(arg)
-	if err != nil {
-		fmt.Println("Error open terminal:", err)
-	}
+	return err
 }

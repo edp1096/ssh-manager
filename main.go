@@ -18,6 +18,9 @@ var BrowserData embed.FS
 var VERSION string
 
 func main() {
+	if terminal.RunChild() {
+		return
+	}
 	data := server.InitData{
 		HostFileKEY: HostFileKEY,
 		EmbedFiles:  EmbedFiles,
