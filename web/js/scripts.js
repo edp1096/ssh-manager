@@ -148,7 +148,8 @@ async function getApplicationVersion() {
         const version = await r.text()
         const message = `SSH Manager
         
-        Ver. ${version}`.replace(/\n/g, "<br>")
+        Version: ${version}
+        <button type="button" class="repository-link" onclick="openRepository(this)" title="Open in browser">https://github.com/edp1096/ssh-manager</button>`.replace(/\n/g, "<br>")
 
         const noticeDialogTMPL = document.querySelector('#dialog-notice-template')
         const noticeDialog = document.querySelector('#dialog-notice')
@@ -159,9 +160,23 @@ async function getApplicationVersion() {
     }
 }
 
+async function openRepository(button) {
+    if (button.disabled) { return }
+    button.disabled = true
+    try {
+        const response = await fetch('/repository/open', { method: 'POST' })
+        if (!response.ok) { throw new Error(await response.text()) }
+    } catch (error) {
+        alert(error.message)
+    } finally {
+        button.disabled = false
+    }
+}
+
 async function init() {
     initKeyboardNavigation()
     initPasswordVisibility()
+    initWindowSizePersistence()
     document.addEventListener("keydown", preventKeys)
     document.addEventListener("mousedown", preventDrag)
 
@@ -181,6 +196,58 @@ async function init() {
         if (dialog.open && !dialog.contains(document.activeElement)) {
             dialog.querySelector('input').focus({ preventScroll: true })
         }
+    })
+}
+
+function initWindowSizePersistence() {
+    let timer
+    let pendingSize = null
+    let lastCaptured = null
+    const captureSize = () => {
+        if (document.visibilityState === 'hidden' || document.fullscreenElement) { return false }
+        const width = Math.round(window.outerWidth)
+        const height = Math.round(window.outerHeight)
+        const x = Math.round(window.screenX)
+        const y = Math.round(window.screenY)
+        if (width < 320 || width > 16384 || height < 240 || height > 16384) { return false }
+        if (!Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > 65536 || Math.abs(y) > 65536) { return false }
+        // Windows can report these off-screen coordinates while minimizing.
+        if (x === -32000 || y === -32000) { return false }
+        const size = JSON.stringify({ width, height, position: { x, y } })
+        if (size === lastCaptured) { return false }
+        lastCaptured = size
+        pendingSize = size
+        return true
+    }
+    const saveSize = () => {
+        clearTimeout(timer)
+        if (!pendingSize) { return }
+        const size = pendingSize
+        pendingSize = null
+        fetch('/window-size', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: size,
+            keepalive: true
+        }).then(response => {
+            if (!response.ok) { console.error('Window size could not be saved') }
+        }).catch(error => console.error('Window size save failed', error))
+    }
+    const scheduleSave = () => {
+        if (!captureSize()) { return }
+        clearTimeout(timer)
+        timer = setTimeout(saveSize, 250)
+    }
+    window.addEventListener('resize', scheduleSave)
+    // Moving a window does not emit a resize event.
+    setInterval(scheduleSave, 500)
+    scheduleSave()
+    window.addEventListener('pagehide', () => {
+        captureSize()
+        saveSize()
+    })
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') { saveSize() }
     })
 }
 

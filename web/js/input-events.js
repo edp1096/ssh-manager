@@ -8,7 +8,7 @@ function preventCtrlWheel(e) {
 }
 
 function preventDrag(e) {
-    if (e.target.closest('button, input, textarea, select, label, [tabindex]')) { return }
+    if (e.target.closest('a[href], button, input, textarea, select, label, [tabindex]')) { return }
     e.preventDefault()
     return false
 }

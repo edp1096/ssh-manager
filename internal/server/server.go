@@ -616,6 +616,28 @@ func handleTerminalStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(terminal.Status())
 }
 
+func handleWindowSize(w http.ResponseWriter, r *http.Request) {
+	var size browser.WindowSize
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+	if err := json.NewDecoder(r.Body).Decode(&size); err != nil || !size.Valid() {
+		http.Error(w, "invalid window size", http.StatusBadRequest)
+		return
+	}
+	if err := browser.SaveWindowSize(WorkingDir, size); err != nil {
+		http.Error(w, "failed to save window size", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func handleOpenRepository(w http.ResponseWriter, r *http.Request) {
+	if err := browser.OpenRepository(); err != nil {
+		http.Error(w, "Could not open the default browser: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func handleGetVersion(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
@@ -691,6 +713,8 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("POST /session/open", handleOpenSession)
 	mux.HandleFunc("GET /terminal/status", handleTerminalStatus)
 	mux.HandleFunc("GET /version", handleGetVersion)
+	mux.HandleFunc("POST /repository/open", handleOpenRepository)
+	mux.HandleFunc("POST /window-size", handleWindowSize)
 	mux.HandleFunc("GET /", handleStaticFiles)
 
 	var wg sync.WaitGroup

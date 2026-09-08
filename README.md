@@ -19,6 +19,8 @@ SSH host manager for personal using
 * First time - Create `hosts.dat` with the password
 * Then - Open `hosts.dat` with the password
 
+Window dimensions and position are saved in `window.json` beside the executable and restored on the next launch.
+
 ## Build
 ```sh
 make
