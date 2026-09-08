@@ -13,8 +13,7 @@ SSH host manager for personal using
 ## Requirements
 * chrome or chromium or ms-edge
 * MS-Windows - Windows Terminal (Download automatically if default installation is not exist)
-* Linux - Tilix (GNOME), or Konsole + `gdbus` (KDE).
-* FreeBSD - (gnome-terminal or konsole or xterm) & tmux (unchanged)
+* Linux / FreeBSD - Tilix (GNOME), or Konsole + `gdbus` (KDE).
 
 ## Password asking when executing
 * First time - Create `hosts.dat` with the password

@@ -1,5 +1,3 @@
-//go:build !linux
-
 package terminal
 
 func RunChild() bool         { return false }

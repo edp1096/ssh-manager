@@ -1,9 +1,12 @@
+//go:build linux || freebsd
+
 package terminal
 
 import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -43,6 +46,8 @@ func terminalStatus(getenv func(string) string, lookup func(string) (string, err
 	if _, err = lookup(backend); err != nil {
 		s.Message = fmt.Sprintf("%s가 설치되어 있지 않거나 PATH에서 찾을 수 없습니다. 로컬 화면 분할에 %s가 필요합니다.", backend, backend)
 		switch {
+		case strings.Contains(strings.ToLower(osRelease), "freebsd"):
+			s.Message += "\n설치: pkg install " + backend
 		case strings.Contains(osRelease, "debian"), strings.Contains(osRelease, "ubuntu"):
 			s.Message += "\n설치: sudo apt install " + backend
 		case strings.Contains(osRelease, "fedora"):
@@ -56,6 +61,9 @@ func terminalStatus(getenv func(string) string, lookup func(string) (string, err
 	if backend == "konsole" {
 		if _, err = lookup("gdbus"); err != nil {
 			s.Message = "Konsole 분할 제어에 gdbus가 필요합니다. 배포판의 GLib 도구 패키지를 설치하세요."
+			if strings.Contains(strings.ToLower(osRelease), "freebsd") {
+				s.Message += "\n설치: pkg install glib"
+			}
 			return s
 		}
 	}
@@ -64,6 +72,9 @@ func terminalStatus(getenv func(string) string, lookup func(string) (string, err
 }
 
 func Status() TerminalStatus {
+	if runtime.GOOS == "freebsd" {
+		return terminalStatus(os.Getenv, exec.LookPath, "freebsd")
+	}
 	release, _ := os.ReadFile("/etc/os-release")
 	return terminalStatus(os.Getenv, exec.LookPath, string(release))
 }

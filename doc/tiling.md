@@ -1,6 +1,6 @@
 # Terminal tiling
 
-On Linux, terminal splitting uses Tilix or Konsole.
+On Linux and FreeBSD, terminal splitting uses Tilix or Konsole without tmux.
 
 ## Terminal selection
 
@@ -18,6 +18,10 @@ SSH_MANAGER_TERMINAL=konsole ./bin/ssh-manager
 ```
 
 If the selected terminal is missing, the app displays installation instructions. On Ubuntu, install it with `sudo apt install tilix` or `sudo apt install konsole libglib2.0-bin`.
+
+On FreeBSD, run `pkg install tilix` for GNOME or `pkg install konsole glib` for KDE as root. The terminal and `gdbus` must be on PATH (normally `/usr/local/bin`). Run the app inside the graphical desktop session; Konsole control uses its session D-Bus.
+
+FreeBSD port definitions: [Tilix](https://github.com/freebsd/freebsd-ports/tree/main/x11/tilix), [Konsole](https://github.com/freebsd/freebsd-ports/tree/main/x11/konsole), [GLib including gdbus](https://github.com/freebsd/freebsd-ports/blob/main/devel/glib20/pkg-plist). Package availability depends on the FreeBSD release, architecture, and configured repository.
 
 ## Split behavior
 
@@ -39,7 +43,7 @@ Use SSH Manager's buttons to create splits. Currently, a pane created manually t
 
 A helper in each new pane receives and runs the SSH command from the app. Commands are not typed into existing SSH sessions. Launch and split failures are displayed in the app.
 
-The existing Windows and FreeBSD launch behavior and the `hosts.dat` format remain unchanged.
+Windows continues to use Windows Terminal. The `hosts.dat` format remains unchanged.
 
 ## Verification status
 
@@ -48,6 +52,7 @@ The existing Windows and FreeBSD launch behavior and the `hosts.dat` format rema
 | Tilix 1.9.4 | Live tests passed for window creation, side-by-side and stacked splits, separate window groups, and pane closure |
 | Konsole 26.08.0 | Launch options and split interfaces checked against the official source; live execution not yet verified |
 | Automated tests | Passed for terminal selection, installation notices, target identification, communication, and error handling |
+| FreeBSD | Shares the native backend and tests with Linux; actual FreeBSD GUI execution has not been verified |
 
 The Tilix live test used short-lived local commands. Input, scrolling, and resizing during actual SSH connections still need verification.
 

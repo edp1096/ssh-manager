@@ -67,3 +67,10 @@
 - `feature/native-terminal-tiling`에서 작업한다. 사용 방법과 검증 상태는 `doc/tiling.md`를 읽는다.
 - Linux 전용 변경이다. FreeBSD의 기존 tmux 경로와 Windows Terminal은 유지한다. 자동 테스트 통과와 실제 데스크톱 검증을 구분한다.
 - 이후 Tilix 1.9.4가 설치되었다. 잘못 사용한 `--execute` 때문에 실행 실패하던 것을 `-x`로 수정했고 실제 Tilix 창/helper로 생성·분할·그룹 격리 시험을 통과했다. 업그레이드를 요구할 문제가 아니었다. SSH 상호작용 및 Konsole 실기 검증은 아직 남아 있다.
+
+## 후속 승인: 병합 및 FreeBSD 확장
+
+- `feature/native-terminal-tiling`은 `main`에 병합했다. 키 입력과 포커스 처리는 `main`의 구현을 유지했다.
+- 사용자가 FreeBSD에도 같은 KDE/Konsole, GNOME/Tilix 처리를 적용하도록 승인했다. 위의 Linux 전용 및 FreeBSD tmux 유지 범위는 이 승인으로 대체한다.
+- Linux/FreeBSD는 `desktop_native.go`, `terminal_native.go`를 공유하며 기존 tmux 실행 코드는 제거했다. Windows Terminal 경로는 유지한다.
+- FreeBSD 실제 GUI 실행은 미검증이다. 크로스 빌드 및 Linux에서의 공통 테스트 통과를 FreeBSD 실기 검증으로 취급하지 않는다.

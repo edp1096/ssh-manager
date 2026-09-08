@@ -1,3 +1,5 @@
+//go:build linux || freebsd
+
 package terminal
 
 import (
@@ -57,6 +59,45 @@ func TestMissingTilixDoesNotFallbackToKonsole(t *testing.T) {
 func TestActualEnvironmentStatus(t *testing.T) {
 	s := Status()
 	t.Logf("backend=%s ready=%v message=%s", s.Backend, s.Ready, s.Message)
+}
+
+func TestFreeBSDTerminalStatus(t *testing.T) {
+	for _, desktop := range []string{"KDE", "GNOME"} {
+		t.Run(desktop, func(t *testing.T) {
+			getenv := func(key string) string {
+				if key == "XDG_CURRENT_DESKTOP" {
+					return desktop
+				}
+				return ""
+			}
+			installed := map[string]bool{}
+			lookup := func(name string) (string, error) {
+				if installed[name] {
+					return "/usr/local/bin/" + name, nil
+				}
+				return "", os.ErrNotExist
+			}
+			backend := "tilix"
+			if desktop == "KDE" {
+				backend = "konsole"
+			}
+			s := terminalStatus(getenv, lookup, "freebsd")
+			if s.Ready || s.Backend != backend || !strings.Contains(s.Message, "pkg install "+backend) {
+				t.Fatalf("missing terminal: %+v", s)
+			}
+			installed[backend] = true
+			if backend == "konsole" {
+				s = terminalStatus(getenv, lookup, "freebsd")
+				if s.Ready || !strings.Contains(s.Message, "pkg install glib") {
+					t.Fatalf("missing gdbus: %+v", s)
+				}
+				installed["gdbus"] = true
+			}
+			if s = terminalStatus(getenv, lookup, "freebsd"); !s.Ready {
+				t.Fatalf("installed terminal: %+v", s)
+			}
+		})
+	}
 }
 
 func TestTilixTargetAndDirection(t *testing.T) {
