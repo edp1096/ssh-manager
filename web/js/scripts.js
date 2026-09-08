@@ -28,6 +28,7 @@ async function connectSSH(categoryIdx, hostIdx, windowMode = null) {
         // console.log(response)
         return
     }
+    alert(await r.text())
 }
 
 async function enterPassword() {
@@ -158,10 +159,19 @@ async function getApplicationVersion() {
     }
 }
 
-function init() {
+async function init() {
     document.addEventListener("keydown", preventKeys)
     document.addEventListener("mousedown", preventDrag)
 
+    try {
+        const response = await fetch("/terminal/status")
+        if (response.ok) {
+            const status = await response.json()
+            if (!status.ready) alert(status.message)
+        }
+    } catch (error) {
+        console.error("Terminal status check failed", error)
+    }
     document.querySelector("#dialog-enter-password").showModal()
 }
 
