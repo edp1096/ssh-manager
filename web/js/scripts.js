@@ -5,12 +5,12 @@ let hostsFile = "./hosts.dat"
 async function connectSSH(categoryIdx, hostIdx, windowMode = null) {
     const categoryIndex = parseInt(categoryIdx)
     if (typeof categoryIndex != 'number' || !Number.isInteger(categoryIndex)) {
-        alert("Category index is not integer")
+        await appDialogs.alert("Category index is not integer")
         return false
     }
     const hostIndex = parseInt(hostIdx)
     if (typeof hostIndex != 'number' || !Number.isInteger(hostIndex)) {
-        alert("Host index is not integer")
+        await appDialogs.alert("Host index is not integer")
         return false
     }
 
@@ -28,7 +28,7 @@ async function connectSSH(categoryIdx, hostIdx, windowMode = null) {
         // console.log(response)
         return
     }
-    alert(await r.text())
+    await appDialogs.alert(await r.text(), { title: 'SSH connection failed' })
 }
 
 async function enterPassword() {
@@ -53,8 +53,9 @@ async function enterPassword() {
         }
 
         if (!isJSON) {
-            alert(response)
+            await appDialogs.alert(response, { title: 'Could not unlock host list' })
             document.querySelector("#dialog-enter-password").showModal()
+            return
         }
 
         const json = JSON.parse(response)
@@ -68,7 +69,7 @@ async function enterPassword() {
     if (password == "") {
         message = "Empty password input"
     }
-    alert(message)
+    await appDialogs.alert(message, { title: 'Could not unlock host list' })
 
     d.querySelector("#enter-password-input").value = ""
     document.querySelector("#dialog-enter-password").showModal()
@@ -116,15 +117,16 @@ async function changeHostFilePassword(e) {
         }
 
         if (!isJSON) {
-            alert(response)
+            await appDialogs.alert(response, { title: 'Password change failed' })
             document.querySelector("#dialog-change-password").showModal()
             d.querySelector("#change-password-old").value = passwordOld
             d.querySelector("#change-password-new").value = passwordNew
+            return
         }
 
         const json = JSON.parse(response)
         if (json.message == "success") {
-            alert("Password of host file is changed")
+            await appDialogs.alert("The host file password has been changed.", { title: 'Password changed' })
             getHosts()
             return
         }
@@ -134,7 +136,7 @@ async function changeHostFilePassword(e) {
     try {
         message = await r.text()
     } catch (e) { }
-    alert(message)
+    await appDialogs.alert(message, { title: 'Password change failed' })
 
     d.querySelector("#change-password-old").value = ""
     d.querySelector("#change-password-new").value = ""
@@ -156,6 +158,7 @@ async function getApplicationVersion() {
 
         const tmpl = noticeDialogTMPL.innerHTML
         noticeDialog.innerHTML = tmpl.replaceAll("@@_MESSAGE_@@", message)
+        noticeDialog.querySelector('h2').textContent = 'About SSH Manager'
         noticeDialog.showModal()
     }
 }
@@ -167,7 +170,7 @@ async function openRepository(button) {
         const response = await fetch('/repository/open', { method: 'POST' })
         if (!response.ok) { throw new Error(await response.text()) }
     } catch (error) {
-        alert(error.message)
+        await appDialogs.alert(error.message)
     } finally {
         button.disabled = false
     }
@@ -184,7 +187,7 @@ async function init() {
         const response = await fetch("/terminal/status")
         if (response.ok) {
             const status = await response.json()
-            if (!status.ready) alert(status.message)
+            if (!status.ready) await appDialogs.alert(status.message, { title: 'Terminal setup required' })
         }
     } catch (error) {
         console.error("Terminal status check failed", error)
@@ -193,7 +196,7 @@ async function init() {
     document.querySelector('#enter-password-input').focus({ preventScroll: true })
     window.addEventListener('focus', () => {
         const dialog = document.querySelector('#dialog-enter-password')
-        if (dialog.open && !dialog.contains(document.activeElement)) {
+        if (dialog.open && !document.querySelector('.app-message-dialog[open]') && !dialog.contains(document.activeElement)) {
             dialog.querySelector('input').focus({ preventScroll: true })
         }
     })
@@ -292,7 +295,7 @@ async function togglePasswordVisibility(button) {
                 if (!dialog.open || !input.isConnected) { return }
                 if (!input.value) { input.value = data.password }
             } catch (error) {
-                if (dialog.open && input.isConnected) { alert(error.message) }
+                if (dialog.open && input.isConnected) { await appDialogs.alert(error.message) }
                 return
             } finally { button.disabled = false }
         }

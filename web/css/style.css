@@ -12,6 +12,9 @@ body {
     /* color: #848d97; */
     color: #b7bdc4;
     font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 input:focus-visible,
@@ -113,13 +116,99 @@ hr {
 
 .button-group-left,
 .button-group-right {
-    margin-bottom: 0.5em;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
-.button-group-left {
-    float: left;
+.workspace-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #56616d;
 }
 
-.button-group-right {
-    float: right;
+.workspace-tools {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+#workspace-tabs {
+    display: flex;
+    align-items: center;
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #3e4c60 #010409;
+    padding: 3px;
+}
+
+.ui-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.workspace-tools { gap: 6px; }
+.workspace-tools .button-group-left, .workspace-tools .button-group-right { gap: 3px; }
+.workspace-tools button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 32px; margin: 0; padding: 0; border: 1px solid transparent; border-radius: 5px; color: #9dafaf; }
+.workspace-tools button:hover:not(:disabled) { border-color: #465c70; background: #1c2c3c; color: #fff; }
+.workspace-tools .button-group-left { padding-left: 6px; border-left: 1px solid #303b48; }
+.workspace-tools .button-group-right { padding-left: 6px; border-left: 1px solid #303b48; }
+
+.workspace-tab {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    border: 1px solid #56616d;
+    border-radius: 4px;
+}
+
+.workspace-tab:has([aria-selected="true"]) {
+    background: #1b3036;
+    border-color: #6baca5;
+}
+
+.workspace-tab button {
+    border: 0;
+    margin: 0;
+    min-height: 30px;
+}
+
+.workspace-tab-button {
+    max-width: 190px;
+    padding: 4px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: transparent;
+}
+
+.workspace-tab-close {
+    padding: 4px 8px;
+    background: transparent;
+}
+
+.workspace-tools button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+#workspace-panels {
+    flex: 1 1 0;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#workspace-panels > [role="tabpanel"] {
+    height: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+#workspace-panels > [hidden] {
+    display: none;
 }

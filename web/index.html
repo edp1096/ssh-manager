@@ -19,105 +19,121 @@
     <link rel="stylesheet" href="/css/material-symbols-outlined.css">
     <link rel="stylesheet" href="/css/host-control.css">
     <link rel="stylesheet" href="/css/host-order.css">
+    <link rel="stylesheet" href="/css/files.css">
     <link rel="stylesheet" href="/css/dialog.css">
+    <link rel="stylesheet" href="/css/modals.css">
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)">
     <!-- list reordering -->
-    <div id="order-container">
-        <div id="order-lists"></div>
-        <div id="order-buttons">
-            <button onclick="closeReorderMode()" class="cancel">Cancel</button>
-            <button onclick="saveReorderedList()" class="ok">Save</button>
+    <dialog id="order-container" aria-labelledby="order-title">
+        <header class="order-header">
+            <h2 id="order-title">Reorder host list</h2>
+            <p>Drag groups to reorder them. Drag hosts within a group or into another group.</p>
+        </header>
+        <div id="order-lists" tabindex="-1" aria-label="Host order"></div>
+        <footer id="order-buttons">
+            <span id="order-status" role="status">Changes are applied only when you save.</span>
+            <button onclick="closeReorderMode()" title="Cancel (Esc)">Cancel</button>
+            <button onclick="saveReorderedList()" class="ok">Save changes</button>
+        </footer>
+    </dialog>
+
+    <header class="workspace-header">
+        <div id="workspace-tabs" role="tablist" aria-label="Workspace tabs">
+            <div class="workspace-tab">
+                <button id="tab-hosts" class="workspace-tab-button" role="tab" aria-selected="true" aria-controls="hosts-data-container" type="button">Hosts</button>
+            </div>
         </div>
-    </div>
+        <div class="workspace-tools" aria-label="Host tools">
+            <button type="button" onclick="fileBrowser.quickConnect()" title="New FTP / FTPS connection" aria-label="New FTP / FTPS connection"><span class="material-symbols-outlined">add_link</span></button>
+            <div class="button-group-left" data-host-tools>
+                <button onclick="expandAllCategories()" title="Expand all">
+                    <span class="material-symbols-outlined">expand_all</span>
+                </button>
+                <button onclick="collapseAllCategories()" title="Collapse all">
+                    <span class="material-symbols-outlined">collapse_all</span>
+                </button>
+                <button onclick="getHosts()" title="Reload host list">
+                    <span class="material-symbols-outlined">refresh</span>
+                </button>
+            </div>
+            <div class="button-group-right">
+                <button onclick="openCategoryEditDialog()" title="Add category" data-host-tool>
+                    <span class="material-symbols-outlined">create_new_folder</span>
+                </button>
+                <button onclick="setReorderMode()" title="Reorder host list" data-host-tool>
+                    <span class="material-symbols-outlined">swap_vert</span>
+                </button>
+                <button onclick="openChangePasswordDialog()" title="Change password of host file">
+                    <span class="material-symbols-outlined">lock</span>
+                </button>
+                <button onclick="getApplicationVersion()" title="Info">
+                    <span class="material-symbols-outlined">info</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-    <div class="button-group-left">
-        <button onclick="expandAllCategories()" title="Expand all">
-            <span class="material-symbols-outlined">expand_all</span>
-        </button>
-        <button onclick="collapseAllCategories()" title="Collapse all">
-            <span class="material-symbols-outlined">collapse_all</span>
-        </button>
-        <button onclick="getHosts()" title="Reload host list">
-            <span class="material-symbols-outlined">refresh</span>
-        </button>
-    </div>
+    <main id="workspace-panels">
+        <div id="hosts-data-container" role="tabpanel" aria-labelledby="tab-hosts">
+            <ul class="categories"></ul>
+        </div>
+    </main>
 
-    <div class="button-group-right">
-        <button onclick="openCategoryEditDialog()" title="Add category">
-            <span class="material-symbols-outlined">create_new_folder</span>
-        </button>
-        <button onclick="setReorderMode()" title="Reorder host list">
-            <span class="material-symbols-outlined">low_priority</span>
-        </button>
-        <button onclick="openChangePasswordDialog()" title="Change password of host file">
-            <span class="material-symbols-outlined">lock</span>
-        </button>
-        <button onclick="getApplicationVersion()" title="Info">
-            <span class="material-symbols-outlined">info</span>
-        </button>
-    </div>
+    <dialog id="dialog-category-edit" aria-labelledby="category-edit-title" onclose="saveCategoryData(event)"></dialog>
+    <dialog id="dialog-host-edit" aria-labelledby="host-edit-title" onclose="saveHostData(event)"></dialog>
+    <dialog id="dialog-notice" aria-labelledby="notice-title"></dialog>
+    <dialog id="dialog-confirm" aria-labelledby="confirm-title" onclose="doSpecificJob(event)"></dialog>
 
-    <hr>
-
-    <div id="hosts-data-container">
-        <ul class="categories"></ul>
-    </div>
-
-    <dialog id="dialog-category-edit" onclose="saveCategoryData(event)"></dialog>
-    <dialog id="dialog-host-edit" onclose="saveHostData(event)"></dialog>
-    <dialog id="dialog-notice"></dialog>
-    <dialog id="dialog-confirm" onclose="doSpecificJob(event)"></dialog>
-
-    <dialog id="dialog-enter-password" onclose="enterPassword()">
-        <h2>Enter password</h2>
+    <dialog id="dialog-enter-password" aria-labelledby="unlock-title" onclose="enterPassword()">
+        <h2 id="unlock-title">Enter app password</h2>
         <form method="dialog">
             <p>
-                <label for="enter-password-input">Password:</label>
+                <label for="enter-password-input">Password</label>
                 <input type="password" id="enter-password-input" name="enter-password" required autocomplete="off" autofocus>
                 <button type="button" class="password-toggle" data-password-toggle="enter-password-input" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </p>
 
             <p>
-                <button value="confirm" class="ok">Submit</button>
+                <button value="confirm" class="ok" title="Unlock (Enter in password field)">Unlock</button>
             </p>
         </form>
     </dialog>
 
-    <dialog id="dialog-change-password" onclose="changeHostFilePassword(event)">
-        <h2>Change password of host file</h2>
+    <dialog id="dialog-change-password" aria-labelledby="password-change-title" onclose="changeHostFilePassword(event)">
+        <h2 id="password-change-title">Change host file password</h2>
         <form method="dialog">
             <p>
-                <label for="change-password-old">Previous password:</label>
+                <label for="change-password-old">Current password</label>
                 <input type="password" id="change-password-old" name="password-old" required autocomplete="off">
                 <button type="button" class="password-toggle" data-password-toggle="change-password-old" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </p>
             <p>
-                <label for="change-password-new">New password:</label>
+                <label for="change-password-new">New password</label>
                 <input type="password" id="change-password-new" name="password-new" required autocomplete="off">
                 <button type="button" class="password-toggle" data-password-toggle="change-password-new" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </p>
 
             <div>
-                <button onclick="cancelChangePasswordDialog()" class="cancel" type="button">Cancel</button>
-                <button value="confirm" class="ok">Submit</button>
+                <button onclick="cancelChangePasswordDialog()" class="cancel" type="button" title="Cancel (Esc)">Cancel</button>
+                <button value="confirm" class="ok" title="Change password (Enter in password field)">Change password</button>
             </div>
         </form>
     </dialog>
 
     <template id="dialog-category-edit-template">
-        <h2>@@_TITLE_@@</h2>
+        <h2 id="category-edit-title">@@_TITLE_@@</h2>
         <form method="dialog">
             <input type="hidden" id="category-idx" value="">
             <div>
-                <label for="category-name">Category name:</label>
+                <label for="category-name">Group name</label>
                 <input id="category-name" required>
             </div>
 
             <div>
-                <button onclick="cancelCategoryEditDialog()" class="cancel" type="button">Cancel</button>
-                <button value="confirm" class="ok">Save</button>
+                <button onclick="cancelCategoryEditDialog()" class="cancel" type="button" title="Cancel (Esc)">Cancel</button>
+                <button value="confirm" class="ok" title="Save (Enter in text field)">Save</button>
             </div>
         </form>
     </template>
@@ -127,7 +143,7 @@
             <span class="material-symbols-outlined">add</span>
         </button>
         <button onclick="openCategoryEditDialog(`@@_CATEGORY_IDX_@@`)" title="Rename category">
-            <span class="material-symbols-outlined">border_color</span>
+            <span class="material-symbols-outlined">edit</span>
         </button>
         <button onclick="openDeleteCategory('@@_CATEGORY_IDX_@@')" class="critical" title="Delete category">
             <span class="material-symbols-outlined">delete</span>
@@ -153,14 +169,17 @@
                 <span class="label">Address:</span> <span>@@_ADDRESS_@@:@@_PORT_@@</span>
             </li>
             <li>
-                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)" title="Open window">
+                <button onclick="openFileBrowser(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" title="Browse SFTP files (Ctrl+Enter)" aria-label="Browse SFTP files">
+                    <span class="material-symbols-outlined">folder_open</span>
+                </button>
+                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)" title="Open window (Enter)">
                     <span class="material-symbols-outlined">terminal</span>
                 </button>
-                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" title="Open horizontal panel">
-                    <span class="material-symbols-outlined">dock_to_right</span>
+                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" title="Split terminal left / right (Shift+Enter)" aria-label="Split terminal left / right">
+                    <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>
                 </button>
-                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `split_vertical`)" title="Open vertical panel">
-                    <span class="material-symbols-outlined">dock_to_bottom</span>
+                <button onclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `split_vertical`)" title="Split terminal top / bottom" aria-label="Split terminal top / bottom">
+                    <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/></svg>
                 </button>
                 <div class="button-section-divider"></div>
                 <button onclick="openHostEditDialog(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`)" title="Edit host">
@@ -174,76 +193,80 @@
     </template>
 
     <template id="dialog-host-edit-template">
-        <h2>@@_TITLE_@@</h2>
+        <h2 id="host-edit-title">@@_TITLE_@@</h2>
         <form method="dialog">
             <input type="hidden" id="category-idx" value="">
             <input type="hidden" id="idx" value="">
             <input type="hidden" id="auth-type-orig" value="">
+            <h3 class="modal-section-title">Connection</h3>
             <div>
-                <label for="host-edit-name">Name:</label>
+                <label for="host-edit-name">Name</label>
                 <input type="text" id="host-edit-name" name="name" required autocomplete="off">
             </div>
             <div>
-                <label for="host-edit-address">Address:</label>
+                <label for="host-edit-address">Address</label>
                 <input id="host-edit-address" name="address" required autocomplete="off" placeholder="IP or domain">
             </div>
             <div>
-                <label for="host-edit-port">Port:</label>
-                <input id="host-edit-port" type="number" name="port" autocomplete="off" placeholder="22 is default if empty">
+                <label for="host-edit-port">Port</label>
+                <input id="host-edit-port" type="number" name="port" autocomplete="off" placeholder="22">
             </div>
             <div>
-                <label for="host-edit-username">Username:</label>
+                <label for="host-edit-username">Username</label>
                 <input id="host-edit-username" name="username" required autocomplete="off">
             </div>
 
-            <hr>
+            <h3 class="modal-section-title">Authentication</h3>
 
             <div>
-                <label for="use-password">Password</label><input onchange="setAuthType()" type="radio" id="use-password" name="auth-type" checked>
-                <label for="use-private-key-text">Private Key</label><input onchange="setAuthType()" type="radio" id="use-private-key-text" name="auth-type">
+                <label for="use-password"><input onchange="setAuthType()" type="radio" id="use-password" name="auth-type" checked> Password</label>
+                <label for="use-private-key-text"><input onchange="setAuthType()" type="radio" id="use-private-key-text" name="auth-type"> Private key</label>
             </div>
             <div>
-                <label for="host-edit-password">Password:</label>
+                <label for="host-edit-password">Password</label>
                 <input type="password" id="host-edit-password" name="password" required>
                 <button type="button" class="password-toggle" data-password-toggle="host-edit-password" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </div>
 
             <div>
-                <label for="host-edit-private-key-file">Private key📂:</label>
+                <label for="host-edit-private-key-text">Private key</label>
                 <input type="file" id="host-edit-private-key-file" onchange="moveKeyFileToPrivateKeyText(event)">
-                <textarea id="host-edit-private-key-text" name="private-key-text" required placeholder="Copy & paste or click 'Private key📂' text for pem file opening"></textarea>
+                <textarea id="host-edit-private-key-text" name="private-key-text" required placeholder="Paste your private key here"></textarea>
+                <button class="key-file-button" type="button" onclick="document.querySelector('#host-edit-private-key-file').click()">Choose key file…</button>
             </div>
 
             <div>
-                <label for="host-edit-description">Description:</label>
+                <label for="host-edit-description">Description</label>
                 <textarea id="host-edit-description" name="description"></textarea>
             </div>
 
             <div>
-                <button onclick="cancelHostEditDialog()" class="cancel" type="button">Cancel</button>
-                <button value="confirm" class="ok">Save</button>
+                <button onclick="cancelHostEditDialog()" class="cancel" type="button" title="Cancel (Esc)">Cancel</button>
+                <button value="confirm" class="ok" title="Save (Enter in input field)">Save</button>
             </div>
         </form>
     </template>
 
     <template id="dialog-notice-template">
+        <h2 id="notice-title">Notice</h2>
         <div>
             <p>@@_MESSAGE_@@</p>
             <div class="dialog-button-container">
-                <button onclick="closeNotice(event)" class="ok">Close</button>
+                <button onclick="closeNotice(event)" class="ok" title="Close (Esc)">Close</button>
             </div>
         </div>
     </template>
 
     <template id="dialog-confirm-template">
+        <h2 id="confirm-title">Confirm deletion</h2>
         <form method="dialog">
             <input type="hidden" name="job-type">
             <input type="hidden" name="datas">
 
             <p>@@_MESSAGE_@@</p>
             <div>
-                <button onclick="cancelConfirmDialog()" class="cancel" type="button">Cancel</button>
-                <button value="confirm" class="ok">Ok</button>
+                <button onclick="cancelConfirmDialog()" class="cancel" type="button" title="Cancel (Esc)">Cancel</button>
+                <button value="confirm" class="critical">Delete</button>
             </div>
         </form>
     </template>
@@ -251,11 +274,14 @@
 
 <script>"use strict"</script>
 <script src="/js/consts.js"></script>
+<script src="/js/dialogs.js"></script>
 <script src="/js/utils.js"></script>
 <script src="/js/ws.js"></script>
 <script src="/js/input-events.js"></script>
 <script src="/js/host-control.js"></script>
 <script src="/js/host-order.js"></script>
+<script src="/js/tabs.js"></script>
+<script src="/js/files.js"></script>
 <script src="/js/scripts.js"></script>
 
 </html>

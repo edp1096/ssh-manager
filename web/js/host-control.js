@@ -30,8 +30,9 @@ async function getHosts() {
         }
 
         if (!isJSON) {
-            alert(response)
+            await appDialogs.alert(response, { title: 'Could not load hosts' })
             document.querySelector("#dialog-enter-password").showModal()
+            return
         }
 
         const json = JSON.parse(response)
@@ -72,6 +73,9 @@ async function getHosts() {
                 const data = json['host-categories'][Number(heading.dataset.category) - 1].hosts[index]
                 row.dataset.hostId = data['unique-id'] || ''
                 row.setAttribute('aria-label', `${data.name}, ${data.address}:${data.port}`)
+                row.querySelector('.part-name > span:last-child').title = data.name
+                row.querySelector('.part-address > span:last-child').title = `${data.address}:${data.port}`
+                row.querySelectorAll('button[title]').forEach(button => button.setAttribute('aria-label', button.title))
             })
             item.addEventListener('click', function (event) {
                 if (!event.target.closest('.host-part-info') && !event.target.closest('button')) {
@@ -142,9 +146,9 @@ function moveKeyFileToPrivateKeyText(el) {
 function openCategoryEditDialog(categoryIdxSTR = null) {
     const tmpl = categoryEditDialogTMPL.innerHTML
     if (!categoryIdxSTR) {
-        categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "New category")
+        categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "New group")
     } else {
-        categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "Edit category")
+        categoryEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "Edit group")
         const d = categoryEditDialog
         const idx = parseInt(categoryIdxSTR) - 1
         d.querySelector("input#category-idx").value = idx
@@ -175,6 +179,7 @@ async function saveCategoryData(e) {
 
     const categoryName = d.querySelector("input#category-name").value
     const categoryData = { name: categoryName }
+    let message = 'Failed to save group.'
 
     const r = await fetch(`/categories?${params}`, {
         method: "POST",
@@ -188,7 +193,7 @@ async function saveCategoryData(e) {
         }
     }
 
-    hostEditDialog.innerHTML = ""
+    categoryEditDialog.innerHTML = ""
     const tmpl = noticeDialogTMPL.innerHTML
     noticeDialog.innerHTML = tmpl.replaceAll("@@_MESSAGE_@@", message)
     noticeDialog.showModal()
@@ -230,7 +235,7 @@ async function deleteCategory(idxSTR) {
 
 function openHostEditDialog(categoryIdxSTR = null, hostIdxSTR = null) {
     const tmpl = hostEditDialogTMPL.innerHTML
-    hostEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", "New host")
+    hostEditDialog.innerHTML = tmpl.replaceAll("@@_TITLE_@@", hostIdxSTR ? "Edit host" : "New host")
 
     let categoryIdx = 0
     if (categoryIdxSTR) {
@@ -437,8 +442,9 @@ async function doSpecificJob(e) {
     })
 }
 
-function openConfirm(message = "Press 'Ok' to proceed.") {
-    confirmDialog.innerHTML = confirmDialogTMPL.innerHTML.replaceAll("@@_MESSAGE_@@", message)
+function openConfirm(message = 'Delete this saved entry? This cannot be undone.') {
+    confirmDialog.innerHTML = confirmDialogTMPL.innerHTML
+    confirmDialog.querySelector('p').textContent = message
     confirmDialog.showModal()
 }
 
@@ -448,7 +454,8 @@ function openDeleteCategory(categoryIdxSTR) {
     const datas = confirmDialogTMPL.content.querySelector("input[name='datas']")
     datas.dataset.categoryIdx = categoryIdxSTR
 
-    openConfirm()
+    const group = hostsData[Number(categoryIdxSTR) - 1]
+    openConfirm(`Delete group “${group?.name || ''}” and its ${group?.hosts?.length || 0} saved hosts? This cannot be undone.`)
 }
 
 function openDeleteHost(categoryIdxSTR, hostIdxSTR) {
@@ -458,5 +465,6 @@ function openDeleteHost(categoryIdxSTR, hostIdxSTR) {
     datas.dataset.categoryIdx = categoryIdxSTR
     datas.dataset.hostIdx = hostIdxSTR
 
-    openConfirm()
+    const host = hostsData[Number(categoryIdxSTR) - 1]?.hosts[Number(hostIdxSTR) - 1]
+    openConfirm(`Delete “${host?.name || ''}” from the saved host list? This cannot be undone.`)
 }

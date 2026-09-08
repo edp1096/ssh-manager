@@ -116,6 +116,7 @@ function initKeyboardNavigation() {
             || event.target.closest('.category')?.querySelector('.category-name'))
     })
     document.addEventListener('keydown', event => {
+        if (container.hidden) { return }
         if (event.isComposing || event.altKey || event.metaKey) { return }
         if (event.target.closest('dialog, input, textarea, select, [contenteditable="true"]')) { return }
         if (document.querySelector('#order-container').style.display === 'block') { return }
@@ -140,7 +141,10 @@ function initKeyboardNavigation() {
         if (event.ctrlKey || event.shiftKey) {
             if (event.key === 'Enter' && row.matches('.host-part-info')) {
                 event.preventDefault()
-                if (!event.repeat) { connectSSH(row.dataset.category, row.dataset.host, event.ctrlKey ? 'split_vertical' : null) }
+                if (!event.repeat) {
+                    if (event.ctrlKey) openFileBrowser(row.dataset.category, row.dataset.host)
+                    else connectSSH(row.dataset.category, row.dataset.host, null)
+                }
             }
             return
         }

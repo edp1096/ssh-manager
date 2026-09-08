@@ -4,6 +4,8 @@ go 1.26.0
 
 require (
 	github.com/gorilla/websocket v1.5.3
+	github.com/jlaffaye/ftp v0.2.4
+	github.com/pkg/sftp v1.13.11
 	github.com/shirou/gopsutil/v3 v3.24.5
 	golang.org/x/crypto v0.56.0
 	golang.org/x/sys v0.47.0
@@ -14,6 +16,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/kr/fs v0.1.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20260802145828-341c2f0c90b5 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect

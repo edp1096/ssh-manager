@@ -20,6 +20,7 @@ import (
 	"github.com/gorilla/websocket"
 
 	"ssh-manager/internal/browser"
+	"ssh-manager/internal/filetransfer"
 	"ssh-manager/internal/host"
 	"ssh-manager/internal/terminal"
 	"ssh-manager/pkg/model"
@@ -56,7 +57,26 @@ var (
 	BrowserData    embed.FS
 	VERSION        string
 	HostFileKEY    []byte
+	fileManager    = filetransfer.New(func(file, id string) (model.HostInfo, error) {
+		var hosts model.HostList
+		if id == "" {
+			return model.HostInfo{}, fmt.Errorf("Host ID is required")
+		}
+		if err := host.LoadHostData(file, HostFileKEY, &hosts); err != nil {
+			return model.HostInfo{}, err
+		}
+		for _, category := range hosts.Categories {
+			for _, h := range category.Hosts {
+				if h.UniqueID == id {
+					return h, nil
+				}
+			}
+		}
+		return model.HostInfo{}, fmt.Errorf("Host no longer exists; reload the host list")
+	})
 )
+
+var applicationExitOnce sync.Once
 
 func ExitProcess() {
 	// Wait for browser refresh checking
@@ -64,17 +84,38 @@ func ExitProcess() {
 	if len(WebSocketConns) > 0 {
 		return
 	}
-	terminal.Cleanup()
+	exitApplication()
+}
 
-	cmdBrowser.Process.Kill()
+func exitApplication() {
+	applicationExitOnce.Do(func() {
+		terminal.Cleanup()
+		fileManager.Close()
 
-	time.Sleep(100 * time.Millisecond)
+		if cmdBrowser != nil && cmdBrowser.Process != nil {
+			cmdBrowser.Process.Kill()
+		}
 
-	// Remove browser_data
-	dataPath := filepath.FromSlash(WorkingDir + "/browser_data")
-	os.RemoveAll(dataPath)
+		time.Sleep(100 * time.Millisecond)
 
-	os.Exit(0)
+		// Remove browser_data
+		dataPath := filepath.FromSlash(WorkingDir + "/browser_data")
+		os.RemoveAll(dataPath)
+
+		os.Exit(0)
+	})
+}
+
+func applicationExitHandler(exit func()) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"ok":true}`))
+		// Flush the acknowledgement before closing the managed application window.
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		go func() { time.Sleep(100 * time.Millisecond); exit() }()
+	}
 }
 
 func FindPasswordByUUID(categories []model.HostCategory, uuid string) (password string, found bool) {
@@ -699,6 +740,8 @@ func RunServer(misc InitData) {
 	listen := "localhost:" + strconv.Itoa(AvailablePort)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("POST /application/exit", applicationExitHandler(exitApplication))
+	fileManager.Register(mux)
 
 	mux.HandleFunc("GET /connection-watchdog", handleConnectionWatchdog)
 	mux.HandleFunc("POST /enter-password", handleEnterPassword)

@@ -1,0 +1,46 @@
+/* One compact form language for legacy dialogs, FTP connection and messages. */
+dialog { box-sizing: border-box; border: 1px solid #405064; border-radius: 8px; color-scheme: dark; background: #0d131c; box-shadow: 0 16px 48px #0008; }
+dialog::backdrop { background: #01040999; backdrop-filter: blur(2px); }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) { width: min(440px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 32px); padding: 16px 20px; overflow: auto; }
+dialog h2 { margin: 0 0 14px; font-size: 18px; font-weight: 600; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) > form { display: grid; width: 100%; gap: 12px; align-items: stretch; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) label { margin: 0; padding: 0; color: #a9b8c9; font-size: 12px; text-align: left; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) :is(input:not([type="radio"]):not([type="hidden"]), textarea, select) { width: 100%; min-width: 0; margin: 0; padding: 8px 10px; border: 1px solid #405064; border-radius: 4px; background: #161f2b; color: #edf3fa; font: inherit; box-sizing: border-box; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) form > :is(div,p):has(input:not([type="hidden"]), textarea) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 0; margin: 0; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) form > :is(div,p) > label { grid-column: 1 / -1; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) form > div > textarea { grid-column: 1 / -1; resize: vertical; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) form > :is(div,p):not(:has(.password-toggle)) > input:not([type="radio"]):not([type="hidden"]) { grid-column: 1 / -1; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) form > :is(div,p):last-child:not(:has(input,textarea)), .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin: 4px 0 0; padding: 8px 0 0; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) button { min-height: 32px; margin: 0; padding: 5px 12px; border-radius: 4px; font: inherit; }
+dialog button.ok { color: #fff; }
+#dialog-enter-password #enter-password-input, #dialog-host-edit #host-edit-password { height: 30px; padding: 4px 8px; }
+#dialog-enter-password .password-toggle, #dialog-host-edit .password-toggle { height: 30px; min-height: 30px; }
+dialog button.cancel { background: transparent; border: 1px solid #56616d; }
+dialog button.cancel:hover { background: #263646; border-color: #71879a; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) .password-toggle { width: 32px; padding: 0; align-self: stretch; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) .password-toggle span { font-family: 'Material Symbols Outlined'; font-size: 19px; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) > div { display: block; width: 100%; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) p { margin: 0; min-height: 0; padding: 0; line-height: 1.5; color: #b7c5d5; overflow-wrap: anywhere; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) .dialog-button-container { display: flex; flex-direction: row; justify-content: flex-end; margin-top: 16px; }
+#dialog-host-edit:not(#order-container):not(#file-rename-dialog) { width: min(560px, calc(100vw - 32px)); }
+#dialog-host-edit:not(#order-container):not(#file-rename-dialog) form { grid-template-columns: minmax(0, 1fr) minmax(70px, .4fr); }
+#dialog-host-edit form > * { grid-column: 1 / -1; }
+#dialog-host-edit form > div:has(#host-edit-address), #dialog-host-edit form > div:has(#host-edit-port) { grid-column: auto; }
+#dialog-host-edit .modal-section-title { margin: 2px 0 0; color: #8ba5bc; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+#dialog-host-edit:not(#order-container):not(#file-rename-dialog) form > div:has(input[type="radio"]) { display: flex; gap: 8px; border: 1px solid #303f50; border-radius: 5px; padding: 8px 10px; }
+#dialog-host-edit input[type="radio"] { margin: 0; accent-color: #6baca5; }
+#dialog-host-edit form > div:has(input[type="radio"]) label { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; cursor: pointer; }
+#dialog-host-edit textarea[name="private-key-text"] { min-height: 120px; font-family: monospace; font-size: 12px; }
+#dialog-host-edit textarea[name="description"] { min-height: 64px; }
+#dialog-host-edit .key-file-button { grid-column: 1 / -1; justify-self: start; }
+#dialog-host-edit form > div:last-child { position: sticky; bottom: 0; background: #0d131c; border-top: 1px solid #303f50; z-index: 1; }
+#file-connect-dialog:not(#order-container):not(#file-rename-dialog) form > label, .app-message-dialog form > label { display: grid; gap: 6px; }
+#file-connect-dialog h3 { margin: 0 0 2px; font-size: 18px; }
+#file-connect-dialog form > label { width: 100%; margin: 0; padding: 0; grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
+#file-connect-dialog input, #file-connect-dialog select { width: 100%; min-width: 0; padding: 7px 9px; }
+#file-connect-dialog .file-actions { position: sticky; bottom: 0; background: #0d131c; }
+#dialog-notice > div { width: 100%; }
+.app-message-dialog .app-dialog-message { white-space: pre-wrap; margin-bottom: 16px !important; }
+.modal-password-field { display: grid; grid-template-columns: minmax(0, 1fr) 32px; gap: 6px; align-items: center; }
+dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) .repository-link { min-height: 0; padding: 0; margin-top: 8px; border: 0; background: none; }
+@media (max-width: 420px) { #dialog-host-edit:not(#order-container):not(#file-rename-dialog) form { grid-template-columns: minmax(0, 1fr); } }

@@ -1,0 +1,634 @@
+// Integration smoke test. Requires Go, Node 22+, and Chrome; no npm packages.
+// Starts an isolated SFTP test server, never the app's browser/profile launcher.
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import http from 'node:http'
+import { spawn } from 'node:child_process'
+import { setTimeout as delay } from 'node:timers/promises'
+
+const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'ssh-manager-ui-'))
+let chrome, go, proxy, socket, backend, exitRequests = 0
+let savedHostOrder
+let rejectHostSave = false
+let passwordAttempts = 0, passwordChanges = 0
+let groupSaves = 0
+const listingRequests = { local: 0, remote: 0 }
+try {
+    const uploads = path.join(temporary, 'uploads'), downloads = path.join(temporary, 'downloads')
+    await fs.mkdir(uploads); await fs.mkdir(downloads)
+    await fs.writeFile(path.join(uploads, 'ui-test.txt'), 'UI transfer round trip')
+    await fs.mkdir(path.join(uploads, 'tree', 'empty'), { recursive: true })
+    await fs.writeFile(path.join(uploads, 'tree', 'nested.txt'), 'folder transfer')
+    go = spawn('go', ['test', './internal/filetransfer', '-run', '^TestBrowserHarness$', '-v', '-count=1'], {
+        env: { ...process.env, SFTP_BROWSER_HARNESS: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let output = ''
+    go.stdout.on('data', data => { output += data })
+    go.stderr.on('data', data => { output += data })
+    for (let i = 0; !output.includes('BROWSER_HARNESS_URL=') && i < 300; i++) await delay(100)
+    backend = output.match(/BROWSER_HARNESS_URL=(\S+)/)?.[1]
+    assert.ok(backend, output)
+    proxy = http.createServer(async (req, res) => {
+        try {
+            const url = new URL(req.url, 'http://localhost')
+            if (url.pathname === '/categories' && req.method === 'POST') {
+                for await (const chunk of req) { /* consume isolated test payload */ }
+                groupSaves++;res.writeHead(200, {'Content-Type':'application/json'});res.end('{"message":"success"}');return
+            }
+            if (url.pathname === '/enter-password' || url.pathname === '/host-file-password') {
+                const chunks = []; for await (const chunk of req) chunks.push(chunk)
+                const body = JSON.parse(Buffer.concat(chunks).toString())
+                const unlock = url.pathname === '/enter-password'
+                if (unlock) passwordAttempts++; else passwordChanges++
+                const valid = unlock ? body.password === 'test-only' : body['password-old'] === 'test-only'
+                res.writeHead(valid ? 200 : 400, { 'Content-Type': valid ? 'application/json' : 'text/plain' })
+                res.end(valid ? '{"message":"success"}' : 'Incorrect password'); return
+            }
+            if (url.pathname === '/hosts' && req.method === 'PATCH') {
+                if (rejectHostSave) { res.writeHead(500); res.end('Test save failure'); return }
+                const chunks = []; for await (const chunk of req) chunks.push(chunk)
+                savedHostOrder = JSON.parse(Buffer.concat(chunks).toString())
+                res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); return
+            }
+            if (url.pathname.endsWith('/entries') && url.searchParams.get('side') in listingRequests)
+                listingRequests[url.searchParams.get('side')]++
+            if (req.url === '/application/exit' && req.method === 'POST') {
+                exitRequests++; res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); return
+            }
+            const chunks = []
+            for await (const chunk of req) chunks.push(chunk)
+            const response = await fetch(`${backend}${req.url}`, {
+                method: req.method,
+                headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
+                body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks),
+            })
+            res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'text/plain' })
+            if (req.url === '/') {
+                let html = await response.text()
+                html = html.replace(/<script src="\/js\/ws\.js"><\/script>/g, '')
+                res.end(html)
+            } else if (req.url === '/js/scripts.js') {
+                // Load the real dialog handlers without app startup/profile effects.
+                res.end((await response.text()).replace('document.addEventListener("DOMContentLoaded", () => { init() })', ''))
+            } else res.end(Buffer.from(await response.arrayBuffer()))
+        } catch (error) { res.writeHead(502); res.end(String(error)) }
+    })
+    await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve))
+    chrome = spawn(process.env.CHROME || 'google-chrome', [
+        '--headless=new', '--no-proxy-server', '--remote-debugging-port=0',
+        `--user-data-dir=${path.join(temporary, 'chrome')}`, 'about:blank',
+    ], { stdio: 'ignore' })
+    let port
+    for (let i = 0; !port && i < 100; i++) {
+        try { port = (await fs.readFile(path.join(temporary, 'chrome', 'DevToolsActivePort'), 'utf8')).split('\n')[0] }
+        catch { await delay(100) }
+    }
+    assert.ok(port, 'Chrome did not start')
+    const pages = await (await fetch(`http://127.0.0.1:${port}/json`)).json()
+    socket = new WebSocket(pages.find(page => page.type === 'page').webSocketDebuggerUrl)
+    await new Promise(resolve => socket.addEventListener('open', resolve, { once: true }))
+    let sequence = 0, interceptedDrag
+    const pending = new Map()
+    socket.addEventListener('message', event => {
+        const data = JSON.parse(event.data)
+        if (data.method === 'Input.dragIntercepted') interceptedDrag = data.params.data
+        if (data.id) { pending.get(data.id)?.(data); pending.delete(data.id) }
+    })
+    async function call(method, params = {}) {
+        const id = ++sequence
+        const result = new Promise(resolve => pending.set(id, resolve))
+        socket.send(JSON.stringify({ id, method, params }))
+        let timeout
+        const response = await Promise.race([result, new Promise((_, reject) => {
+            timeout = setTimeout(() => reject(new Error(`CDP timed out: ${method}`)), 15000)
+        })]).finally(() => clearTimeout(timeout))
+        assert.ok(!response.error, JSON.stringify(response.error))
+        return response.result
+    }
+    async function evaluate(expression) {
+        const response = await call('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })
+        assert.ok(!response.exceptionDetails, JSON.stringify(response.exceptionDetails))
+        return response.result.value
+    }
+    async function until(expression) {
+        for (let i = 0; i < 100; i++) { if (await evaluate(expression)) return; await delay(100) }
+        throw new Error(`Timed out: ${expression}\n${await evaluate('document.body.innerText')}`)
+    }
+    async function point(expression) {
+        const point = await evaluate(`(() => {const node=${expression}; node.scrollIntoView({block:'center'});const r=node.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`)
+        // Let scroll listeners finish before opening a context menu at this point.
+        await delay(50)
+        return point
+    }
+    async function click(expression, modifiers = 0, count = 1, button = 'left') {
+        const p = await point(expression)
+        await call('Input.dispatchMouseEvent', { type: 'mousePressed', ...p, button, clickCount: count, modifiers })
+        await call('Input.dispatchMouseEvent', { type: 'mouseReleased', ...p, button, clickCount: count, modifiers })
+    }
+    async function press(key, modifiers = 0) {
+        const code = key === ' ' ? 'Space' : key.length === 1 ? `Key${key.toUpperCase()}` : key
+        await call('Input.dispatchKeyEvent', { type: 'keyDown', key, code, modifiers })
+        await call('Input.dispatchKeyEvent', { type: 'keyUp', key, code, modifiers })
+        if (key === 'Escape') await delay(30) // Native dialog close events are queued.
+    }
+    async function contextAction(target, title) {
+        await click(target, 0, 1, 'right')
+        assert.equal(await evaluate(`!!document.querySelector('.file-context-menu')`), true, 'Context menu stays open')
+        await click(`[...document.querySelectorAll('.file-context-menu button')].find(b=>b.textContent===${JSON.stringify(title)} || b.textContent.startsWith(${JSON.stringify(title + ' (')}))`)
+    }
+    await call('Emulation.setDeviceMetricsOverride', { width: 720, height: 520, deviceScaleFactor: 1, mobile: false })
+    await call('Page.navigate', { url: `http://127.0.0.1:${proxy.address().port}/` })
+    await until(`typeof fileBrowser !== 'undefined'`)
+    await evaluate(`window.dialogAnswer=true;window.promptAnswer=null;window.autoDialogs=true;
+        window.alert=window.confirm=window.prompt=()=>{throw new Error('Native browser dialog used')};
+        new MutationObserver(()=>{
+            if(!window.autoDialogs)return;
+            const d=document.querySelector('.app-message-dialog[open]');if(!d||d.dataset.handled)return;d.dataset.handled='true';
+            const input=d.querySelector('input');if(input&&window.promptAnswer!==null)input.value=window.promptAnswer;
+            const accept=input?window.promptAnswer!==null:window.dialogAnswer;
+            (d.querySelector('[data-decision="'+(accept?'accept':'cancel')+'"]')||d.querySelector('button')).click();
+        }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});`)
+    await evaluate(`document.addEventListener('mousedown', preventDrag); document.addEventListener('keydown', preventKeys)`)
+    await evaluate(`initPasswordVisibility(); hostsData = [{hosts:[{name:'Test SFTP', 'unique-id':'test-host'}]}]; hostsFile='unused';
+        const category=document.createElement('li');category.className='category active';
+        category.innerHTML=document.querySelector('#hosts-data-template').innerHTML.replaceAll('@@_CATEGORY_IDX_@@','1').replaceAll('@@_HOST_IDX_@@','1').replaceAll('@@_NAME_@@','Test SFTP').replaceAll('@@_ADDRESS_@@','127.0.0.1').replaceAll('@@_PORT_@@','22');
+        document.querySelector('.categories').append(category);`)
+    assert.equal(await evaluate(`document.querySelector('#hosts-data-container').scrollWidth <= document.querySelector('#hosts-data-container').clientWidth`), true, 'Host row overflows at 720px')
+    assert.equal(await evaluate(`(() => {const category=document.querySelector('.category'), heading=document.createElement('span'); heading.className='category-name'; heading.textContent='Group'; heading.tabIndex=0; category.prepend(heading); heading.focus(); const fullWidth=Math.abs(heading.getBoundingClientRect().width-category.clientWidth)<1; heading.remove(); return fullWidth})()`), true, 'Group focus target spans the full row')
+    await evaluate(`initKeyboardNavigation();document.querySelector('.host-part-info').focus()`)
+    await evaluate(`document.querySelector('#tab-hosts').focus()`)
+    await press('ArrowDown')
+    assert.equal(await evaluate(`document.activeElement.matches('.host-part-info')`), true, 'Hosts Down enters host list')
+    await evaluate(`document.querySelector('[aria-label="New FTP / FTPS connection"]').focus()`)
+    await press('ArrowLeft')
+    assert.equal(await evaluate(`document.activeElement.matches('.host-part-info')`), true, 'New FTP arrow restores host list')
+    await press('Enter', 2)
+    await until(`document.querySelectorAll('.file-list tbody tr').length > 0 && document.querySelectorAll('.file-path input')[1].value`)
+    await evaluate(`document.querySelector('#tab-hosts').focus()`)
+    await press('Tab')
+    assert.equal(await evaluate(`document.activeElement.matches('.workspace-tab-button:not(#tab-hosts)')`), true, 'Tab focuses connection name, not close')
+    await press('Tab')
+    assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`), 'New FTP / FTPS connection')
+    await press('Tab', 8)
+    assert.equal(await evaluate(`document.activeElement.matches('.workspace-tab-button:not(#tab-hosts)')`), true, 'Shift+Tab also skips close')
+    await press('ArrowLeft')
+    assert.equal(await evaluate(`document.activeElement.id`), 'tab-hosts')
+    await press('ArrowRight')
+    await press('ArrowDown')
+    assert.equal(await evaluate(`document.querySelector('.file-browser:not([hidden]) .file-list').contains(document.activeElement)`), true, 'Connection Down enters file list')
+    await evaluate(`document.querySelector('[aria-label="New FTP / FTPS connection"]').focus()`)
+    await press('ArrowUp')
+    assert.equal(await evaluate(`document.querySelector('.file-browser:not([hidden]) .file-list').contains(document.activeElement)`), true, 'New FTP arrow enters active file list')
+    async function navigateLocal(directory) {
+        await evaluate(`(() => {const input=document.querySelector('.file-path input'); input.focus(); input.value=${JSON.stringify(directory)}; input.form.dispatchEvent(new Event('submit', {cancelable:true}));})()`)
+        await until(`document.querySelector('.file-list').getAttribute('aria-busy') !== 'true' && document.querySelector('.file-path input').value === ${JSON.stringify(directory)}`)
+    }
+    await navigateLocal(uploads)
+    for (const pane of [0, 1]) {
+        assert.deepEqual(await evaluate(`[...document.querySelectorAll('.file-pane')[${pane}].querySelectorAll('.file-path > button')].map(b=>b.title)`), ['Home', 'Refresh (F5 / Ctrl+R)', 'Parent folder (Backspace in file list)'])
+        assert.equal(await evaluate(`!!document.querySelectorAll('.file-pane')[${pane}].querySelector('.file-path > button:first-child svg')`), true)
+        assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[${pane}].querySelectorAll('header button').length`), 0)
+        assert.deepEqual(await evaluate(`[...document.querySelectorAll('.file-pane')[${pane}].querySelectorAll('tbody tr')].slice(0,2).map(r=>r.dataset.navigation)`), ['.', '..'])
+        assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[${pane}].querySelectorAll('.file-navigation-row input').length`), 0)
+    }
+    for (const marker of ['.', '..']) {
+        await click(`document.querySelector('[data-navigation="${marker}"] .file-name')`)
+        assert.equal(await evaluate(`document.querySelector('[data-navigation="${marker}"]').classList.contains('file-selected')`), true)
+        assert.equal(await evaluate(`document.activeElement === document.querySelector('[data-navigation="${marker}"]')`), true, 'Navigation focuses the row, not its inner button')
+        assert.equal(await evaluate(`document.querySelectorAll('.file-list [data-file-path] input:checked').length`), 0)
+    }
+    assert.equal(await evaluate(`document.querySelector('[data-sort="modified"]').textContent`), 'Timestamp')
+    for (const key of ['name', 'size', 'modified']) {
+        assert.equal(await evaluate(`getComputedStyle(document.querySelector('[data-sort="${key}"]')).textAlign`), key === 'name' ? 'left' : 'right')
+        assert.ok(await evaluate(`document.querySelector('[data-sort="${key}"] .file-sort-arrow').getBoundingClientRect().width > 0`), 'Sort arrow space stays reserved')
+    }
+    const longName = 'a-very-long-filename-'.repeat(8) + '.txt'
+    await fs.writeFile(path.join(uploads, longName), 'long name')
+    await navigateLocal(uploads)
+    assert.equal(await evaluate(`(() => {const row=[...document.querySelectorAll('[data-file-path]')].find(r=>r.dataset.filePath.endsWith(${JSON.stringify(longName)})), name=row.querySelector('.file-name'), css=getComputedStyle(name); return css.whiteSpace==='nowrap' && css.textOverflow==='ellipsis' && name.scrollWidth>name.clientWidth && name.title.startsWith(${JSON.stringify(longName)})})()`), true, 'Long names truncate and retain full tooltip')
+    await fs.unlink(path.join(uploads, longName))
+    await navigateLocal(uploads)
+    await evaluate(`document.querySelector('.file-list [data-sort="size"]').closest('th').click()`)
+    assert.equal(await evaluate(`document.querySelector('.file-list [data-sort="size"]').closest('th').getAttribute('aria-sort')`), 'ascending')
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('.file-list [data-sort="size"]')).borderTopWidth`), '0px')
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('.file-pane')[0].querySelectorAll('tbody tr')].slice(0,2).map(r=>r.dataset.navigation)`), ['.', '..'])
+    await click(`document.querySelector('.file-pane [aria-label="Open parent folder"]')`, 0, 2)
+    await until(`document.querySelector('.file-path input').value === ${JSON.stringify(temporary)} && !document.querySelector('.file-list').hasAttribute('aria-busy')`)
+    await navigateLocal(uploads)
+    const treeRow = `document.querySelector('.file-pane input[aria-label="Select tree"]').closest('tr')`
+    const fileRow = `document.querySelector('.file-pane input[aria-label="Select ui-test.txt"]').closest('tr')`
+    await click(`${treeRow}.querySelector('.file-name')`)
+    assert.equal(await evaluate(`document.querySelector('.file-path input').value`), uploads, 'Single click must not open folder')
+    await click(`${fileRow}.querySelector('.file-name')`, 2)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[0].querySelectorAll('.file-selected').length`), 2, 'Ctrl adds selection')
+    await click(`${treeRow}.querySelector('.file-name')`, 0, 1, 'right')
+    assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[0].querySelectorAll('.file-selected').length`), 2, 'Right click preserves multi-selection')
+    assert.equal(await evaluate(`!!document.querySelector('.file-context-menu')`), true)
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('.file-context-menu button')].map(b=>b.textContent)`), ['Open folder', 'Upload (Enter)', 'Rename (F2)', 'Delete (Delete)', 'New folder', 'Refresh (F5 / Ctrl+R)'])
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' })
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape' })
+    assert.equal(await evaluate(`!!document.querySelector('.file-context-menu')`), false)
+    await click(`${treeRow}.querySelector('.file-name')`)
+    await click(`${fileRow}.querySelector('.file-name')`, 0, 1, 'right')
+    assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[0].querySelectorAll('.file-selected').length`), 1, 'Right click outside selection replaces selection')
+    await click(`[...document.querySelectorAll('.file-context-menu button')].find(b=>b.textContent.startsWith('Refresh ('))`)
+    await until(`!document.querySelector('.file-list').hasAttribute('aria-busy') && !document.querySelector('.file-context-menu')`)
+    await click(`${treeRow}.querySelector('.file-name')`, 0, 1, 'right')
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('.file-context-menu button')].slice(0,2).map(b=>b.textContent)`), ['Open folder (Enter)', 'Upload'])
+    await press('Escape')
+    await click(`${treeRow}.querySelector('.file-name')`)
+    await click(`${fileRow}.querySelector('.file-name')`, 8)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[0].querySelectorAll('.file-selected').length`), 2, 'Shift selects range')
+    await evaluate(`document.querySelector('.file-list').click()`)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[0].querySelectorAll('.file-selected').length`), 0)
+    await click(`${treeRow}.querySelector('.file-name')`, 0, 2)
+    await until(`document.querySelector('.file-path input').value === ${JSON.stringify(path.join(uploads, 'tree'))} && !document.querySelector('.file-list').hasAttribute('aria-busy')`)
+    await click(`document.querySelector('.file-pane [aria-label="Open parent folder"]')`, 0, 2)
+    await until(`document.querySelector('.file-path input').value === ${JSON.stringify(uploads)} && !document.querySelector('.file-list').hasAttribute('aria-busy')`)
+    await evaluate(`${treeRow}.focus()`)
+    assert.equal(await evaluate(`document.querySelector('.file-actions')`), null, 'Bottom action buttons removed')
+    await press('Escape')
+    await press(' ', 2)
+    await press('ArrowDown', 2)
+    assert.equal(await evaluate(`document.querySelector('.file-pane').querySelectorAll('.file-selected').length`), 1, 'Ctrl+Down preserves checks')
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Control', code: 'ControlLeft', modifiers: 2 })
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Unidentified', code: 'Space', modifiers: 2 })
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Unidentified', code: 'Space', modifiers: 2 })
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Control', code: 'ControlLeft' })
+    assert.equal(await evaluate(`document.querySelector('.file-pane').querySelectorAll('.file-selected').length`), 2, 'Ctrl+Space adds focused file')
+    await press('ArrowUp', 2)
+    await press(' ', 2)
+    assert.equal(await evaluate(`document.querySelector('.file-pane').querySelectorAll('.file-selected').length`), 1, 'Ctrl+Space toggles only focused folder')
+    await press('ArrowRight', 2)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-list')[1].contains(document.activeElement)`), true, 'Right enters remote, including empty list')
+    await press('ArrowLeft', 2)
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'tree'), 'Left restores local cursor')
+    assert.equal(await evaluate(`document.querySelector('.file-pane').querySelectorAll('.file-selected').length`), 1, 'Pane switching preserves checks')
+    await press('ArrowRight')
+    await press('ArrowLeft')
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'tree'))
+    await evaluate(`${treeRow}.querySelector('input').focus()`)
+    await press(' ', 2)
+    assert.equal(await evaluate(`document.querySelector('.file-pane').querySelectorAll('.file-selected').length`), 2, 'Ctrl+Space also works on checkbox focus')
+    await evaluate(`${treeRow}.focus()`)
+    await press('End')
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'ui-test.txt'), 'End selects last entry')
+    await press('Home')
+    assert.equal(await evaluate(`document.activeElement.closest('tr').dataset.navigation`), '.', 'Home moves to first navigation row')
+    assert.equal(await evaluate(`document.querySelector('[data-navigation="."]').classList.contains('file-selected')`), true)
+    await press('PageDown')
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'ui-test.txt'), 'PageDown moves cursor, not only scroll')
+    await press('PageUp', 2)
+    assert.equal(await evaluate(`document.querySelector('.file-pane input[aria-label="Select ui-test.txt"]').checked`), true, 'Ctrl+PageUp preserves check')
+    await evaluate(`${treeRow}.focus()`)
+    await press('Tab')
+    assert.equal(await evaluate(`!!document.activeElement.closest('tbody')`), false, 'Tab leaves entries instead of visiting next checkbox/file')
+    await press('Tab', 8)
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'tree'), 'Shift+Tab returns to saved list cursor')
+    await press('Tab', 8)
+    assert.equal(await evaluate(`!!document.activeElement.closest('tbody')`), false, 'Shift+Tab leaves entries backwards')
+    await evaluate(`${treeRow}.focus()`)
+    await press('ArrowDown')
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'ui-test.txt'))
+    await press('ArrowUp')
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'tree'))
+    await press('Enter')
+    await until(`document.querySelector('.file-path input').value === ${JSON.stringify(path.join(uploads, 'tree'))} && !document.querySelector('.file-list').hasAttribute('aria-busy')`)
+    assert.equal(await evaluate(`document.querySelector('.file-list').contains(document.activeElement)`), true, 'Folder load retains keyboard focus')
+    await press('Backspace')
+    await until(`document.querySelector('.file-path input').value === ${JSON.stringify(uploads)} && !document.querySelector('.file-list').hasAttribute('aria-busy')`)
+    assert.equal(await evaluate(`document.activeElement.dataset.filePath`), path.join(uploads, 'tree'), 'Parent navigation restores child cursor')
+    await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',repeat:true,bubbles:true,cancelable:true}))`)
+    assert.equal(await evaluate(`document.querySelector('.file-list').hasAttribute('aria-busy')`), false, 'Repeated Enter does not navigate')
+    await press('ArrowDown')
+    await press('Enter')
+    await until(`document.querySelector('.file-job[data-status="completed"]') !== null`)
+    await evaluate(`workspaceTabs.select('hosts')`)
+    assert.equal(await evaluate(`document.querySelector('#hosts-data-container').hidden`), false)
+    assert.equal(await evaluate(`[...document.querySelectorAll('.file-queue')].some(q=>q.getClientRects().length)`), false, 'Hosts must not show connection history')
+    await evaluate(`openFileBrowser(1,1)`)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-browser').length`), 1)
+    await navigateLocal(downloads)
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select ui-test.txt"]') !== null`)
+    await evaluate(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select ui-test.txt"]').closest('tr').focus()`)
+    await press('Enter')
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 2`)
+    assert.equal(await fs.readFile(path.join(downloads, 'ui-test.txt'), 'utf8'), 'UI transfer round trip')
+    await navigateLocal(uploads)
+    await contextAction(`${treeRow}.querySelector('.file-name')`, 'Upload')
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 3`)
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select tree"]') !== null`)
+    await navigateLocal(downloads)
+    await contextAction(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select tree"]').closest('tr').querySelector('.file-name')`, 'Download')
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 4`)
+    assert.equal(await fs.readFile(path.join(downloads, 'tree', 'nested.txt'), 'utf8'), 'folder transfer')
+    assert.ok((await fs.stat(path.join(downloads, 'tree', 'empty'))).isDirectory())
+    await fs.writeFile(path.join(uploads, 'ui-test.txt'), 'overwritten')
+    await navigateLocal(uploads)
+    await click(`${fileRow}.querySelector('.file-name')`, 0, 2)
+    await until(`!!document.querySelector('#file-conflict-dialog')`)
+    assert.equal(await evaluate(`!!document.querySelector('.file-overwrite, .file-browser-bar')`), false, 'Overwrite toolbar removed')
+    if (process.env.CONFLICT_SCREENSHOT) await fs.writeFile(process.env.CONFLICT_SCREENSHOT, Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
+    await click(`[...document.querySelectorAll('#file-conflict-dialog button')].find(b=>b.textContent==='Overwrite')`)
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 5`)
+    await navigateLocal(downloads)
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('.file-list').getAttribute('aria-busy') !== 'true'`)
+    await click(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select ui-test.txt"]').closest('tr').querySelector('.file-name')`, 0, 2)
+    await until(`!!document.querySelector('#file-conflict-dialog')`)
+    await click(`[...document.querySelectorAll('#file-conflict-dialog button')].find(b=>b.textContent==='Overwrite')`)
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 6`)
+    assert.equal(await fs.readFile(path.join(downloads, 'ui-test.txt'), 'utf8'), 'overwritten')
+    await evaluate(`window.promptAnswer='operations'`)
+    await contextAction(`document.querySelectorAll('.file-pane')[1].querySelector('[data-file-path] .file-name')`, 'New folder')
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select operations"]') !== null`)
+    await click(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select operations"]').closest('tr').querySelector('.file-name')`)
+    await press('F2')
+    await until(`!!document.querySelector('#file-rename-dialog input')`)
+    assert.equal(await evaluate(`(() => {const d=document.querySelector('#file-rename-dialog'), buttons=[...d.querySelectorAll('button')].map(b=>b.getBoundingClientRect()), input=d.querySelector('input').getBoundingClientRect(), form=d.querySelector('form').getBoundingClientRect(); return buttons[0].top===buttons[1].top && buttons[0].right<buttons[1].left && Math.abs(buttons[1].right-form.right)<1 && input.left>=form.left && input.right<=form.right})()`), true, 'Rename buttons share a right-aligned row; input fits form')
+    if (process.env.RENAME_SCREENSHOT) await fs.writeFile(process.env.RENAME_SCREENSHOT, Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
+    await evaluate(`(() => {const input=document.querySelector('#file-rename-dialog input'); input.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true})); input.value='이름 변경'; input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',isComposing:true,bubbles:true,cancelable:true}));})()`)
+    assert.equal(await evaluate(`document.querySelector('#file-rename-dialog').open`), true, 'IME Enter must not submit rename')
+    await evaluate(`document.querySelector('#file-rename-dialog input').dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}))`)
+    await press('Enter')
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select 이름 변경"]') !== null`)
+    await contextAction(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select 이름 변경"]').closest('tr').querySelector('.file-name')`, 'Rename (F2)')
+    await evaluate(`document.querySelector('#file-rename-dialog input').value='renamed'`)
+    await press('Enter')
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select renamed"]') !== null`)
+    await click(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select renamed"]').closest('tr').querySelector('.file-name')`)
+    await contextAction(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select renamed"]').closest('tr').querySelector('.file-name')`, 'Delete')
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select renamed"]') === null`)
+    await click(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select tree"]').closest('tr').querySelector('.file-name')`)
+    await evaluate(`window.dialogAnswer=false`)
+    await press('Delete')
+    assert.equal(await evaluate(`!!document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select tree"]')`), true, 'Declining deletion preserves folder')
+    await evaluate(`window.dialogAnswer=true`)
+    await press('Delete')
+    await until(`!document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select tree"]') && !document.querySelectorAll('.file-list')[1].hasAttribute('aria-busy')`)
+    assert.equal(await fs.readFile(path.join(downloads, 'tree', 'nested.txt'), 'utf8'), 'folder transfer', 'Deleting remote folder must not delete local copy')
+    assert.equal(await evaluate(`document.documentElement.scrollWidth <= innerWidth`), true)
+    assert.equal(await evaluate(`document.querySelector('.workspace-tools').getBoundingClientRect().right <= innerWidth`), true)
+    if (process.env.UI_SCREENSHOT) await fs.writeFile(process.env.UI_SCREENSHOT, Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
+    await fs.writeFile(path.join(uploads, 'isolated.txt'), 'isolated history')
+    await evaluate(`hostsData[0].hosts.push({name:'Second host','unique-id':'test-second'}); openFileBrowser(1,2)`)
+    await until(`document.querySelectorAll('.file-browser')[1]?.querySelectorAll('.file-path input')[1].value`)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-browser')[1].querySelectorAll('.file-job').length`), 0, 'New tab starts with its own empty history')
+    await evaluate(`(()=>{const input=document.querySelectorAll('.file-browser')[1].querySelector('.file-path input');input.focus();input.value=${JSON.stringify(uploads)};input.form.dispatchEvent(new Event('submit',{cancelable:true}));})()`)
+    await until(`document.querySelectorAll('.file-browser')[1].querySelector('input[aria-label="Select isolated.txt"]') !== null`)
+    await contextAction(`document.querySelectorAll('.file-browser')[1].querySelector('input[aria-label="Select isolated.txt"]').closest('tr').querySelector('.file-name')`, 'Upload')
+    await until(`document.querySelectorAll('.file-browser')[1].querySelectorAll('.file-job[data-status="completed"]').length===1`)
+    await evaluate(`document.querySelector('#tab-hosts').focus()`)
+    await press('Tab')
+    assert.equal(await evaluate(`document.activeElement.getAttribute('aria-selected')`), 'false', 'Inactive connection names are also Tab stops')
+    await press('ArrowRight')
+    assert.equal(await evaluate(`document.activeElement.textContent`), 'Second host · SFTP', 'Arrow navigation starts at focused tab')
+    assert.equal(await evaluate(`[...document.querySelectorAll('.workspace-tab-close')].every(b=>b.tabIndex===-1)`), true)
+    await evaluate(`workspaceTabs.select('sftp-test-host')`)
+    assert.equal(await evaluate(`document.querySelector('.file-browser').querySelectorAll('.file-job').length`), 6)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-browser')[1].hidden`), true)
+    await evaluate(`document.querySelector('.file-browser .file-queue > button').click()`)
+    await until(`document.querySelector('.file-browser').querySelectorAll('.file-job').length===0`)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-browser')[1].querySelectorAll('.file-job').length`), 1, 'Clearing one history must not affect the other')
+    await evaluate(`workspaceTabs.close('sftp-test-second')`)
+    await evaluate(`window.dialogAnswer=false`)
+    await press('w', 2)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-browser').length`), 1, 'Cancelled Ctrl+W keeps SFTP tab')
+    await evaluate(`window.dialogAnswer=true`)
+    await press('w', 2)
+    await until(`document.querySelectorAll('.file-browser').length === 0`)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-browser').length`), 0)
+    const ftpConnection = await (await fetch(`${backend}/__test/ftp`)).json()
+    await evaluate(`fileBrowser.quickConnect(); const ftpConfig=${JSON.stringify(ftpConnection)}; for(const [key,value] of Object.entries(ftpConfig))document.querySelector('#file-connect-dialog [name="'+key+'"]').value=value; document.querySelector('#file-connect-dialog form').requestSubmit()`)
+    await until(`document.querySelectorAll('.file-path input')[1]?.value === '/'`)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[1].querySelector('[aria-label="Open parent folder"]').disabled`), true)
+    await evaluate(`document.querySelectorAll('.file-list')[1].focus()`)
+    await press('ArrowDown'); await press('ArrowUp'); await press('Backspace')
+    assert.equal(await evaluate(`document.querySelectorAll('.file-path input')[1].value`), '/')
+    assert.equal(await evaluate(`document.querySelectorAll('.file-list')[1].hasAttribute('aria-busy')`), false, 'Root Backspace does not request navigation')
+    await navigateLocal(path.parse(uploads).root)
+    await evaluate(`document.querySelector('.file-list').focus()`)
+    await press('Backspace')
+    assert.equal(await evaluate(`document.querySelector('.file-path input').value`), path.parse(uploads).root)
+    assert.equal(await evaluate(`document.querySelector('.file-list').hasAttribute('aria-busy')`), false)
+    assert.equal(await evaluate(`document.querySelector('#file-connect-dialog') === null`), true)
+    await navigateLocal(uploads)
+    await contextAction(`${fileRow}.querySelector('.file-name')`, 'Upload')
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 1`)
+    await fs.writeFile(path.join(uploads, 'drag-a.txt'), 'drag a')
+    await fs.writeFile(path.join(uploads, 'drag-b.txt'), 'drag b')
+    await navigateLocal(uploads)
+    const dragA = `document.querySelector('.file-pane input[aria-label="Select drag-a.txt"]').closest('tr').querySelector('.file-name')`
+    const dragB = `document.querySelector('.file-pane input[aria-label="Select drag-b.txt"]').closest('tr').querySelector('.file-name')`
+    await click(dragA); await click(dragB, 2)
+    await call('Input.setInterceptDrags', { enabled: true })
+    await evaluate(`window.dragEvents=[];for(const type of ['mousedown','mousemove','dragstart','dragend'])document.addEventListener(type,e=>dragEvents.push({type,target:e.target.outerHTML?.slice(0,250),prevented:e.defaultPrevented}),{once:true})`)
+    const from = await point(dragA)
+    const to = await evaluate(`(() => {const r=document.querySelectorAll('.file-list')[1].getBoundingClientRect();return {x:r.right-10,y:r.bottom-6}})()`)
+    await call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...from })
+    await call('Input.dispatchMouseEvent', { type: 'mousePressed', ...from, button: 'left', buttons: 1, clickCount: 1 })
+    await call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: from.x + 15, y: from.y + 5, button: 'left', buttons: 1 })
+    await call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...to, button: 'left', buttons: 1 })
+    for (let i = 0; !interceptedDrag && i < 30; i++) await delay(100)
+    assert.ok(interceptedDrag, `Native file drag did not start: ${JSON.stringify(await evaluate('dragEvents'))}; from=${JSON.stringify(from)} to=${JSON.stringify(to)}`)
+    assert.equal(await evaluate(`document.querySelectorAll('.file-pane')[0].querySelectorAll('.file-selected').length`), 2, 'Dragging preserves multi-selection')
+    for (const type of ['dragEnter', 'dragOver', 'drop']) await call('Input.dispatchDragEvent', { type, ...to, data: interceptedDrag })
+    await call('Input.dispatchMouseEvent', { type: 'mouseReleased', ...to, button: 'left', clickCount: 1 })
+    await call('Input.setInterceptDrags', { enabled: false })
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 3`)
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select drag-b.txt"]') !== null`)
+    await fs.mkdir(path.join(uploads, 'multi-folder'))
+    await fs.writeFile(path.join(uploads, 'multi-folder', 'nested.txt'), 'multi folder')
+    await fs.writeFile(path.join(uploads, 'multi-file.txt'), 'multi file')
+    await navigateLocal(uploads)
+    const entryName = (side, name) => `document.querySelectorAll('.file-pane')[${side}].querySelector('input[aria-label="Select ${name}"]').closest('tr').querySelector('.file-name')`
+    await click(entryName(0, 'multi-file.txt')); await click(entryName(0, 'multi-folder'), 2)
+    assert.equal(await evaluate(`document.querySelector('.file-pane').querySelectorAll('.file-selected').length`), 2,
+        await evaluate(`document.activeElement.outerHTML`))
+    await press('Enter')
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 5`)
+    assert.equal(await evaluate(`document.querySelector('.file-path input').value`), uploads, 'Multi-selection Enter must not enter focused folder')
+    await until(`document.querySelectorAll('.file-pane')[1].querySelector('input[aria-label="Select multi-file.txt"]') !== null`)
+    await navigateLocal(downloads)
+    await click(entryName(1, 'multi-folder')); await click(entryName(1, 'multi-file.txt'), 2)
+    await press('Enter')
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 7`)
+    assert.equal(await fs.readFile(path.join(downloads, 'multi-folder', 'nested.txt'), 'utf8'), 'multi folder')
+    assert.equal(await fs.readFile(path.join(downloads, 'multi-file.txt'), 'utf8'), 'multi file')
+    await until(`document.querySelectorAll('.file-list[aria-busy="true"]').length === 0`)
+    for (const [key, modifiers] of [['F5', 0], ['r', 2]]) {
+        await evaluate(`window.refreshMarker = true; document.querySelector('.file-path input').focus()`)
+        const before = { ...listingRequests }
+        await press(key, modifiers)
+        for (let i = 0; (listingRequests.local === before.local || listingRequests.remote === before.remote) && i < 50; i++) await delay(100)
+        assert.ok(listingRequests.local > before.local && listingRequests.remote > before.remote, `${key} refreshes both panes`)
+        await until(`document.querySelectorAll('.file-list[aria-busy="true"]').length === 0`)
+        assert.equal(await evaluate('window.refreshMarker'), true, 'Refresh must not reload application')
+    }
+    assert.match(await evaluate(`document.querySelector('.file-modified').textContent`), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+    for (const expected of ['ascending', 'descending']) {
+        await evaluate(`document.querySelector('[data-sort="modified"]').click()`)
+        assert.equal(await evaluate(`document.querySelector('[data-sort="modified"]').closest('th').getAttribute('aria-sort')`), expected)
+        assert.equal(await evaluate(`document.querySelector('.file-list tbody tr').dataset.navigation`), '.')
+    }
+    // FTP conflicts: cancellation preserves the destination, and a remembered
+    // skip applies to later submissions in this connection without another modal.
+    await navigateLocal(uploads)
+    await click(`${fileRow}.querySelector('.file-name')`, 0, 2)
+    await until(`!!document.querySelector('#file-conflict-dialog')`)
+    await click(`[...document.querySelectorAll('#file-conflict-dialog button')].find(b=>b.textContent==='Cancel transfer')`)
+    await until(`document.querySelectorAll('.file-job[data-status="cancelled"]').length === 1`)
+    await click(`${fileRow}.querySelector('.file-name')`, 0, 2)
+    await until(`!!document.querySelector('#file-conflict-dialog')`)
+    await evaluate(`document.querySelector('#file-conflict-dialog select').value='session'`)
+    await click(`[...document.querySelectorAll('#file-conflict-dialog button')].find(b=>b.textContent==='Skip')`)
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 8`)
+    await click(`${fileRow}.querySelector('.file-name')`, 0, 2)
+    await until(`document.querySelectorAll('.file-job[data-status="completed"]').length === 9`)
+    assert.equal(await evaluate(`!!document.querySelector('#file-conflict-dialog')`), false, 'Session skip does not ask again')
+    assert.equal(await evaluate(`[...document.querySelectorAll('.file-job-label')].filter(n=>n.textContent.includes('1 skipped')).length`), 2)
+    await press('w', 2)
+    await until(`document.querySelectorAll('.file-browser').length === 0`)
+    assert.equal(exitRequests, 0, 'Closing file tabs must not exit the app')
+    await evaluate(`(() => {
+        hostsData=[{name:'Production',hosts:[{name:'Application server',address:'192.168.10.21',port:22},{name:'Database primary',address:'192.168.10.22',port:2222}]},{name:'Development',hosts:[{name:'Development workstation',address:'dev.internal.example',port:22}]}];
+        const container=document.querySelector('.categories');container.replaceChildren();
+        hostsData.forEach((group,i)=>{
+            const template=document.querySelector('#category-data-template').innerHTML
+                .replaceAll('@@_CATEGORY_NAME_@@',group.name).replaceAll('@@_CATEGORY_BUTTONS_@@',document.querySelector('#category-buttons-template').innerHTML)
+                .replaceAll('@@_CATEGORY_IDX_@@',i+1).replaceAll('@@_HOST_DATA_@@',group.hosts.map((h,j)=>document.querySelector('#hosts-data-template').innerHTML.replaceAll('@@_CATEGORY_IDX_@@',i+1).replaceAll('@@_HOST_IDX_@@',j+1).replaceAll('@@_NAME_@@',h.name).replaceAll('@@_ADDRESS_@@',h.address).replaceAll('@@_PORT_@@',h.port)).join(''));
+            container.insertAdjacentHTML('beforeend',template);
+        });
+        document.querySelectorAll('.category').forEach(c=>setCategoryExpanded(c,true));
+    })()`)
+    await evaluate(`document.fonts.ready`)
+    assert.equal(await evaluate(`document.querySelector('#hosts-data-container').scrollWidth <= document.querySelector('#hosts-data-container').clientWidth`), true)
+    if (process.env.HOSTS_SCREENSHOT) await fs.writeFile(process.env.HOSTS_SCREENSHOT, Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
+    await call('Emulation.setDeviceMetricsOverride', { width: 480, height: 520, deviceScaleFactor: 1, mobile: false })
+    assert.equal(await evaluate(`document.querySelector('#hosts-data-container').scrollWidth <= document.querySelector('#hosts-data-container').clientWidth`), true, 'Host rows fit narrow windows')
+    await call('Emulation.setDeviceMetricsOverride', { width: 720, height: 520, deviceScaleFactor: 1, mobile: false })
+    await evaluate(`window.beforeOrder=JSON.stringify(hostsData);setReorderMode()`)
+    assert.equal(await evaluate(`document.querySelector('#order-container').open`), true)
+    if (process.env.ORDER_SCREENSHOT) await fs.writeFile(process.env.ORDER_SCREENSHOT, Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
+    await click(`document.querySelector('#order-lists button[aria-label="Move down: Production"]')`)
+    assert.equal(await evaluate(`orderData[0].name`), 'Development')
+    await evaluate(`(() => { const from=document.querySelector('.sub-item[data-parent-idx="0"]'), to=document.querySelector('.item[data-idx="1"] > .order-row .order-name'), transfer=new DataTransfer();from.dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer:transfer}));to.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer})); })()`)
+    assert.equal(await evaluate(`orderData[1].hosts.length`), 3, 'Dropping a host on group title moves it to that group')
+    assert.equal(await evaluate(`orderData[0].hosts.length`), 0)
+    await press('Escape')
+    assert.equal(await evaluate(`document.querySelector('#order-container').open`), false)
+    assert.equal(await evaluate(`JSON.stringify(hostsData)===window.beforeOrder`), true, 'Cancel preserves original host order')
+    await evaluate(`setReorderMode()`)
+    await click(`document.querySelector('#order-lists button[aria-label="Move down: Production"]')`)
+    rejectHostSave = true
+    await click(`document.querySelector('#order-buttons .ok')`)
+    await until(`document.querySelector('#order-status').textContent.includes('Could not save')`)
+    assert.equal(await evaluate(`document.querySelector('#order-container').open && orderData[0].name==='Development'`), true, 'Failed save retains changes')
+    rejectHostSave = false
+    await click(`document.querySelector('#order-buttons .ok')`)
+    await until(`!document.querySelector('#order-container').open`)
+    assert.equal(savedHostOrder['host-categories'][0].name, 'Development', 'Save submits the reordered groups')
+    async function captureModal(name) {
+        assert.equal(await evaluate(`(() => {const d=[...document.querySelectorAll('dialog[open]')].at(-1),r=d.getBoundingClientRect();return r.left>=0 && r.right<=innerWidth && r.top>=0 && r.bottom<=innerHeight && d.scrollWidth<=d.clientWidth})()`), true, `${name} fits viewport`)
+        if (process.env.MODAL_SCREENSHOT_DIR) await fs.writeFile(path.join(process.env.MODAL_SCREENSHOT_DIR, `${name}.png`), Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
+    }
+    await evaluate(`openCategoryEditDialog()`)
+    await captureModal('group-new')
+    await evaluate(`document.querySelector('#category-name').value='테스트 그룹'`)
+    await press('Enter')
+    await until(`document.querySelector('#dialog-notice').open`)
+    assert.equal(groupSaves, 1, 'Enter submits the explicit Save button value')
+    await evaluate(`noticeDialog.close()`)
+    await evaluate(`openCategoryEditDialog('1')`)
+    await captureModal('group-edit')
+    await press('Escape')
+    await evaluate(`openHostEditDialog('1')`)
+    await captureModal('host-new')
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#host-edit-password, #dialog-host-edit .password-toggle')].map(e=>e.getBoundingClientRect().height)`), [30, 30], 'New host password field and toggle stay compact')
+    await evaluate(`document.querySelector('#dialog-host-edit .password-toggle').click()`)
+    assert.equal(await evaluate(`document.querySelector('#host-edit-password').getBoundingClientRect().height`), 30, 'Showing the password preserves height')
+    await evaluate(`document.querySelector('#use-private-key-text').checked=true;setAuthType()`)
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('#host-edit-private-key-text').parentElement).display!=='none' && !document.querySelector('#host-edit-password').required`), true)
+    await captureModal('host-key')
+    await press('Escape')
+    await evaluate(`openHostEditDialog('1','1')`)
+    assert.equal(await evaluate(`document.querySelector('#dialog-host-edit h2').textContent`), 'Edit host')
+    await captureModal('host-edit')
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#host-edit-password, #dialog-host-edit .password-toggle')].map(e=>e.getBoundingClientRect().height)`), [30, 30], 'Edit host password field and toggle stay compact')
+    await press('Escape')
+    await evaluate(`openChangePasswordDialog()`)
+    await captureModal('password-change')
+    await evaluate(`document.querySelector('#change-password-new').value='test-only';document.querySelector('[data-password-toggle="change-password-new"]').click()`)
+    assert.equal(await evaluate(`document.querySelector('#change-password-new').type`), 'text')
+    await press('Escape')
+    await until(`document.querySelector('#change-password-new').value===''`)
+    assert.equal(await evaluate(`document.querySelector('#change-password-new').type`), 'password')
+    await evaluate(`openChangePasswordDialog();document.querySelector('#change-password-old').value='wrong';document.querySelector('#change-password-new').value='new-test';document.querySelector('#change-password-new').focus()`)
+    await press('Enter')
+    await until(`document.querySelector('#dialog-change-password').open && document.querySelector('#change-password-new').value===''`)
+    await evaluate(`document.querySelector('#change-password-old').value='test-only';document.querySelector('#change-password-new').value='new-test';document.querySelector('#change-password-new').focus()`)
+    await press('Enter')
+    for (let i=0; passwordChanges<2 && i<50; i++) await delay(100)
+    await until(`!document.querySelector('#dialog-change-password').open && !document.querySelector('.app-message-dialog')`)
+    assert.equal(passwordChanges, 2, 'Password change retries through app dialogs')
+    // Inspect startup modal without submitting credentials to any real store.
+    await evaluate(`document.querySelector('#dialog-enter-password').showModal()`)
+    await captureModal('password-enter')
+    assert.equal(await evaluate(`document.querySelector('#enter-password-input').getBoundingClientRect().height`), 30)
+    assert.equal(await evaluate(`document.querySelector('#dialog-enter-password .password-toggle').getBoundingClientRect().height`), 30)
+    await press('Escape')
+    assert.equal(await evaluate(`document.querySelector('#dialog-enter-password').open`), true, 'Startup unlock cannot be cancelled')
+    await evaluate(`document.querySelector('#enter-password-input').value='wrong';document.querySelector('#enter-password-input').focus()`)
+    await press('Enter')
+    await until(`document.querySelector('#dialog-enter-password').open && document.querySelector('#enter-password-input').value===''`)
+    await evaluate(`document.querySelector('#enter-password-input').value='test-only';document.querySelector('#enter-password-input').focus()`)
+    await press('Enter')
+    for (let i=0; passwordAttempts<2 && i<50; i++) await delay(100)
+    await until(`!document.querySelector('#dialog-enter-password').open && !document.querySelector('.app-message-dialog')`)
+    assert.equal(passwordAttempts, 2, 'Unlock retries through app dialogs')
+    await evaluate(`openDeleteHost('1','1')`)
+    await captureModal('delete-host')
+    await press('Escape')
+    await evaluate(`noticeDialog.innerHTML=noticeDialogTMPL.innerHTML.replace('@@_MESSAGE_@@','The host was saved.');noticeDialog.showModal()`)
+    await captureModal('notice')
+    await press('Escape')
+    await evaluate(`fileBrowser.quickConnect()`)
+    await captureModal('ftp-connect')
+    assert.equal(await evaluate(`document.querySelector('#file-connect-dialog input[name="address"]').getBoundingClientRect().width > document.querySelector('#file-connect-dialog form').getBoundingClientRect().width * .9`), true, 'FTP fields fill dialog width')
+    await evaluate(`document.querySelector('#file-connect-password').value='test-only';document.querySelector('#file-connect-dialog .password-toggle').click()`)
+    assert.equal(await evaluate(`document.querySelector('#file-connect-password').type`), 'text')
+    await press('Escape')
+    await evaluate(`window.autoDialogs=false; window.modalResult='pending';appDialogs.prompt('Folder name').then(value=>window.modalResult=value);void 0`)
+    await until(`!!document.querySelector('.app-message-dialog[open]')`)
+    await captureModal('folder-prompt')
+    await evaluate(`const field=document.querySelector('.app-message-dialog input');field.dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));field.value='새 폴더'`)
+    await press('Enter')
+    assert.equal(await evaluate(`window.modalResult`), 'pending', 'IME composition cannot submit a prompt')
+    await evaluate(`document.querySelector('.app-message-dialog input').dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}))`)
+    await press('Enter')
+    await until(`window.modalResult==='새 폴더'`)
+    await evaluate(`appDialogs.confirm('Delete the selected files?',{title:'Delete files',confirmText:'Delete',danger:true}).then(value=>window.modalResult=value);void 0`)
+    await until(`!!document.querySelector('.app-message-dialog[open]')`)
+    await captureModal('generic-confirm')
+    await press('Escape')
+    await until(`window.modalResult===false`)
+    await evaluate(`window.autoDialogs=true`)
+    await evaluate(`window.dialogAnswer=false`)
+    await press('w', 2)
+    assert.equal(exitRequests, 0, 'Cancelled Hosts close must not exit')
+    await evaluate(`window.dialogAnswer=true`)
+    await press('w', 2)
+    for (let i = 0; !exitRequests && i < 30; i++) await delay(100)
+    assert.equal(exitRequests, 1, 'Confirmed Hosts close must request app shutdown')
+    console.log('PASS: arrow/Enter/Backspace navigation and transfer, root guards, selection, context menu, native drag, SFTP/FTP operations')
+} finally {
+    socket?.close()
+    chrome?.kill()
+    if (backend) await fetch(`${backend}/__test/stop`, { method: 'POST' }).catch(() => {})
+    else go?.kill()
+    proxy?.closeAllConnections()
+    proxy?.close()
+    await delay(300)
+    await fs.rm(temporary, { recursive: true, force: true })
+}
