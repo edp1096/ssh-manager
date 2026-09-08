@@ -8,13 +8,13 @@ function preventCtrlWheel(e) {
 }
 
 function preventDrag(e) {
-    tagsAllow = ["BUTTON", "INPUT", "TEXTAREA"]
-    if (tagsAllow.includes(e.target.tagName)) { return }
+    if (e.target.closest('button, input, textarea, select, label, [tabindex]')) { return }
     e.preventDefault()
     return false
 }
 
 async function preventKeys(e) {
+    if (e.isComposing || e.target.closest('input, textarea, select, [contenteditable="true"]')) { return }
     // Function keys - F1 ~ F12
     if (e.code && e.code.startsWith("F")) {
         // for (let i = 1; i <= 11; i++) {
@@ -29,7 +29,7 @@ async function preventKeys(e) {
     // Ctrl
     if (e.ctrlKey) {
         if (e.ctrlKey && e.code == "KeyA") {
-            tagsAllow = ["INPUT", "TEXTAREA"]
+            const tagsAllow = ["INPUT", "TEXTAREA"]
             if (tagsAllow.includes(e.target.tagName)) { return }
         }
         if (e.ctrlKey && e.code == "KeyC") {
@@ -55,10 +55,135 @@ async function preventKeys(e) {
         e.preventDefault()
     }
 
-    // Tab
-    if (e.code == "Tab") {
-        tagsAllow = ["BUTTON", "INPUT", "TEXTAREA"]
-        if (tagsAllow.includes(e.target.tagName)) { return }
-        e.preventDefault()
+}
+
+let lastListFocus = null
+let lastPageFocus = null
+
+function listRows() {
+    return [...document.querySelectorAll('.category-name, .category.active > .host-part-info')]
+}
+
+function focusListRow(row) {
+    if (!row) { return }
+    document.querySelectorAll('.category-name, .host-part-info').forEach(item => {
+        item.tabIndex = item === row ? 0 : -1
+    })
+    row.focus()
+    row.scrollIntoView({ block: 'nearest' })
+}
+
+function setCategoryExpanded(category, expanded) {
+    category.classList.toggle('active', expanded)
+    const heading = category.querySelector('.category-name')
+    heading.setAttribute('aria-expanded', String(expanded))
+    if (!expanded && category.querySelector('.host-part-info[tabindex="0"]')) {
+        category.querySelectorAll('.host-part-info').forEach(row => { row.tabIndex = -1 })
+        heading.tabIndex = 0
+        if (category.contains(document.activeElement)) { focusListRow(heading) }
     }
+}
+
+function restoreListNavigation() {
+    const rows = listRows()
+    const saved = lastListFocus
+    const row = rows.find(item => saved?.id && item.dataset.hostId === saved.id)
+        || rows.find(item => item.dataset.category === saved?.category && item.dataset.host === saved?.host)
+        || rows.find(item => item.dataset.category === saved?.category)
+        || rows[0]
+    document.querySelectorAll('.category-name, .host-part-info').forEach(item => {
+        item.tabIndex = item === row ? 0 : -1
+    })
+    return row
+}
+
+function initKeyboardNavigation() {
+    const container = document.querySelector('#hosts-data-container')
+    document.addEventListener('focusin', event => {
+        if (event.target.closest('dialog')) { return }
+        lastPageFocus = event.target
+        const row = event.target.closest('.host-part-info, .category-name')
+            || event.target.closest('.category')?.querySelector('.category-name')
+        if (!row) { return }
+        lastListFocus = { category: row.dataset.category, host: row.dataset.host, id: row.dataset.hostId }
+        document.querySelectorAll('.category-name, .host-part-info').forEach(item => {
+            item.tabIndex = item === row ? 0 : -1
+        })
+    })
+    container.addEventListener('click', event => {
+        if (event.target.closest('button')) { return }
+        focusListRow(event.target.closest('.host-part-info')
+            || event.target.closest('.category')?.querySelector('.category-name'))
+    })
+    document.addEventListener('keydown', event => {
+        if (event.isComposing || event.altKey || event.metaKey) { return }
+        if (event.target.closest('dialog, input, textarea, select, [contenteditable="true"]')) { return }
+        if (document.querySelector('#order-container').style.display === 'block') { return }
+        const arrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)
+        const plainArrow = arrowKey && !event.ctrlKey && !event.shiftKey
+        const row = event.target.closest('.host-part-info, .category-name')
+            || event.target.closest('.category')?.querySelector('.category-name')
+        if (!row) {
+            if (plainArrow && event.target.closest('.button-group-left, .button-group-right')) {
+                const previousRow = restoreListNavigation()
+                if (previousRow) {
+                    event.preventDefault()
+                    focusListRow(previousRow)
+                }
+            }
+            return
+        }
+        if (event.target !== row) {
+            if (!plainArrow) { return }
+            focusListRow(row)
+        }
+        if (event.ctrlKey || event.shiftKey) {
+            if (event.key === 'Enter' && row.matches('.host-part-info')) {
+                event.preventDefault()
+                if (!event.repeat) { connectSSH(row.dataset.category, row.dataset.host, event.ctrlKey ? 'split_vertical' : null) }
+            }
+            return
+        }
+        const rows = listRows()
+        const index = rows.indexOf(row)
+        const category = row.closest('.category')
+        const heading = category.querySelector('.category-name')
+        switch (event.key) {
+            case 'ArrowDown': focusListRow(rows[Math.min(index + 1, rows.length - 1)]); break
+            case 'ArrowUp': focusListRow(rows[Math.max(index - 1, 0)]); break
+            case 'Home': focusListRow(rows[0]); break
+            case 'End': focusListRow(rows[rows.length - 1]); break
+            case 'ArrowRight':
+                if (row === heading) {
+                    if (category.classList.contains('active')) { focusListRow(category.querySelector('.host-part-info')) }
+                    else { setCategoryExpanded(category, true) }
+                }
+                break
+            case 'ArrowLeft':
+                if (row !== heading) { focusListRow(heading) }
+                else { setCategoryExpanded(category, false) }
+                break
+            case 'Enter':
+            case ' ':
+                if (event.repeat) { break }
+                if (row === heading) { setCategoryExpanded(category, !category.classList.contains('active')) }
+                else if (event.key === 'Enter') { connectSSH(row.dataset.category, row.dataset.host, 'new_window') }
+                break
+            default: return
+        }
+        event.preventDefault()
+    })
+    document.querySelectorAll('dialog').forEach(dialog => {
+        dialog.addEventListener('cancel', event => {
+            if (dialog.id === 'dialog-enter-password') { event.preventDefault() }
+            else { dialog.returnValue = 'cancel' }
+        })
+        dialog.addEventListener('close', () => {
+            requestAnimationFrame(() => {
+                if (document.querySelector('dialog[open]')) { return }
+                if (lastPageFocus?.isConnected && lastPageFocus.getClientRects().length) { lastPageFocus.focus() }
+                else { focusListRow(restoreListNavigation()) }
+            })
+        })
+    })
 }

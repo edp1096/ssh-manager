@@ -159,10 +159,69 @@ async function getApplicationVersion() {
 }
 
 function init() {
+    initKeyboardNavigation()
+    initPasswordVisibility()
     document.addEventListener("keydown", preventKeys)
     document.addEventListener("mousedown", preventDrag)
 
     document.querySelector("#dialog-enter-password").showModal()
+    document.querySelector('#enter-password-input').focus({ preventScroll: true })
+    window.addEventListener('focus', () => {
+        const dialog = document.querySelector('#dialog-enter-password')
+        if (dialog.open && !dialog.contains(document.activeElement)) {
+            dialog.querySelector('input').focus({ preventScroll: true })
+        }
+    })
+}
+
+function initPasswordVisibility() {
+    document.querySelectorAll('dialog').forEach(dialog => {
+        dialog.addEventListener('close', () => {
+            dialog.querySelectorAll('[data-password-toggle]').forEach(button => {
+                const input = dialog.querySelector('#' + button.dataset.passwordToggle)
+                input.type = 'password'
+                updatePasswordToggle(button, false)
+            })
+        })
+    })
+}
+
+function updatePasswordToggle(button, visible) {
+    const label = visible ? 'Hide password' : 'Show password'
+    button.title = label
+    button.setAttribute('aria-label', label)
+    button.setAttribute('aria-pressed', String(visible))
+    button.querySelector('span').textContent = visible ? 'visibility_off' : 'visibility'
+}
+
+async function togglePasswordVisibility(button) {
+    const dialog = button.closest('dialog')
+    const input = dialog.querySelector('#' + button.dataset.passwordToggle)
+    const visible = input.type === 'password'
+    if (visible && input.id === 'host-edit-password' && !input.value) {
+        const hostIndex = dialog.querySelector('#idx').value
+        const originalAuth = dialog.querySelector('#auth-type-orig').value
+        if (hostIndex !== '' && originalAuth === 'password') {
+            button.disabled = true
+            try {
+                const params = new URLSearchParams({
+                    'hosts-file': hostsFile,
+                    'category-idx': dialog.querySelector('#category-idx').value,
+                    'host-idx': hostIndex
+                })
+                const response = await fetch('/host-password?' + params, { cache: 'no-store' })
+                if (!response.ok) { throw new Error('Could not load password') }
+                const data = await response.json()
+                if (!dialog.open || !input.isConnected) { return }
+                if (!input.value) { input.value = data.password }
+            } catch (error) {
+                if (dialog.open && input.isConnected) { alert(error.message) }
+                return
+            } finally { button.disabled = false }
+        }
+    }
+    input.type = visible ? 'text' : 'password'
+    updatePasswordToggle(button, visible)
 }
 
 document.addEventListener("DOMContentLoaded", () => { init() })

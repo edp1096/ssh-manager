@@ -75,7 +75,8 @@
         <form method="dialog">
             <p>
                 <label for="enter-password-input">Password:</label>
-                <input type="password" id="enter-password-input" name="enter-password" required autocomplete="off">
+                <input type="password" id="enter-password-input" name="enter-password" required autocomplete="off" autofocus>
+                <button type="button" class="password-toggle" data-password-toggle="enter-password-input" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </p>
 
             <p>
@@ -88,12 +89,14 @@
         <h2>Change password of host file</h2>
         <form method="dialog">
             <p>
-                <label for="enter-password-input">Previous password:</label>
+                <label for="change-password-old">Previous password:</label>
                 <input type="password" id="change-password-old" name="password-old" required autocomplete="off">
+                <button type="button" class="password-toggle" data-password-toggle="change-password-old" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </p>
             <p>
-                <label for="enter-password-input">New password:</label>
+                <label for="change-password-new">New password:</label>
                 <input type="password" id="change-password-new" name="password-new" required autocomplete="off">
+                <button type="button" class="password-toggle" data-password-toggle="change-password-new" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </p>
 
             <div>
@@ -134,7 +137,7 @@
     <template id="category-data-template">
         <!-- <ul class="categories"> -->
         <li class="category">
-            <span class="category-name">@@_CATEGORY_NAME_@@</span>
+            <span class="category-name" role="button" tabindex="-1" aria-expanded="false" data-category="@@_CATEGORY_IDX_@@">@@_CATEGORY_NAME_@@</span>
             <span class="buttons">@@_CATEGORY_BUTTONS_@@</span>
             @@_HOST_DATA_@@
         </li>
@@ -142,7 +145,7 @@
     </template>
 
     <template id="hosts-data-template">
-        <ul class="host-part-info" ondblclick="connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">
+        <ul class="host-part-info" tabindex="-1" data-category="@@_CATEGORY_IDX_@@" data-host="@@_HOST_IDX_@@" ondblclick="if (!event.target.closest('button')) connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">
             <li class="part-name">
                 <span class="label">Name:</span> <span>@@_NAME_@@</span>
             </li>
@@ -202,9 +205,7 @@
             <div>
                 <label for="host-edit-password">Password:</label>
                 <input type="password" id="host-edit-password" name="password" required>
-                <!-- <label for="show-password" id="show-password-selector">
-                    <button onclick="showSavedPassword()">Show saved</button>
-                </label> -->
+                <button type="button" class="password-toggle" data-password-toggle="host-edit-password" onclick="togglePasswordVisibility(this)" title="Show password" aria-label="Show password" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
             </div>
 
             <div>

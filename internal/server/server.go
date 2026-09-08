@@ -231,6 +231,28 @@ func handleChangeHostFilePassword(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+func handleGetHostPassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	params := r.URL.Query()
+	categoryIndex, categoryErr := strconv.Atoi(params.Get("category-idx"))
+	hostIndex, hostErr := strconv.Atoi(params.Get("host-idx"))
+	if categoryErr != nil || hostErr != nil || categoryIndex < 0 || hostIndex < 0 || strings.TrimSpace(params.Get("hosts-file")) == "" {
+		http.Error(w, "invalid host selection", http.StatusBadRequest)
+		return
+	}
+	var hosts model.HostList
+	if err := host.LoadHostData(params.Get("hosts-file"), HostFileKEY, &hosts); err != nil {
+		http.Error(w, "failed to load host data", http.StatusInternalServerError)
+		return
+	}
+	if categoryIndex >= len(hosts.Categories) || hostIndex >= len(hosts.Categories[categoryIndex].Hosts) {
+		http.Error(w, "host not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"password": hosts.Categories[categoryIndex].Hosts[hostIndex].Password})
+}
+
 func handleGetHosts(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var hosts model.HostList
@@ -650,6 +672,7 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("POST /enter-password", handleEnterPassword)
 	mux.HandleFunc("PUT /host-file-password", handleChangeHostFilePassword)
 	mux.HandleFunc("GET /hosts", handleGetHosts)
+	mux.HandleFunc("GET /host-password", handleGetHostPassword)
 	mux.HandleFunc("POST /categories", handleAddEditCategory)
 	mux.HandleFunc("DELETE /categories", handleDeleteCategory)
 	mux.HandleFunc("POST /hosts", handleAddEditHost)

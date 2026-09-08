@@ -37,6 +37,9 @@ async function getHosts() {
         const json = JSON.parse(response)
         if (!json) { json = [] }
 
+        const hadListFocus = hostsContainer.contains(document.activeElement)
+        const expanded = [...hostsContainer.querySelectorAll('.category.active > .category-name')].map(row => row.dataset.category)
+        const firstLoad = !hostsContainer.children.length
         hostsContainer.innerHTML = ""
         json["host-categories"].forEach((elCategory, i) => {
             let lines = ""
@@ -63,14 +66,23 @@ async function getHosts() {
         })
 
         hostsContainer.querySelectorAll('.category').forEach(item => {
+            const heading = item.querySelector('.category-name')
+            setCategoryExpanded(item, expanded.includes(heading.dataset.category))
+            item.querySelectorAll('.host-part-info').forEach((row, index) => {
+                const data = json['host-categories'][Number(heading.dataset.category) - 1].hosts[index]
+                row.dataset.hostId = data['unique-id'] || ''
+                row.setAttribute('aria-label', `${data.name}, ${data.address}:${data.port}`)
+            })
             item.addEventListener('click', function (event) {
                 if (!event.target.closest('.host-part-info') && !event.target.closest('button')) {
-                    this.classList.toggle('active')
+                    setCategoryExpanded(this, !this.classList.contains('active'))
                 }
             })
         })
 
         hostsData = json["host-categories"]
+        const focusRow = restoreListNavigation()
+        if (!document.querySelector('dialog[open]') && (hadListFocus || firstLoad)) { focusListRow(focusRow) }
         return
     }
 }
@@ -79,7 +91,7 @@ function expandAllCategories() {
     const cats = document.querySelector(".categories");
     for (const cat of cats.children) {
         if (!cat.classList.contains("active")) {
-            cat.classList.add("active");
+            setCategoryExpanded(cat, true)
         }
     }
 }
@@ -88,7 +100,7 @@ function collapseAllCategories() {
     const cats = document.querySelector(".categories");
     for (const cat of cats.children) {
         if (cat.classList.contains("active")) {
-            cat.classList.remove("active");
+            setCategoryExpanded(cat, false)
         }
     }
 }
@@ -374,15 +386,6 @@ async function deleteHost(categoryIdxSTR, hostIdxSTR) {
     setTimeout(() => { noticeDialog.close() }, dialogCloseWaitTime)
 
     return
-}
-
-async function showSavedPassword() {
-    const d = hostEditDialog.querySelector("dialog input#host-edit-password")
-    if (d.getAttribute("type") == "password") {
-        d.setAttribute("type", "text")
-    } else {
-        d.setAttribute("type", "password")
-    }
 }
 
 function closeNotice(e) {

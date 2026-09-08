@@ -57,23 +57,23 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 	switch runtime.GOOS {
 	case "windows":
 		browsers = []WebBrowserInfo{
-			{"chromium", os.Getenv("LocalAppData") + "/Chromium/Application/chrome.exe"},
-			{"chromium", os.Getenv("ProgramFiles") + "/Chromium/Application/chrome.exe"},
-			{"chromium", os.Getenv("ProgramFiles(x86)") + "/Chromium/Application/chrome.exe"},
 			{"chrome", os.Getenv("LocalAppData") + "/Google/Chrome/Application/chrome.exe"},
 			{"chrome", os.Getenv("ProgramFiles") + "/Google/Chrome/Application/chrome.exe"},
 			{"chrome", os.Getenv("ProgramFiles(x86)") + "/Google/Chrome/Application/chrome.exe"},
+			{"chromium", os.Getenv("LocalAppData") + "/Chromium/Application/chrome.exe"},
+			{"chromium", os.Getenv("ProgramFiles") + "/Chromium/Application/chrome.exe"},
+			{"chromium", os.Getenv("ProgramFiles(x86)") + "/Chromium/Application/chrome.exe"},
 			{"msedge", os.Getenv("ProgramFiles") + "/Microsoft/Edge/Application/msedge.exe"},
 			{"msedge", os.Getenv("ProgramFiles(x86)") + "/Microsoft/Edge/Application/msedge.exe"},
 		}
 	case "freebsd", "linux":
 		browsers = []WebBrowserInfo{
+			{"chrome", "/usr/bin/google-chrome"},
+			{"chrome", "/usr/bin/google-chrome-stable"},
 			{"chromium", "/usr/bin/chromium"},
 			{"chromium", "/usr/bin/chromium-browser"},
 			{"chromium", "/usr/local/share/chromium/chrome"},
 			{"chromium", "/snap/bin/chromium"},
-			{"chrome", "/usr/bin/google-chrome"},
-			{"chrome", "/usr/bin/google-chrome-stable"},
 			{"msedge", "/usr/bin/msedge"},
 		}
 	default:
@@ -118,5 +118,9 @@ func OpenBrowser(url string, BrowserData embed.FS) (*exec.Cmd, bool) {
 	EditBrowserDataLogins(url + "/")
 
 	cmdBrowser := exec.Command(args[0], append(args[1:], url)...)
-	return cmdBrowser, cmdBrowser.Start() == nil
+	if err := cmdBrowser.Start(); err != nil {
+		return cmdBrowser, false
+	}
+	go focusBrowserWindow(cmdBrowser.Process.Pid)
+	return cmdBrowser, true
 }
