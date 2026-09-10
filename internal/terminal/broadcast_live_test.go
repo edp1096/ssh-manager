@@ -51,6 +51,7 @@ func TestLiveTilixBroadcast(t *testing.T) {
 	var mu sync.Mutex
 	received := map[string]string{}
 	channels := map[string]ssh.Channel{}
+	dimensions := map[string][2]uint32{}
 	connections := []net.Conn{}
 	defer func() {
 		mu.Lock()
@@ -86,6 +87,28 @@ func TestLiveTilixBroadcast(t *testing.T) {
 					mu.Unlock()
 					go func() {
 						for r := range requests {
+							var width, height uint32
+							if r.Type == "pty-req" {
+								var p struct {
+									Term                                   string
+									Width, Height, PixelWidth, PixelHeight uint32
+									Modes                                  string
+								}
+								if ssh.Unmarshal(r.Payload, &p) == nil {
+									width, height = p.Width, p.Height
+								}
+							}
+							if r.Type == "window-change" {
+								var p struct{ Width, Height, PixelWidth, PixelHeight uint32 }
+								if ssh.Unmarshal(r.Payload, &p) == nil {
+									width, height = p.Width, p.Height
+								}
+							}
+							if width > 0 && height > 0 {
+								mu.Lock()
+								dimensions[s.User()] = [2]uint32{width, height}
+								mu.Unlock()
+							}
 							r.Reply(r.Type == "pty-req" || r.Type == "shell" || r.Type == "window-change", nil)
 						}
 					}()
@@ -230,4 +253,116 @@ func TestLiveTilixBroadcast(t *testing.T) {
 	input("--close")
 	wait(func() bool { return !b.Snapshot().Enabled && len(b.Snapshot().Connections) == 2 })
 	t.Log("PASS: real Tilix windows/panes, source and two receivers, excluded pane, control keys, emergency stop, reselection, SSH disconnect and source window destruction")
+	// Exercise the production batch launcher against the same isolated server.
+	previousExecutable := terminalExecutable
+	terminalExecutable = func() (string, error) { return exe, nil }
+	defer func() { terminalExecutable = previousExecutable; Cleanup() }()
+	t.Setenv("SSH_MANAGER_TERMINAL", "tilix")
+	batchArgs := []SshClientArgument{}
+	for i := 0; i < 3; i++ {
+		address, token, e := b.Issue("batch-" + strconv.Itoa(i))
+		if e != nil {
+			t.Fatal(e)
+		}
+		batchArgs = append(batchArgs, SshClientArgument{HostsFile: data, HostFileKEY: aesKey, CategoryIndex: 1, HostIndex: i + 1, RelayAddress: address, RelayToken: token, SplitVertical: i == 2})
+	}
+	if count, e := OpenBatch(batchArgs); e != nil || count != 3 {
+		t.Fatal(count, e)
+	}
+	if len(nativeState.windows) != 1 || len(nativeState.windows[0].panes) != 3 {
+		t.Fatal("batch did not create three isolated panes")
+	}
+	firstBatch := nativeState.windows[0]
+	// No broadcast credentials needed to test the second dedicated window.
+	for i := range batchArgs {
+		batchArgs[i].RelayAddress = ""
+		batchArgs[i].RelayToken = ""
+	}
+	if count, e := OpenBatch(batchArgs[:2]); e != nil || count != 2 {
+		t.Fatal(count, e)
+	}
+	if len(nativeState.windows) != 2 || len(firstBatch.panes) != 3 || len(nativeState.windows[1].panes) != 2 {
+		t.Fatal("second batch mixed with first window")
+	}
+	missing := batchArgs[0]
+	missing.BatchWindow = "missing-batch-window"
+	if _, e := openTerminal(missing); e == nil {
+		t.Fatal("missing batch fell back to a different window")
+	}
+	if len(nativeState.windows) != 2 || len(firstBatch.panes) != 3 || len(nativeState.windows[1].panes) != 2 {
+		t.Fatal("missing batch changed existing windows")
+	}
+	if b.Snapshot().Enabled {
+		t.Fatal("batch enabled broadcasting")
+	}
+	t.Log("PASS: production batch launcher, 3-pane and 2-pane dedicated windows, alternating splits, broadcast remains off")
+	for _, count := range []int{2, 4, 5, 6, 8, 9} {
+		columns := 3
+		if count == 5 || count == 8 {
+			columns = count
+		}
+		if count == 2 {
+			columns = 1
+		}
+		if count == 4 {
+			columns = 2
+		}
+		gridHosts := model.HostList{Categories: []model.HostCategory{{Name: "grid-test"}}}
+		gridArgs := make([]SshClientArgument, count)
+		gridFile := filepath.Join(tmp, fmt.Sprintf("grid-%d.dat", count))
+		for i := range gridArgs {
+			user := fmt.Sprintf("grid-%d-%d", count, i+1)
+			gridHosts.Categories[0].Hosts = append(gridHosts.Categories[0].Hosts, model.HostInfo{Name: user, Address: "127.0.0.1", Port: l.Addr().(*net.TCPAddr).Port, Username: user, Password: "test-only"})
+			gridArgs[i] = SshClientArgument{HostsFile: gridFile, HostFileKEY: aesKey, CategoryIndex: 1, HostIndex: i + 1}
+		}
+		if e := host.SaveHostData(gridFile, aesKey, gridHosts); e != nil {
+			t.Fatal(e)
+		}
+		planned, e := PlanGrid(gridArgs, columns)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if opened, e := OpenBatch(planned); e != nil || opened != count {
+			t.Fatal("grid", count, opened, e)
+		}
+		gridWindow := nativeState.windows[len(nativeState.windows)-1]
+		if len(gridWindow.panes) != count {
+			t.Fatal("wrong grid pane count")
+		}
+		wait(func() bool {
+			mu.Lock()
+			defer mu.Unlock()
+			for i := range gridArgs {
+				if channels[fmt.Sprintf("grid-%d-%d", count, i+1)] == nil {
+					return false
+				}
+			}
+			return true
+		})
+		mu.Lock()
+		for i := range gridArgs {
+			user := fmt.Sprintf("grid-%d-%d", count, i+1)
+			channels[user].Write([]byte(fmt.Sprintf("\r\nGRID %d — HOST %d\r\n", count, i+1)))
+		}
+		mu.Unlock()
+		t.Logf("PASS: Tilix %d-host/%d-column grid, all assigned SSH users authenticated", count, columns)
+		wait(func() bool {
+			mu.Lock()
+			defer mu.Unlock()
+			var minW, minH uint32 = 10000, 10000
+			var maxW, maxH uint32
+			for i := range gridArgs {
+				d := dimensions[fmt.Sprintf("grid-%d-%d", count, i+1)]
+				if d[0] < 10 || d[1] < 3 {
+					return false
+				}
+				minW = min(minW, d[0])
+				maxW = max(maxW, d[0])
+				minH = min(minH, d[1])
+				maxH = max(maxH, d[1])
+			}
+			return maxW-minW <= 2 && maxH-minH <= 2
+		})
+		t.Logf("PASS: Tilix %d-host grid PTYs have equal dimensions within terminal-cell rounding", count)
+	}
 }

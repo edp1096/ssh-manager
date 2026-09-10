@@ -24,6 +24,8 @@ import (
 const childFlag = "--ssh-manager-terminal-child"
 const terminalTimeout = 15 * time.Second
 
+var terminalExecutable = os.Executable
+
 type paneIdentity struct {
 	TilixID string
 	Service string
@@ -36,6 +38,7 @@ type nativePane struct {
 }
 
 type nativeWindow struct {
+	batchID  string
 	backend  string
 	dir      string
 	listener *net.UnixListener
@@ -168,7 +171,7 @@ func openTerminal(arg SshClientArgument) (int, error) {
 	if arg.CategoryIndex < 1 || arg.HostIndex < 1 {
 		return -1, fmt.Errorf("잘못된 호스트 인덱스입니다.")
 	}
-	exe, err := os.Executable()
+	exe, err := terminalExecutable()
 	if err != nil {
 		return -1, err
 	}
@@ -196,11 +199,14 @@ func openTerminal(arg SshClientArgument) (int, error) {
 			continue
 		}
 		live = append(live, previous)
-		if previous.backend == s.Backend {
+		if previous.backend == s.Backend && (arg.BatchWindow == "" || previous.batchID == arg.BatchWindow) {
 			w = previous
 		}
 	}
 	nativeState.windows = live
+	if arg.BatchWindow != "" && !arg.NewWindow && w == nil {
+		return -1, fmt.Errorf("batch terminal window has closed; remaining hosts were not opened")
+	}
 	if arg.NewWindow {
 		w = nil
 	}
@@ -211,8 +217,15 @@ func openTerminal(arg SshClientArgument) (int, error) {
 			return -1, err
 		}
 		nativeState.windows = append(nativeState.windows, w)
+		w.batchID = arg.BatchWindow
 	} else {
 		target = w.target()
+		if arg.GridColumns > 0 {
+			if arg.GridTarget < 1 || arg.GridTarget > len(w.panes) || !w.panes[arg.GridTarget-1].alive.Load() {
+				return -1, fmt.Errorf("grid target pane has closed; remaining hosts were not opened")
+			}
+			target = w.panes[arg.GridTarget-1]
+		}
 	}
 	helper := []string{exe, childFlag, filepath.Join(w.dir, "control")}
 	pid := 0
@@ -263,6 +276,81 @@ func openTerminal(arg SshClientArgument) (int, error) {
 	return pid, nil
 }
 
+func openBatch(args []SshClientArgument) (int, error) {
+	if len(args) == 0 || args[0].GridColumns == 0 {
+		return launchBatch(args, openTerminal)
+	}
+	s := Status()
+	if !s.Ready {
+		return 0, fmt.Errorf("%s", s.Message)
+	}
+	if s.Backend == "tilix" {
+		return openTilixGrid(args)
+	}
+	if s.Backend != "konsole" {
+		return 0, fmt.Errorf("grid layout is not supported by %s", s.Backend)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	version, err := exec.CommandContext(ctx, "konsole", "--version").Output()
+	if err != nil || !konsoleGridVersion(string(version)) {
+		return 0, fmt.Errorf("Konsole grid requires version 24.02 or newer")
+	}
+	var service string
+	var views []int
+	var layoutError error
+	opened, err := launchBatch(args, func(arg SshClientArgument) (int, error) {
+		if layoutError != nil {
+			return -1, layoutError
+		}
+		pid, e := openTerminal(arg)
+		if e != nil {
+			return pid, e
+		}
+		nativeState.Lock()
+		defer nativeState.Unlock()
+		for _, w := range nativeState.windows {
+			if w.batchID == arg.BatchWindow {
+				service = w.panes[0].id.Service
+				break
+			}
+		}
+		if len(views) == 0 {
+			if e := konsoleGridCapabilities(service, dbusCall); e != nil {
+				layoutError = e
+				return pid, nil
+			}
+		}
+		target := 0
+		if arg.GridTarget > 0 {
+			target = views[arg.GridTarget-1]
+		}
+		view, e := orderKonsolePane(service, views, target, dbusCall)
+		if e != nil {
+			layoutError = e
+		} else {
+			views = append(views, view)
+		}
+		return pid, nil
+	})
+	if err != nil {
+		return opened, err
+	}
+	if layoutError != nil {
+		return opened, layoutError
+	}
+	if err = verifyKonsoleGrid(service, views, args[0].GridColumns, dbusCall); err != nil {
+		return opened, err
+	}
+	if len(args) == 1 {
+		return opened, nil
+	}
+	if err = equalKonsoleGrid(service, dbusCall); err != nil {
+		return opened, err
+	}
+	return opened, nil
+}
+
 func (w *nativeWindow) acceptLaunchedPane(argv []string, target *nativePane, launchFailure <-chan error) error {
 	ready := make(chan error, 1)
 	go func() { ready <- w.acceptPane(argv, target) }()
@@ -288,6 +376,10 @@ func validIdentity(backend string, id paneIdentity) bool {
 }
 
 func (w *nativeWindow) acceptPane(argv []string, target *nativePane) error {
+	return w.acceptExpectedPane(argv, target, nil)
+}
+
+func (w *nativeWindow) acceptExpectedPane(argv []string, target *nativePane, expected *paneIdentity) error {
 	deadline := time.Now().Add(terminalTimeout)
 	w.listener.SetDeadline(deadline)
 	c, err := w.listener.AcceptUnix()
@@ -308,6 +400,9 @@ func (w *nativeWindow) acceptPane(argv []string, target *nativePane) error {
 	}
 	if !validIdentity(w.backend, id) {
 		return fmt.Errorf("터미널 식별자를 확인할 수 없습니다.")
+	}
+	if expected != nil && id != *expected {
+		return fmt.Errorf("grid pane identity does not match its assigned host")
 	}
 	if target != nil && w.backend == "konsole" && id.Service != target.id.Service {
 		return fmt.Errorf("Konsole 프로세스가 일치하지 않습니다.")

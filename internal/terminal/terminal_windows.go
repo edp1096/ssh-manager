@@ -94,3 +94,22 @@ func openTerminal(arg SshClientArgument) (pid int, err error) {
 	pid = CmdTerminal.Process.Pid
 	return
 }
+
+func openBatch(args []SshClientArgument) (int, error) {
+	cwd, _, err := utils.GetCWD()
+	if err != nil {
+		return 0, err
+	}
+	client := filepath.Join(cwd, "ssh-client.exe")
+	if _, err = exec.LookPath(client); err != nil {
+		return 0, fmt.Errorf("ssh-client.exe is required beside the app")
+	}
+	params, err := windowsBatchArguments(client, args)
+	if err != nil {
+		return 0, err
+	}
+	if err = exec.Command(ShellRuntimePath, params...).Run(); err != nil {
+		return 0, fmt.Errorf("Windows Terminal batch launch failed; check any opened panes: %w", err)
+	}
+	return len(args), nil
+}

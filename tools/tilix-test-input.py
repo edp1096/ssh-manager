@@ -66,10 +66,12 @@ if not w:
     raise SystemExit('Exact disposable window not found: ' + title)
 if action == '--close':
     x.XDestroyWindow(d, w); x.XFlush(d); raise SystemExit(0)
-x.XRaiseWindow(d, w); x.XSetInputFocus(d, w, 2, 0); x.XFlush(d)
-time.sleep(.15)
 focus, revert = window_t(), c.c_int()
-x.XGetInputFocus(d, c.byref(focus), c.byref(revert))
+for attempt in range(5):
+    x.XRaiseWindow(d, w); x.XSetInputFocus(d, w, 2, 0); x.XFlush(d)
+    time.sleep(.2)
+    x.XGetInputFocus(d, c.byref(focus), c.byref(revert))
+    if focus.value == w: break
 if focus.value != w:
     raise SystemExit('Test window did not receive focus; refusing to type')
 for chord in action.split(','):

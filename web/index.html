@@ -79,6 +79,7 @@
 
     <main id="workspace-panels">
         <div id="hosts-data-container" role="tabpanel" aria-labelledby="tab-hosts">
+            <div class="host-batch-bar"><span id="host-selection-count">0 selected</span><button type="button" onclick="hostBatch.selectAll()">Select all</button><button type="button" onclick="hostBatch.clear()">Clear</button><button type="button" id="host-batch-save" onclick="hostBatch.saveGroup()" disabled>Save selection</button><button type="button" onclick="hostBatch.groups()">Connection groups</button><button type="button" id="host-batch-open" onclick="hostBatch.open()" disabled>Open in panels</button></div>
             <ul class="categories"></ul>
         </div>
     </main>
@@ -163,8 +164,9 @@
     </template>
 
     <template id="hosts-data-template">
-        <ul class="host-part-info" tabindex="-1" data-category="@@_CATEGORY_IDX_@@" data-host="@@_HOST_IDX_@@" ondblclick="if (!event.target.closest('button')) connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">
+        <ul class="host-part-info" tabindex="-1" data-category="@@_CATEGORY_IDX_@@" data-host="@@_HOST_IDX_@@" ondblclick="if (!event.target.closest('button, input, label')) connectSSH(`@@_CATEGORY_IDX_@@`, `@@_HOST_IDX_@@`, `new_window`)">
             <li class="part-name">
+                <input type="checkbox" class="host-select" tabindex="-1" aria-label="Select host" title="Select host (Space)">
                 <span class="label">Name:</span> <span>@@_NAME_@@</span>
             </li>
             <li class="part-address">
@@ -282,6 +284,7 @@
 <script src="/js/input-events.js"></script>
 <script src="/js/host-control.js"></script>
 <script src="/js/host-order.js"></script>
+<script src="/js/host-batch.js"></script>
 <script src="/js/tabs.js"></script>
 <script src="/js/files.js"></script>
 <script src="/js/broadcast.js"></script>

@@ -172,6 +172,7 @@ function initKeyboardNavigation() {
                 if (event.repeat) { break }
                 if (row === heading) { setCategoryExpanded(category, !category.classList.contains('active')) }
                 else if (event.key === 'Enter') { connectSSH(row.dataset.category, row.dataset.host, 'new_window') }
+                else { hostBatch.toggle(row.dataset.hostId) }
                 break
             default: return
         }

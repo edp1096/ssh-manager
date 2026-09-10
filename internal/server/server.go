@@ -93,6 +93,7 @@ func exitApplication() {
 	applicationExitOnce.Do(func() {
 		terminal.Cleanup()
 		inputBroker.Close()
+		cleanupBatchFiles()
 		fileManager.Close()
 
 		if cmdBrowser != nil && cmdBrowser.Process != nil {
@@ -777,6 +778,10 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("PATCH /hosts", handleReorderHosts)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
+	mux.HandleFunc("POST /session/batch", handleOpenBatch)
+	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
+		mux.HandleFunc(method+" /connection-groups", handleConnectionGroups)
+	}
 	mux.HandleFunc("GET /session/broadcast", inputBroker.Handler)
 	mux.HandleFunc("POST /session/broadcast", inputBroker.Handler)
 	mux.HandleFunc("GET /terminal/status", handleTerminalStatus)

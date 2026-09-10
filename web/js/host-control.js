@@ -85,6 +85,7 @@ async function getHosts() {
         })
 
         hostsData = json["host-categories"]
+        hostBatch.sync()
         const focusRow = restoreListNavigation()
         if (!document.querySelector('dialog[open]') && (hadListFocus || firstLoad)) { focusListRow(focusRow) }
         return

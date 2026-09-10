@@ -91,6 +91,17 @@ func (b *Broker) Issue(label string) (address, token string, err error) {
 	b.pending[token] = ticket{Connection{hex.EncodeToString(id[:]), label}, time.Now().Add(2 * time.Minute)}
 	return b.listener.Addr().String(), token, nil
 }
+
+// ExtendPending allows later clients in a sequential batch time to start.
+func (b *Broker) ExtendPending(token string, duration time.Duration) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if t, ok := b.pending[token]; ok {
+		t.expires = time.Now().Add(duration)
+		b.pending[token] = t
+	}
+}
+
 func (b *Broker) Revoke(token string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
