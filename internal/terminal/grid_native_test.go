@@ -83,6 +83,12 @@ func TestTilixGridBindings(t *testing.T) {
 }
 
 func TestKonsoleGridShapeVerification(t *testing.T) {
+	leftCall := func(service, path, method string, args ...string) (string, error) {
+		return "(['(0)[10|(1){11|12}]'],)", nil
+	}
+	if err := verifyKonsoleGrid("org.kde.konsole-42", []int{10, 11, 12}, 2, leftCall, true, true); err != nil {
+		t.Fatal(err)
+	}
 	for _, hierarchy := range []string{"(0)[(1){10|12}|11]", "(0)[(1){10|13|16}|(2){11|14|17}|(3){12|15}]"} {
 		views := []int{10, 11, 12}
 		columns := 2

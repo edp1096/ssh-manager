@@ -6,19 +6,20 @@ import (
 )
 
 type SshClientArgument struct {
-	HostsFile     string `json:"hosts-file"`
-	CategoryIndex int    `json:"category-index"`
-	HostIndex     int    `json:"host-index"`
-	NewWindow     bool
-	HostFileKEY   []byte
-	SplitVertical bool
-	RelayAddress  string  `json:"-"`
-	RelayToken    string  `json:"-"`
-	BatchWindow   string  `json:"-"`
-	GridColumns   int     `json:"-"`
-	GridVertical  bool    `json:"-"`
-	GridTarget    int     `json:"-"` // One-based launch index of the pane to split.
-	SplitSize     float64 `json:"-"`
+	HostsFile      string `json:"hosts-file"`
+	CategoryIndex  int    `json:"category-index"`
+	HostIndex      int    `json:"host-index"`
+	NewWindow      bool
+	HostFileKEY    []byte
+	SplitVertical  bool
+	RelayAddress   string  `json:"-"`
+	RelayToken     string  `json:"-"`
+	BatchWindow    string  `json:"-"`
+	GridColumns    int     `json:"-"`
+	GridVertical   bool    `json:"-"`
+	GridExpandLeft bool    `json:"-"`
+	GridTarget     int     `json:"-"` // One-based launch index of the pane to split.
+	SplitSize      float64 `json:"-"`
 }
 
 func relayArguments(arg SshClientArgument) []string {

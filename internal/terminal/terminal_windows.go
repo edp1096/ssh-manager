@@ -104,12 +104,5 @@ func openBatch(args []SshClientArgument) (int, error) {
 	if _, err = exec.LookPath(client); err != nil {
 		return 0, fmt.Errorf("ssh-client.exe is required beside the app")
 	}
-	params, err := windowsBatchArguments(client, args)
-	if err != nil {
-		return 0, err
-	}
-	if err = exec.Command(ShellRuntimePath, params...).Run(); err != nil {
-		return 0, fmt.Errorf("Windows Terminal batch launch failed; check any opened panes: %w", err)
-	}
-	return len(args), nil
+	return launchWindowsBatch(ShellRuntimePath, client, args)
 }

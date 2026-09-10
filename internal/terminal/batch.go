@@ -32,8 +32,8 @@ func launchBatch(args []SshClientArgument, launch func(SshClientArgument) (int, 
 	return len(args), nil
 }
 
-// One WT invocation targets a fresh named window; it never uses the user's
-// active window. Command separators are generated here, not from host names.
+// All actions target a fresh named window, never the user's active window.
+// The Windows launcher executes these actions one at a time.
 func windowsBatchArguments(client string, args []SshClientArgument) ([]string, error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf("no hosts selected")
@@ -50,13 +50,10 @@ func windowsBatchArguments(client string, args []SshClientArgument) ([]string, e
 				if arg.GridTarget < 1 || arg.GridTarget > i {
 					return nil, fmt.Errorf("invalid grid target")
 				}
-				// A new split already focuses its new pane. Avoid redundant
-				// navigation when the next split targets that same pane.
+				// WT assigns pane IDs in creation order in this fresh tab.
+				// Tree traversal order changes when an earlier pane is split.
 				if arg.GridTarget != i {
-					result = append(result, ";", "move-focus", "first")
-					for n := 1; n < arg.GridTarget; n++ {
-						result = append(result, ";", "move-focus", "nextInOrder")
-					}
+					result = append(result, ";", "focus-pane", "--target", strconv.Itoa(arg.GridTarget-1))
 				}
 			}
 			orientation := "-V"

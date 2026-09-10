@@ -818,7 +818,7 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("DELETE /hosts/selected", handleDeleteSelectedHosts)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
 	mux.HandleFunc("POST /session/batch", handleOpenBatch)
-	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
+	for _, method := range []string{"GET", "POST", "PUT", "PATCH", "DELETE"} {
 		mux.HandleFunc(method+" /connection-groups", handleConnectionGroups)
 	}
 	mux.HandleFunc("GET /session/broadcast", inputBroker.Handler)

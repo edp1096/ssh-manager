@@ -48,6 +48,15 @@ func handleConnectionGroups(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodGet {
 		groups, err = connectionGroups.List(file)
+	} else if r.Method == http.MethodPatch {
+		var order struct {
+			IDs []string `json:"group-ids"`
+		}
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384)).Decode(&order) != nil || order.IDs == nil {
+			http.Error(w, "Invalid group order", 400)
+			return
+		}
+		groups, err = connectionGroups.Reorder(file, order.IDs)
 	} else {
 		var group connectiongroup.Group
 		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384)).Decode(&group) != nil {

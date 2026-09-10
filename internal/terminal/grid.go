@@ -4,32 +4,47 @@ import "fmt"
 
 // PlanGrid assigns input hosts in row-major order. Row or column anchors are
 // created first; returned arguments are in actual launch order.
+// vertical-left right-aligns the incomplete final row, expanding left columns.
 func PlanGrid(args []SshClientArgument, columns int, fill ...string) ([]SshClientArgument, error) {
 	if len(args) < 1 || len(args) > 32 || columns < 1 || columns > 32 {
 		return nil, fmt.Errorf("grid requires 1–32 hosts and 1–32 columns")
 	}
-	if len(fill) > 0 && fill[0] != "" && fill[0] != "horizontal" && fill[0] != "vertical" {
+	if len(fill) > 0 && fill[0] != "" && fill[0] != "horizontal" && fill[0] != "vertical" && fill[0] != "vertical-left" {
 		return nil, fmt.Errorf("invalid grid fill")
 	}
-	if len(fill) > 0 && fill[0] == "vertical" {
+	if len(fill) > 0 && (fill[0] == "vertical" || fill[0] == "vertical-left") {
 		count := min(columns, len(args))
+		left := fill[0] == "vertical-left"
+		gap := 0
+		if left && len(args)%count != 0 {
+			gap = count - len(args)%count
+		}
 		result := make([]SshClientArgument, 0, len(args))
 		for col := 0; col < count; col++ {
 			a := args[col]
 			a.GridColumns = columns
 			a.GridVertical = true
+			a.GridExpandLeft = left
 			a.GridTarget = col
 			a.SplitVertical = false
 			a.SplitSize = float64(count-col) / float64(count-col+1)
 			result = append(result, a)
 		}
 		for col := 0; col < count; col++ {
-			rows := (len(args)-1-col)/columns + 1
+			rows := len(args) / count
+			if len(args)%count != 0 && ((!left && col < len(args)%count) || (left && col >= gap)) {
+				rows++
+			}
 			target := col + 1
 			for row := 1; row < rows; row++ {
-				a := args[row*columns+col]
+				index := row*count + col
+				if left && row == len(args)/count {
+					index -= gap
+				}
+				a := args[index]
 				a.GridColumns = columns
 				a.GridVertical = true
+				a.GridExpandLeft = left
 				a.GridTarget = target
 				a.SplitVertical = true
 				a.SplitSize = float64(rows-row) / float64(rows-row+1)

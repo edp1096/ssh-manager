@@ -2,7 +2,7 @@ const hostBatch = (() => {
     const selected = new Set()
     let busy = false
     let groupData = [], activeGroup = '', changing = false, groupLoaded = false, groupMenu = null
-    let expandedGroup = '', draggedHost = null, picker = null, groupRevision = 0
+    let expandedGroup = '', draggedHost = null, draggedGroup = null, picker = null, groupRevision = 0
     let panelPinned = false, panelSettingsFile = null
     const container = document.querySelector('#hosts-data-container')
     function hosts() {
@@ -46,7 +46,7 @@ const hostBatch = (() => {
     container.addEventListener('change', event => { if (event.target.matches('.host-select')) toggle(event.target.closest('.host-part-info').dataset.hostId) })
     function ids() { return hosts().filter(h => selected.has(h['unique-id'])).map(h => h['unique-id']) }
     function layoutFields(value) { return value.startsWith('grid:') ? { layout: 'grid', columns: Number(value.split(':')[1]), 'grid-fill': value.split(':')[2] || 'horizontal' } : { layout: value, columns: 0 } }
-    function addGridOptions(select) { for (let columns = 1; columns <= 32; columns++) { for (const fill of ['horizontal', 'vertical']) { const option=document.createElement('option'); option.value=`grid:${columns}${fill === 'vertical' ? ':vertical' : ''}`; option.textContent=`Grid · ${columns} columns · ${fill}`; select.append(option) } } }
+    function addGridOptions(select) { for (let columns = 1; columns <= 32; columns++) { for (const fill of ['horizontal', 'vertical', 'vertical-left']) { const option=document.createElement('option'); option.value=`grid:${columns}${fill === 'horizontal' ? '' : ':' + fill}`; option.textContent=`Grid · ${columns} columns · ${fill}`; select.append(option) } } }
     function gridLabel(columns, rows) { return `${columns} ${columns === 1 ? 'column' : 'columns'} × ${rows} ${rows === 1 ? 'row' : 'rows'}` }
     function closePicker(focus = false) { if (!picker) return; const { popup, anchor } = picker; picker = null; popup.remove(); anchor.setAttribute('aria-expanded', 'false'); if (focus && anchor.isConnected) anchor.focus() }
     document.addEventListener('pointerdown', event => { if (picker && !picker.popup.contains(event.target) && !picker.anchor.contains(event.target)) closePicker() })
@@ -55,14 +55,14 @@ const hostBatch = (() => {
         select.hidden = true
         const button = document.createElement('button'); button.type = 'button'; button.className = 'grid-picker-toggle'; button.dataset.action = 'layout-picker'
         button.setAttribute('aria-haspopup', 'dialog'); button.setAttribute('aria-expanded', 'false')
-        const update = () => { const fields = layoutFields(select.value); button.textContent = fields.layout === 'grid' ? gridLabel(fields.columns, Math.ceil(hostIDs.length / fields.columns)) + (fields['grid-fill'] === 'vertical' ? ' · ↕' : '') : select.selectedOptions[0]?.textContent; button.title = fields.layout === 'grid' ? `Expand ${fields['grid-fill'] === 'vertical' ? 'vertically' : 'horizontally'}` : button.textContent; button.disabled = select.disabled }
+        const update = () => { const fields = layoutFields(select.value); button.textContent = fields.layout === 'grid' ? gridLabel(fields.columns, Math.ceil(hostIDs.length / fields.columns)) + (fields['grid-fill'].startsWith('vertical') ? ' · ↕' : '') : select.selectedOptions[0]?.textContent; button.title = fields.layout === 'grid' ? `Expand ${fields['grid-fill'].startsWith('vertical') ? 'vertically' : 'horizontally'}` : button.textContent; button.disabled = select.disabled }
         select.after(button); update(); select.addEventListener('change', update)
         button.onclick = () => {
             if (picker?.anchor === button) { closePicker(); return }
             closePicker(); const popup = document.createElement('div'); popup.className = 'layout-picker'; popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-label', 'Split layout')
             const choose = value => { closePicker(true); select.value = value; select.dispatchEvent(new Event('change')); update() }
             let fill = layoutFields(select.value)['grid-fill'] || 'horizontal'
-            const gridValue = c => `grid:${c}${fill === 'vertical' ? ':vertical' : ''}`
+            const gridValue = c => `grid:${c}${fill === 'horizontal' ? '' : ':' + fill}`
             for (const [value, text] of [['alternating', 'Alternating splits'], ['horizontal', 'Left / right'], ['vertical', 'Top / bottom']]) {
                 const option = document.createElement('button'); option.type = 'button'; option.textContent = text; option.onclick = () => choose(value); popup.append(option)
             }
@@ -74,23 +74,32 @@ const hostBatch = (() => {
             let column = select.value.startsWith('grid:') ? layoutFields(select.value).columns : Math.min(3, Math.max(2, hostIDs.length)), row = Math.ceil(hostIDs.length / column)
             const valid = (c, r) => c >= 1 && r === Math.ceil(hostIDs.length / c)
             const arrangement = document.createElement('div'); arrangement.className = 'grid-arrangement'; arrangement.setAttribute('aria-label', 'Panel arrangement preview')
+            const gridIndex = (c, y, x) => {
+                const gap = fill === 'vertical-left' && hostIDs.length > c && hostIDs.length % c ? c - hostIDs.length % c : 0
+                if (gap && y === Math.floor(hostIDs.length / c)) return x < gap ? -1 : y * c + x - gap
+                return y * c + x
+            }
             const preview = (c, r) => {
                 column = c; row = r
                 arrangement.replaceChildren(); arrangement.style.visibility = valid(c,r) ? 'visible' : 'hidden'
-                arrangement.style.flexDirection = fill === 'vertical' ? 'row' : 'column'
-                const major = fill === 'vertical' ? Math.min(c, hostIDs.length) : Math.ceil(hostIDs.length/c)
+                arrangement.style.flexDirection = fill.startsWith('vertical') ? 'row' : 'column'
+                const major = fill.startsWith('vertical') ? Math.min(c, hostIDs.length) : Math.ceil(hostIDs.length/c)
                 for (let a=0; a<major; a++) {
-                    const strip=document.createElement('div'); strip.style.flexDirection=fill === 'vertical' ? 'column' : 'row'
-                    const minor=fill === 'vertical' ? Math.floor((hostIDs.length-1-a)/c)+1 : Math.min(c,hostIDs.length-a*c)
-                    for(let b=0;b<minor;b++) {const index=fill === 'vertical' ? b*c+a : a*c+b;const cell=document.createElement('span');cell.textContent=String(index+1);cell.title=currentNames.get(hostIDs[index]) || '[Missing host]';strip.append(cell)}
+                    const strip=document.createElement('div'); strip.style.flexDirection=fill.startsWith('vertical') ? 'column' : 'row'
+                    const minor=fill.startsWith('vertical') ? Math.ceil(hostIDs.length/c) : Math.min(c,hostIDs.length-a*c)
+                    for(let b=0;b<minor;b++) {
+                        const index=fill.startsWith('vertical') ? gridIndex(c,b,a) : a*c+b
+                        if (index < 0 || index >= hostIDs.length) continue
+                        const cell=document.createElement('span');cell.textContent=String(index+1);cell.title=currentNames.get(hostIDs[index]) || '[Missing host]';strip.append(cell)
+                    }
                     arrangement.append(strip)
                 }
                 caption.textContent = `${gridLabel(c,r)}${valid(c,r) ? '' : ' — unavailable'}`
                 for (const cell of cells) {
-                    const x = Number(cell.dataset.column), y = Number(cell.dataset.row), inside = x <= c && y <= r, index = (y - 1) * c + x - 1
-                    cell.classList.toggle('in-range', inside); cell.classList.toggle('unused', inside && index >= hostIDs.length)
-                    cell.textContent = inside && index < hostIDs.length ? String(index + 1) : ''
-                    cell.title = inside && index < hostIDs.length ? `${index + 1}. ${currentNames.get(hostIDs[index]) || '[Missing host]'}` : gridLabel(x,y)
+                    const x = Number(cell.dataset.column), y = Number(cell.dataset.row), inside = x <= c && y <= r, index = gridIndex(c, y - 1, x - 1)
+                    cell.classList.toggle('in-range', inside); cell.classList.toggle('unused', inside && (index < 0 || index >= hostIDs.length))
+                    cell.textContent = inside && index >= 0 && index < hostIDs.length ? String(index + 1) : ''
+                    cell.title = inside && index >= 0 && index < hostIDs.length ? `${index + 1}. ${currentNames.get(hostIDs[index]) || '[Missing host]'}` : gridLabel(x,y)
                     cell.tabIndex = x === c && y === r ? 0 : -1
                 }
             }
@@ -121,7 +130,7 @@ const hostBatch = (() => {
             })
             const fillLabel = document.createElement('label'); fillLabel.className = 'grid-fill-label'; fillLabel.textContent = 'Expand'
             const fillSelect = document.createElement('select'); fillSelect.className = 'grid-fill-select'; fillSelect.setAttribute('aria-label', 'Expand incomplete grid')
-            for (const [value, text] of [['horizontal','Horizontally'],['vertical','Vertically']]) { const option = document.createElement('option'); option.value=value; option.textContent=text; fillSelect.append(option) }
+            for (const [value, text] of [['horizontal','Horizontally'],['vertical','Vertically'],['vertical-left','Vertically (left)']]) { const option = document.createElement('option'); option.value=value; option.textContent=text; fillSelect.append(option) }
             fillSelect.value=fill
             fillSelect.onchange=async()=>{
                 const previousFill = fill
@@ -141,7 +150,7 @@ const hostBatch = (() => {
             }
             fillLabel.append(fillSelect)
             const note = document.createElement('p'); note.className = 'grid-note'
-            const updateNote = () => { note.textContent = `${hostIDs.length} hosts · ${fill === 'vertical' ? 'Each column shares its height among its hosts. Shorter columns expand vertically.' : 'Each row shares its width among its hosts. The last row expands horizontally.'}` }
+            const updateNote = () => { note.textContent = `${hostIDs.length} hosts · ${fill.startsWith('vertical') ? 'Each column shares its height among its hosts. Shorter columns expand vertically.' : 'Each row shares its width among its hosts. The last row expands horizontally.'}` }
             updateNote()
             popup.append(caption,viewport,fillLabel,arrangement,note); preview(column,row)
             popup.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closePicker(true) } })
@@ -297,22 +306,35 @@ const hostBatch = (() => {
     document.addEventListener('scroll', event => { if (!picker?.popup.contains(event.target)) closeGroupMenu() }, true)
     window.addEventListener('resize', closeGroupMenu)
     new MutationObserver(() => { if (container.hidden) closeGroupMenu() }).observe(container, { attributes: true, attributeFilter: ['hidden'] })
-    async function changeGroup(action, focusAction) {
+    async function changeGroup(action, focusAction, focusGroup) {
         if (changing || busy) return
         groupRevision++
         changing = true; closeGroupMenu(); renderGroups()
         let failure = ''
         try { const data = await action(); if (data) groupData = data }
         catch (error) { failure = error.message }
-        finally { changing = false; renderGroups(); if (failure) result.textContent = failure; if (focusAction) [...list.querySelectorAll('[data-action]')].find(node => node.dataset.action === focusAction)?.focus({preventScroll:true}) }
+        finally { changing = false; renderGroups(); if (failure) result.textContent = failure; if (focusAction) [...list.querySelectorAll('[data-action]')].find(node => node.dataset.action === focusAction && (!focusGroup || node.closest('[data-group-id]')?.dataset.groupId === focusGroup))?.focus({preventScroll:true}) }
+    }
+    function reorderGroup(id, to) {
+        const order = groupData.map(group => group.id), from = order.indexOf(id)
+        if (from < 0 || from === to || to < 0 || to >= order.length) return
+        order.splice(to, 0, order.splice(from, 1)[0])
+        return groupRequest('PATCH', {'group-ids': order})
+    }
+    function moveGroup(id, to) {
+        if (changing || busy) return
+        return changeGroup(() => reorderGroup(id, to), 'select', id)
     }
     function showGroupMenu(group, anchor, x, y) {
         closeGroupMenu()
         const menu = document.createElement('div'); menu.className = 'file-context-menu connection-group-menu'; menu.setAttribute('role', 'menu')
         const add = (label, action, disabled = false) => {
             const button = document.createElement('button'); button.type = 'button'; button.textContent = label; button.disabled = disabled || changing || busy; button.setAttribute('role', 'menuitem')
-            button.onclick = () => { closeGroupMenu(); anchor.focus(); changeGroup(action) }; menu.append(button)
+            button.onclick = () => { closeGroupMenu(); anchor.focus(); changeGroup(action, 'menu', group.id) }; menu.append(button)
         }
+        const index = groupData.findIndex(item => item.id === group.id)
+        add('Move up', () => reorderGroup(group.id, index - 1), index <= 0)
+        add('Move down', () => reorderGroup(group.id, index + 1), index >= groupData.length - 1)
         add('Rename', async () => { const name = await appDialogs.prompt('Connection group name', { title: 'Rename connection group', label: 'Name', value: group.name, confirmText: 'Rename' }); if (name) return groupRequest('PUT', { ...group, name }) })
         add('Replace hosts', async () => { const chosen = ids(), existing = new Set(group['host-ids']), kept = group['host-ids'].filter(id => chosen.includes(id)), ordered = [...kept, ...chosen.filter(id => !existing.has(id))]; if (await appDialogs.confirm(`Replace “${group.name}” with the ${chosen.length} currently selected hosts? Existing order is preserved; new hosts are appended.`, { title: 'Update connection group', confirmText: 'Replace' })) return groupRequest('PUT', { ...group, 'host-ids': ordered }) }, !selected.size || selected.size > 32)
         add('Delete', async () => { if (await appDialogs.confirm(`Delete connection group “${group.name}”? Saved hosts will not be deleted.`, { title: 'Delete connection group', confirmText: 'Delete', danger: true })) return groupRequest('DELETE', { id: group.id }) })
@@ -336,6 +358,42 @@ const hostBatch = (() => {
             const heading = document.createElement('button'); heading.type = 'button'; heading.className = 'connection-group-name'; heading.dataset.action = 'select'; heading.textContent = group.name; heading.title = group.name; heading.disabled = busy || changing
             heading.setAttribute('aria-pressed', String(activeGroup === group.id))
             heading.setAttribute('aria-expanded', String(expandedGroup === group.id))
+            heading.draggable = !heading.disabled
+            heading.title = `${group.name} - Drag to reorder (Alt+Up/Down)`
+            heading.onkeydown = event => {
+                if (!event.altKey || !['ArrowUp','ArrowDown'].includes(event.key) || event.isComposing) return
+                event.preventDefault(); event.stopPropagation()
+                const index = groupData.findIndex(item => item.id === group.id)
+                moveGroup(group.id, index + (event.key === 'ArrowUp' ? -1 : 1))
+            }
+            heading.ondragstart = event => {
+                if (busy || changing) { event.preventDefault(); return }
+                closeGroupMenu(); draggedGroup = group.id
+                event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', group.id)
+            }
+            heading.ondragend = () => {
+                draggedGroup = null
+                for (const item of list.children) item.classList.remove('group-drop-before', 'group-drop-after')
+            }
+            card.ondragover = event => {
+                if (!draggedGroup || draggedGroup === group.id || busy || changing) return
+                event.preventDefault(); event.dataTransfer.dropEffect = 'move'
+                const after = event.clientY > card.getBoundingClientRect().top + card.offsetHeight / 2
+                card.classList.toggle('group-drop-after', after); card.classList.toggle('group-drop-before', !after)
+            }
+            card.ondragleave = event => {
+                if (!card.contains(event.relatedTarget)) card.classList.remove('group-drop-before', 'group-drop-after')
+            }
+            card.ondrop = event => {
+                if (!draggedGroup || busy || changing) return
+                event.preventDefault(); event.stopPropagation()
+                const id = draggedGroup, from = groupData.findIndex(item => item.id === id), target = groupData.findIndex(item => item.id === group.id)
+                const after = event.clientY > card.getBoundingClientRect().top + card.offsetHeight / 2
+                heading.ondragend()
+                if (id === group.id || from < 0) return
+                const insertion = target + (after ? 1 : 0)
+                moveGroup(id, insertion - (from < insertion ? 1 : 0))
+            }
             heading.onclick = () => {
                 expandedGroup = expandedGroup === group.id ? '' : group.id
                 activeGroup = group.id; selected.clear(); for (const id of group['host-ids']) if (current.has(id)) selected.add(id); sync()
@@ -346,7 +404,7 @@ const hostBatch = (() => {
             const label = document.createElement('label'); label.textContent = 'Split'
             const layout = document.createElement('select'); layout.dataset.action = 'layout'; layout.setAttribute('aria-label', `Split: ${group.name}`)
             for (const [value, text] of [['alternating','Alternating splits'],['horizontal','Left / right'],['vertical','Top / bottom']]) { const option = document.createElement('option'); option.value = value; option.textContent = text; layout.append(option) }
-            addGridOptions(layout); layout.value = group.layout === 'grid' ? `grid:${group.columns}${group['grid-fill'] === 'vertical' ? ':vertical' : ''}` : group.layout || 'alternating'; layout.disabled = changing || busy
+            addGridOptions(layout); layout.value = group.layout === 'grid' ? `grid:${group.columns}${group['grid-fill']?.startsWith('vertical') ? ':' + group['grid-fill'] : ''}` : group.layout || 'alternating'; layout.disabled = changing || busy
             layout.onchange = () => { const fields = layoutFields(layout.value); changeGroup(() => groupRequest('PUT', { ...group, ...fields })) }; label.append(layout)
             attachLayoutPicker(layout, group['host-ids'], async fields => {
                 if (changing || busy) throw new Error('Please wait for the current operation.')

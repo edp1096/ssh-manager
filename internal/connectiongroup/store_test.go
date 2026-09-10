@@ -159,3 +159,16 @@ func TestGridGroupPersistence(t *testing.T) {
 		}
 	}
 }
+
+func TestLeftExpandedGridPersistence(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "hosts.dat")
+	s := &Store{}
+	groups, err := s.Change(file, "POST", Group{Name: "Left", Hosts: []string{"a", "b", "c"}, Layout: "grid", Columns: 2, Fill: "vertical-left"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := (&Store{}).List(file)
+	if err != nil || !reflect.DeepEqual(groups, loaded) || loaded[0].Fill != "vertical-left" {
+		t.Fatal(loaded, err)
+	}
+}

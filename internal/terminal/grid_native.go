@@ -246,6 +246,12 @@ func verifyKonsoleGrid(service string, views []int, columns int, call dbusCaller
 		count := min(columns, len(views)-row*columns)
 		if columnFirst {
 			count = (len(views)-1-row)/columns + 1
+			if len(vertical) > 1 && vertical[1] {
+				count = len(views) / rows
+				if row >= rows-len(views)%rows {
+					count++
+				}
+			}
 		}
 		cells := []*konsoleNode{node}
 		if count > 1 {

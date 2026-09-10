@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"ssh-client/paneexit"
 )
 
 type HostList struct {
@@ -28,12 +30,15 @@ type HostInfo struct {
 }
 
 var (
-	hostsFile    = flag.String("f", "", "host data file (required)")
-	hostFileKey  = flag.String("k", "", "host data file key which is base64 encoded (required)")
-	hostIDX      = flag.Int("hi", 0, "index of host (required)")
-	categoryIDX  = flag.Int("ci", 0, "index of category (required)")
-	relayAddress = flag.String("relay-address", "", "app input relay address")
-	relayToken   = flag.String("relay-token", "", "one-use app input relay token")
+	hostsFile          = flag.String("f", "", "host data file (required)")
+	hostFileKey        = flag.String("k", "", "host data file key which is base64 encoded (required)")
+	hostIDX            = flag.Int("hi", 0, "index of host (required)")
+	categoryIDX        = flag.Int("ci", 0, "index of category (required)")
+	relayAddress       = flag.String("relay-address", "", "app input relay address")
+	relayToken         = flag.String("relay-token", "", "one-use app input relay token")
+	launchReadyAddress = flag.String("launch-ready-address", "", "app pane startup acknowledgement address")
+	launchReadyToken   = flag.String("launch-ready-token", "", "one-use pane startup token")
+	launchExitGroup    = flag.String("launch-exit-group", "", "Windows pane exit coordination group")
 
 	// hosts []HostInfo
 	hosts HostList
@@ -45,6 +50,15 @@ func main() {
 	var err error
 
 	flag.Parse()
+	guard, err := paneexit.New(*launchExitGroup)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Pane exit coordination unavailable:", err)
+	}
+	defer func() {
+		if err := guard.BeforeProcessExit(); err != nil {
+			fmt.Fprintln(os.Stderr, "Pane exit coordination failed:", err)
+		}
+	}()
 	if flag.NArg() > 0 || *hostsFile == "" || *hostFileKey == "" || *categoryIDX == 0 || *hostIDX == 0 {
 		binaryName := filepath.Base(os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", binaryName)
@@ -81,6 +95,10 @@ func main() {
 
 	host = hosts.Categories[*categoryIDX].Hosts[*hostIDX]
 	fmt.Printf("Connecting %s/%s\n", host.Name, host.Address)
+	if err = notifyLaunchReady(*launchReadyAddress, *launchReadyToken); err != nil {
+		fmt.Println("Pane startup acknowledgement failed:", err)
+		return
+	}
 
 	err = openSession()
 	if err != nil {

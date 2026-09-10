@@ -339,7 +339,7 @@ func openBatch(args []SshClientArgument) (int, error) {
 	if layoutError != nil {
 		return opened, layoutError
 	}
-	if err = verifyKonsoleGrid(service, views, args[0].GridColumns, dbusCall, args[0].GridVertical); err != nil {
+	if err = verifyKonsoleGrid(service, views, args[0].GridColumns, dbusCall, args[0].GridVertical, args[0].GridExpandLeft); err != nil {
 		return opened, err
 	}
 	if len(args) == 1 {

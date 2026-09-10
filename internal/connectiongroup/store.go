@@ -31,7 +31,7 @@ type document struct {
 type Store struct{ mu sync.Mutex }
 
 func validate(g Group) error {
-	if g.Fill != "" && g.Fill != "horizontal" && g.Fill != "vertical" {
+	if g.Fill != "" && g.Fill != "horizontal" && g.Fill != "vertical" && g.Fill != "vertical-left" {
 		return fmt.Errorf("invalid grid fill")
 	}
 	if g.Layout != "alternating" && g.Layout != "horizontal" && g.Layout != "vertical" && g.Layout != "grid" {
@@ -161,6 +161,35 @@ func (s *Store) Change(hostFile, method string, g Group) ([]Group, error) {
 			return nil, fmt.Errorf("invalid group operation")
 		}
 	}
+	return d.Groups, write(file, d)
+}
+
+// Reorder accepts an exact permutation so stale clients cannot drop groups.
+func (s *Store) Reorder(hostFile string, ids []string) ([]Group, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	file := hostFile + ".groups.json"
+	d, err := read(file)
+	if err != nil {
+		return nil, err
+	}
+	if len(ids) != len(d.Groups) {
+		return nil, fmt.Errorf("group list changed; reload before reordering")
+	}
+	byID := make(map[string]Group, len(d.Groups))
+	for _, g := range d.Groups {
+		byID[g.ID] = g
+	}
+	ordered := make([]Group, 0, len(ids))
+	for _, id := range ids {
+		g, ok := byID[id]
+		if !ok {
+			return nil, fmt.Errorf("invalid or duplicate group ID; reload before reordering")
+		}
+		ordered = append(ordered, g)
+		delete(byID, id)
+	}
+	d.Groups = ordered
 	return d.Groups, write(file, d)
 }
 

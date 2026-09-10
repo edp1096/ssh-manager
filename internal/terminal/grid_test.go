@@ -7,7 +7,7 @@ import (
 )
 
 func TestGridPlanGeometry(t *testing.T) {
-	for _, fill := range []string{"horizontal", "vertical"} {
+	for _, fill := range []string{"horizontal", "vertical", "vertical-left"} {
 		for n := 1; n <= 32; n++ {
 			for columns := 1; columns <= 32; columns++ {
 				args := make([]SshClientArgument, n)
@@ -43,10 +43,20 @@ func TestGridPlanGeometry(t *testing.T) {
 				for i, a := range plan {
 					original := a.HostIndex - 1
 					row, col := original/columns, original%columns
+					if fill == "vertical-left" && n > columns && n%columns != 0 && row == n/columns {
+						col += columns - n%columns
+					}
 					count := min(columns, n-row*columns)
 					r := cells[i]
-					if fill == "vertical" {
+					if fill == "vertical" || fill == "vertical-left" {
 						count = (n-1-col)/columns + 1
+						if fill == "vertical-left" {
+							width := min(columns, n)
+							count = n / width
+							if col >= width-n%width {
+								count++
+							}
+						}
 						if math.Abs(r.x-float64(col)/float64(min(columns, n))) > 1e-7 || math.Abs(r.y-float64(row)/float64(count)) > 1e-7 || math.Abs(r.w-1/float64(min(columns, n))) > 1e-7 || math.Abs(r.h-1/float64(count)) > 1e-7 {
 							t.Fatalf("vertical %d hosts/%d cols host %d: %+v", n, columns, a.HostIndex, r)
 						}

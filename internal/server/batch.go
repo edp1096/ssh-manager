@@ -94,7 +94,7 @@ func handleOpenBatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid split layout", 400)
 		return
 	}
-	if request.Fill != "" && request.Fill != "horizontal" && request.Fill != "vertical" {
+	if request.Fill != "" && request.Fill != "horizontal" && request.Fill != "vertical" && request.Fill != "vertical-left" {
 		http.Error(w, "Invalid grid fill", 400)
 		return
 	}

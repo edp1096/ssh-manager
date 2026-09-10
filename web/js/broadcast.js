@@ -17,21 +17,21 @@ const inputBroadcast = (() => {
     const stop = dialog.querySelector('[data-stop]')
     const selectAll = dialog.querySelector('[data-select-all]')
     let state = { connections: [], source: '', targets: [], enabled: false }
-    let signature = '', busy = false, polling = false, available = false, revision = 0
+    let signature = '', busy = false, polling = false, available = false, revision = 0, defaultsPending = false
     dialog.querySelector('[data-close]').onclick = () => dialog.close()
-    function draw(force = false) {
+    function draw(force = false, defaults = false) {
         indicator.textContent = available ? (state.enabled ? 'ON' : 'OFF') : '?'
         tool.classList.toggle('broadcast-on', available && state.enabled)
         tool.classList.toggle('broadcast-unavailable', !available)
         tool.title = !available ? 'Broadcast input — status unavailable' : state.enabled ? 'Broadcast input ON — click to manage or stop' : 'Broadcast input OFF'
         tool.setAttribute('aria-label', tool.title)
-        start.disabled = busy || !available || state.enabled || state.connections.length < 2
+        start.disabled = busy || defaultsPending || !available || state.enabled || state.connections.length < 2
         stop.disabled = busy || (available && !state.enabled)
         if (!dialog.open) return
         const next = JSON.stringify(state)
         if (next !== signature || force) {
-            const chosenSource = body.querySelector('input[type="radio"]:checked')?.value
-            const chosenTargets = [...body.querySelectorAll('input[type="checkbox"]:checked')].map(e => e.value)
+            const chosenSource = defaults ? state.connections[0]?.id : body.querySelector('input[type="radio"]:checked')?.value
+            const chosenTargets = defaults ? state.connections.slice(1).map(connection => connection.id) : [...body.querySelectorAll('input[type="checkbox"]:checked')].map(e => e.value)
             body.replaceChildren()
             for (const connection of state.connections) {
                 const row = document.createElement('tr')
@@ -51,14 +51,14 @@ const inputBroadcast = (() => {
             }
             signature = next
         }
-        for (const input of body.querySelectorAll('input')) input.disabled = busy || !available || state.enabled
+        for (const input of body.querySelectorAll('input')) input.disabled = busy || defaultsPending || !available || state.enabled
         const source = body.querySelector('input[type="radio"]:checked')?.value
         for (const input of body.querySelectorAll('input[type="checkbox"]')) {
             if (input.value === source) { input.checked = false; input.disabled = true }
         }
         const receivers = [...body.querySelectorAll('input[type="checkbox"]')].filter(input => input.value !== source)
         const checked = receivers.filter(input => input.checked).length
-        selectAll.disabled = busy || !available || state.enabled || !source || !receivers.length
+        selectAll.disabled = busy || defaultsPending || !available || state.enabled || !source || !receivers.length
         selectAll.checked = receivers.length > 0 && checked === receivers.length
         selectAll.indeterminate = checked > 0 && checked < receivers.length
         start.disabled ||= !source || !body.querySelector('input[type="checkbox"]:checked')
@@ -84,7 +84,12 @@ const inputBroadcast = (() => {
             const response = await fetch('/session/broadcast', { cache: 'no-store' })
             if (!response.ok) throw new Error('Status unavailable')
             const update = await response.json()
-            if (current === revision) { state = update; available = true }
+            if (current === revision) {
+                state = update; available = true
+                const defaults = defaultsPending && dialog.open
+                defaultsPending = false
+                draw(defaults, defaults)
+            }
         } catch { if (current === revision) available = false }
         finally { polling = false; draw() }
     }
@@ -102,5 +107,5 @@ const inputBroadcast = (() => {
     stop.onclick = () => configure('', [])
     setInterval(refresh, 1000)
     refresh()
-    return { open() { if (!dialog.open) dialog.showModal(); draw(true); refresh() } }
+    return { open() { if (!dialog.open) { defaultsPending = true; dialog.showModal() }; draw(true); refresh() } }
 })()
