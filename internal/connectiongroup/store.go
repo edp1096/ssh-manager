@@ -23,8 +23,9 @@ type Group struct {
 	Columns int      `json:"columns,omitempty"`
 }
 type document struct {
-	Version int     `json:"version"`
-	Groups  []Group `json:"groups"`
+	Version     int     `json:"version"`
+	Groups      []Group `json:"groups"`
+	PanelPinned bool    `json:"panel-pinned"`
 }
 type Store struct{ mu sync.Mutex }
 
@@ -156,9 +157,29 @@ func (s *Store) Change(hostFile, method string, g Group) ([]Group, error) {
 			return nil, fmt.Errorf("invalid group operation")
 		}
 	}
+	return d.Groups, write(file, d)
+}
+
+// PanelPinned reads or updates the preference without replacing saved groups.
+func (s *Store) PanelPinned(hostFile string, pinned *bool) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	file := hostFile + ".groups.json"
+	d, err := read(file)
+	if err != nil {
+		return false, err
+	}
+	if pinned != nil {
+		d.PanelPinned = *pinned
+		err = write(file, d)
+	}
+	return d.PanelPinned, err
+}
+
+func write(file string, d document) error {
 	tmp, err := os.CreateTemp(filepath.Dir(file), ".connection-groups-*")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	tmpName := tmp.Name()
 	defer os.Remove(tmpName)
@@ -170,10 +191,10 @@ func (s *Store) Change(hostFile, method string, g Group) ([]Group, error) {
 		err = closeErr
 	}
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if err = os.Rename(tmpName, file); err != nil {
-		return nil, err
+		return err
 	}
-	return d.Groups, nil
+	return nil
 }

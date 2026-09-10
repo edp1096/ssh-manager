@@ -7,6 +7,37 @@ import (
 	"testing"
 )
 
+func TestPanelPinPersistence(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "hosts.dat")
+	s := &Store{}
+	if pinned, err := s.PanelPinned(file, nil); err != nil || pinned {
+		t.Fatal(pinned, err)
+	}
+	pinned := true
+	if _, err := s.PanelPinned(file, &pinned); err != nil {
+		t.Fatal(err)
+	}
+	groups, err := s.Change(file, "POST", Group{Name: "Test", Hosts: []string{"one"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := &Store{}
+	if value, err := other.PanelPinned(file, nil); err != nil || !value {
+		t.Fatal(value, err)
+	}
+	pinned = false
+	if _, err := other.PanelPinned(file, &pinned); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := other.List(file)
+	if err != nil || !reflect.DeepEqual(groups, loaded) {
+		t.Fatal(loaded, err)
+	}
+	if value, err := (&Store{}).PanelPinned(file, nil); err != nil || value {
+		t.Fatal(value, err)
+	}
+}
+
 func TestGroupPersistenceAndIsolation(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "hosts.dat")
 	original := []byte("unchanged encrypted host file")

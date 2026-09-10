@@ -16,6 +16,7 @@ let passwordAttempts = 0, passwordChanges = 0
 let groupSaves = 0
 let batchHostList, batchRequest
 let savedConnectionGroups = []
+let panelPinned = false
 let rejectConnectionGroupSave = false
 let broadcastState = { connections: [], source: '', targets: [], enabled: false, reason: '' }
 const listingRequests = { local: 0, remote: 0 }
@@ -38,6 +39,13 @@ try {
         try {
             const url = new URL(req.url, 'http://localhost')
             if (url.pathname === '/connection-groups') {
+                if (url.searchParams.get('settings') === 'panel') {
+                    if (req.method === 'PUT') {
+                        const chunks=[];for await(const chunk of req)chunks.push(chunk)
+                        panelPinned=JSON.parse(Buffer.concat(chunks).toString())['panel-pinned']
+                    }
+                    res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({'panel-pinned':panelPinned}));return
+                }
                 if (req.method !== 'GET') {
                     const chunks=[];for await(const chunk of req)chunks.push(chunk)
                     const group=JSON.parse(Buffer.concat(chunks).toString())
@@ -177,7 +185,7 @@ try {
         new MutationObserver(()=>{
             if(!window.autoDialogs)return;
             const d=document.querySelector('.app-message-dialog[open]');if(!d||d.dataset.handled)return;d.dataset.handled='true';
-            const input=d.querySelector('input');if(input&&window.promptAnswer!==null)input.value=window.promptAnswer;
+            const input=d.querySelector('input:not([type="checkbox"])');if(input&&window.promptAnswer!==null)input.value=window.promptAnswer;
             const accept=input?window.promptAnswer!==null:window.dialogAnswer;
             (d.querySelector('[data-decision="'+(accept?'accept':'cancel')+'"]')||d.querySelector('button')).click();
         }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});`)
@@ -576,17 +584,23 @@ try {
     await press('Escape')
     await evaluate(`openHostEditDialog('1')`)
     await captureModal('host-new')
-    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#host-edit-password, #dialog-host-edit .password-toggle')].map(e=>e.getBoundingClientRect().height)`), [30, 30], 'New host password field and toggle stay compact')
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#host-edit-password, [data-password-toggle="host-edit-password"]')].map(e=>e.getBoundingClientRect().height)`), [30, 30], 'New host password field and toggle stay compact')
     await evaluate(`document.querySelector('#dialog-host-edit .password-toggle').click()`)
     assert.equal(await evaluate(`document.querySelector('#host-edit-password').getBoundingClientRect().height`), 30, 'Showing the password preserves height')
     await evaluate(`document.querySelector('#use-private-key-text').checked=true;setAuthType()`)
     assert.equal(await evaluate(`getComputedStyle(document.querySelector('#host-edit-private-key-text').parentElement).display!=='none' && !document.querySelector('#host-edit-password').required`), true)
     await captureModal('host-key')
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('#host-edit-private-key-text')).webkitTextSecurity`), 'disc', 'Private key starts masked')
+    await evaluate(`document.querySelector('#host-edit-private-key-text').value='PRIVATE\\nKEY';document.querySelector('[data-password-toggle="host-edit-private-key-text"]').click()`)
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('#host-edit-private-key-text')).webkitTextSecurity`), 'none', 'Eye reveals private key')
+    await evaluate(`document.querySelector('[data-password-toggle="host-edit-private-key-text"]').click()`)
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('#host-edit-private-key-text')).webkitTextSecurity`), 'disc', 'Eye masks private key again')
+    assert.equal(await evaluate(`document.querySelector('#host-edit-private-key-text').value`), 'PRIVATE\nKEY', 'Masking preserves multiline key')
     await press('Escape')
     await evaluate(`openHostEditDialog('1','1')`)
     assert.equal(await evaluate(`document.querySelector('#dialog-host-edit h2').textContent`), 'Edit host')
     await captureModal('host-edit')
-    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#host-edit-password, #dialog-host-edit .password-toggle')].map(e=>e.getBoundingClientRect().height)`), [30, 30], 'Edit host password field and toggle stay compact')
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#host-edit-password, [data-password-toggle="host-edit-password"]')].map(e=>e.getBoundingClientRect().height)`), [30, 30], 'Edit host password field and toggle stay compact')
     await press('Escape')
     await evaluate(`openChangePasswordDialog()`)
     await captureModal('password-change')
@@ -679,6 +693,12 @@ try {
     await evaluate(`document.querySelector('#connection-groups-panel select').value='vertical';document.querySelector('#connection-groups-panel select').dispatchEvent(new Event('change'))`)
     await until(`!document.querySelector('#connection-groups-panel select').disabled`)
     assert.equal(savedConnectionGroups[0].layout,'vertical','Split setting saved immediately')
+    await click(`document.querySelector('#connection-groups-panel [data-pin]')`)
+    await until(`document.querySelector('#connection-groups-panel [data-pin]').getAttribute('aria-pressed')==='true'`)
+    assert.equal(panelPinned,true,'Panel pin is saved to settings')
+    await click(`document.querySelector('#connection-groups-panel [data-pin]')`)
+    await until(`document.querySelector('#connection-groups-panel [data-pin]').getAttribute('aria-pressed')==='false'`)
+    assert.equal(panelPinned,false,'Panel pin can be cleared')
     await call('Emulation.setDeviceMetricsOverride', { width: 1200, height: 700, deviceScaleFactor: 1, mobile: false })
     assert.equal(await evaluate(`document.querySelector('#connection-groups-panel').getBoundingClientRect().right <= document.querySelector('#hosts-data-container > .categories').getBoundingClientRect().left`),true,'Wide screen places groups beside Hosts')
     if (process.env.MODAL_SCREENSHOT_DIR) await fs.writeFile(path.join(process.env.MODAL_SCREENSHOT_DIR, 'connection-groups-wide.png'), Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))

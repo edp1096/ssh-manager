@@ -259,7 +259,8 @@ function initPasswordVisibility() {
         dialog.addEventListener('close', () => {
             dialog.querySelectorAll('[data-password-toggle]').forEach(button => {
                 const input = dialog.querySelector('#' + button.dataset.passwordToggle)
-                input.type = 'password'
+                if (input.tagName === 'TEXTAREA') input.classList.add('private-key-masked')
+                else input.type = 'password'
                 updatePasswordToggle(button, false)
             })
         })
@@ -267,7 +268,7 @@ function initPasswordVisibility() {
 }
 
 function updatePasswordToggle(button, visible) {
-    const label = visible ? 'Hide password' : 'Show password'
+    const label = `${visible ? 'Hide' : 'Show'} ${button.dataset.secretLabel || 'password'}`
     button.title = label
     button.setAttribute('aria-label', label)
     button.setAttribute('aria-pressed', String(visible))
@@ -277,7 +278,7 @@ function updatePasswordToggle(button, visible) {
 async function togglePasswordVisibility(button) {
     const dialog = button.closest('dialog')
     const input = dialog.querySelector('#' + button.dataset.passwordToggle)
-    const visible = input.type === 'password'
+    const visible = input.tagName === 'TEXTAREA' ? input.classList.contains('private-key-masked') : input.type === 'password'
     if (visible && input.id === 'host-edit-password' && !input.value) {
         const hostIndex = dialog.querySelector('#idx').value
         const originalAuth = dialog.querySelector('#auth-type-orig').value
@@ -300,7 +301,8 @@ async function togglePasswordVisibility(button) {
             } finally { button.disabled = false }
         }
     }
-    input.type = visible ? 'text' : 'password'
+    if (input.tagName === 'TEXTAREA') input.classList.toggle('private-key-masked', !visible)
+    else input.type = visible ? 'text' : 'password'
     updatePasswordToggle(button, visible)
 }
 

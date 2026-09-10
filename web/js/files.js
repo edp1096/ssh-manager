@@ -1,6 +1,7 @@
 const fileBrowser = (() => {
     const views = new Map()
     let polling = false
+    let skipCloseConfirmation = false
     let queueRevision = 0
     let drag = null
     let menu = null
@@ -685,8 +686,12 @@ const fileBrowser = (() => {
         content.append(panes, view.status, createQueue(view))
         views.set(id, view)
         workspaceTabs.open({ id, title: `${title} · ${protocol}`, content, onClose: async () => {
-            // Always confirm: a just-submitted transfer may not be in the polled queue yet.
-            if (view.session && !await appDialogs.confirm('Any queued or running transfers for this connection will be cancelled.', { title: 'Close connection tab', confirmText: 'Close tab' })) return false
+            // This preference lasts only for this app page; it is never persisted.
+            if (view.session && !skipCloseConfirmation && !await appDialogs.confirm('Any queued or running transfers for this connection will be cancelled.', {
+                title: 'Close connection tab', confirmText: 'Close tab',
+                checkboxLabel: 'Do not ask again during this session',
+                onCheckboxConfirm: checked => { skipCloseConfirmation = checked },
+            })) return false
             try { if (view.session) await api(`/files/sessions/${view.session}`, 'DELETE') }
             catch (error) { status(view, error.message, true); return false }
             view.closed = true; view.controller.abort(); views.delete(id)

@@ -11,7 +11,12 @@ const appDialogs = (() => {
             const text = document.createElement('p'); text.className = 'app-dialog-message'; text.textContent = message
             const form = document.createElement('form')
             const actions = document.createElement('footer'); actions.className = 'modal-actions'
-            let input, result = kind === 'prompt' ? null : false
+            let input, checkbox, result = kind === 'prompt' ? null : false
+            if (options.checkboxLabel) {
+                const label = document.createElement('label'); label.className = 'app-dialog-checkbox'
+                checkbox = document.createElement('input'); checkbox.type = 'checkbox'
+                label.append(checkbox, document.createTextNode(options.checkboxLabel)); form.append(label)
+            }
             if (kind === 'prompt') {
                 const label = document.createElement('label'); label.textContent = options.label || 'Name'
                 input = document.createElement('input'); input.type = 'text'; input.required = true; input.autocomplete = 'off'; input.value = options.value || ''
@@ -28,7 +33,11 @@ const appDialogs = (() => {
             else if (kind === 'alert') accept.title = `${accept.textContent} (Esc)`
             accept.className = options.danger ? 'critical' : 'ok'; actions.append(accept)
             form.append(actions)
-            form.addEventListener('submit', event => { event.preventDefault(); result = input ? input.value : true; dialog.close() })
+            form.addEventListener('submit', event => {
+                event.preventDefault()
+                if (checkbox) options.onCheckboxConfirm?.(checkbox.checked)
+                result = input ? input.value : true; dialog.close()
+            })
             dialog.append(title, text, form); document.body.append(dialog)
             dialog.addEventListener('close', () => {
                 if (input) input.value = ''

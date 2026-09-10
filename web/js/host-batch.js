@@ -3,11 +3,13 @@ const hostBatch = (() => {
     let busy = false
     let groupData = [], activeGroup = '', changing = false, groupLoaded = false, groupMenu = null
     let expandedGroup = '', draggedHost = null, picker = null, groupRevision = 0
+    let panelPinned = false, panelSettingsFile = null
     const container = document.querySelector('#hosts-data-container')
     function hosts() {
         return hostsData.flatMap(category => category.hosts || [])
     }
     function sync() {
+        if (panelSettingsFile !== hostsFile) restorePanelSettings()
         const available = new Set(hosts().map(h => h['unique-id']).filter(Boolean))
         for (const id of selected) if (!available.has(id)) selected.delete(id)
         for (const row of container.querySelectorAll('.host-part-info')) {
@@ -150,8 +152,8 @@ const hostBatch = (() => {
         }
         document.body.append(dialog); dialog.showModal(); close.focus()
     }
-    async function groupRequest(method = 'GET', group) {
-        const response = await fetch('/connection-groups?' + new URLSearchParams({ 'hosts-file': hostsFile }), {
+    async function groupRequest(method = 'GET', group, settings = false) {
+        const response = await fetch('/connection-groups?' + new URLSearchParams({ 'hosts-file': hostsFile, ...(settings ? {settings: 'panel'} : {}) }), {
             method, headers: { 'Content-Type': 'application/json' }, body: group ? JSON.stringify(group) : undefined,
         })
         if (!response.ok) throw new Error(await response.text())
@@ -168,11 +170,35 @@ const hostBatch = (() => {
     }
     const panel = document.createElement('aside'); panel.id = 'connection-groups-panel'; panel.hidden = true
     panel.setAttribute('aria-labelledby', 'connection-groups-title')
-    panel.innerHTML = `<header><h2 id="connection-groups-title">Connection groups</h2><button type="button" data-close title="Hide groups (Esc)" aria-label="Hide connection groups">×</button></header><div class="connection-group-list"></div><p class="group-result" role="status"></p>`
+    panel.innerHTML = `<header><h2 id="connection-groups-title">Connection groups</h2><button type="button" data-pin aria-pressed="false" title="Pin panel" aria-label="Pin panel"><span class="material-symbols-outlined" aria-hidden="true">push_pin</span></button><button type="button" data-close title="Hide groups (Esc)" aria-label="Hide connection groups">×</button></header><div class="connection-group-list"></div><p class="group-result" role="status"></p>`
     container.append(panel)
     const list = panel.querySelector('.connection-group-list'), result = panel.querySelector('.group-result')
     const groupToggle = container.querySelector('[onclick="hostBatch.groups()"]')
     groupToggle.setAttribute('aria-controls', panel.id); groupToggle.setAttribute('aria-expanded', 'false')
+    const pinButton = panel.querySelector('[data-pin]')
+    function updatePin() {
+        pinButton.setAttribute('aria-pressed', String(panelPinned))
+        pinButton.title = panelPinned ? 'Unpin panel' : 'Pin panel'
+        pinButton.setAttribute('aria-label', pinButton.title)
+    }
+    async function restorePanelSettings() {
+        const file = hostsFile; panelSettingsFile = file; pinButton.disabled = true
+        try {
+            const settings = await groupRequest('GET', undefined, true)
+            if (hostsFile !== file) return
+            panelPinned = settings['panel-pinned'] === true; updatePin()
+            if (panelPinned) await groups()
+        } catch (error) { result.textContent = error.message }
+        finally { if (hostsFile === file) pinButton.disabled = false }
+    }
+    pinButton.onclick = async () => {
+        pinButton.disabled = true
+        try {
+            const settings = await groupRequest('PUT', {'panel-pinned': !panelPinned}, true)
+            panelPinned = settings['panel-pinned'] === true; updatePin()
+        } catch (error) { await appDialogs.alert(error.message, {title: 'Panel settings'}) }
+        finally { pinButton.disabled = false }
+    }
     function hideGroups() { closeGroupMenu(); panel.hidden = true; container.classList.remove('groups-open'); groupToggle.setAttribute('aria-expanded', 'false'); groupToggle.focus() }
     panel.querySelector('[data-close]').onclick = hideGroups
     panel.addEventListener('keydown', event => {

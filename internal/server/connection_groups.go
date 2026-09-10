@@ -26,6 +26,26 @@ func handleConnectionGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var groups []connectiongroup.Group
+	if r.URL.Query().Get("settings") == "panel" {
+		var value *bool
+		if r.Method != http.MethodGet {
+			var settings struct {
+				Pinned *bool `json:"panel-pinned"`
+			}
+			if r.Method != http.MethodPut || json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&settings) != nil || settings.Pinned == nil {
+				http.Error(w, "Invalid panel settings", 400)
+				return
+			}
+			value = settings.Pinned
+		}
+		pinned, err := connectionGroups.PanelPinned(file, value)
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]bool{"panel-pinned": pinned})
+		return
+	}
 	if r.Method == http.MethodGet {
 		groups, err = connectionGroups.List(file)
 	} else {

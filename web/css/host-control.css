@@ -19,6 +19,8 @@
 .host-part-info .label { display: block; margin-bottom: 4px; color: #8293a6; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
 .host-part-info .part-name > span:last-child, .host-part-info .part-address > span:last-child { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d8e1ec; }
 .host-part-info .part-name > span:last-child { font-weight: 600; }
+.host-part-info .host-description-button { display: block; width: 100%; height: auto; max-width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 2px; background: transparent; color: inherit; font: inherit; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.host-part-info .host-description-button:hover { color: #9dd9d1; text-decoration: underline; text-underline-offset: 3px; }
 .host-part-info .part-name { position: relative; padding-left: 24px; }
 .host-part-info .host-select { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; padding: 0; margin: 0; accent-color: #6baca5; }
 .category .host-part-info.host-checked { background: #203747; border-color: #4b7780; }
@@ -35,6 +37,10 @@
 #connection-groups-panel h2 { margin: 0; font-size: 14px; }
 #connection-groups-panel button { margin: 0; padding: 4px 8px; }
 #connection-groups-panel header button { background: transparent; border-color: transparent; font-size: 18px; }
+#connection-groups-panel header [data-pin] { display: inline-flex; align-items: center; justify-content: center; padding: 3px; }
+#connection-groups-panel header [data-pin] span { font-size: 18px; transform: rotate(35deg); }
+#connection-groups-panel header [data-pin][aria-pressed="true"] { color: #a0dfd5; background: #284b50; }
+#connection-groups-panel header [data-pin][aria-pressed="true"] span { transform: none; font-variation-settings: 'FILL' 1; }
 #connection-groups-panel .connection-group-list { padding: 8px; overflow: auto; min-height: 0; }
 #connection-groups-panel section { padding: 9px; border: 1px solid #303f50; border-radius: 5px; margin-bottom: 8px; }
 #connection-groups-panel section.active { border-color: #4b7780; background: #182b36; }

@@ -73,7 +73,14 @@ async function getHosts() {
                 const data = json['host-categories'][Number(heading.dataset.category) - 1].hosts[index]
                 row.dataset.hostId = data['unique-id'] || ''
                 row.setAttribute('aria-label', `${data.name}, ${data.address}:${data.port}`)
-                row.querySelector('.part-name > span:last-child').title = data.name
+                const name = row.querySelector('.part-name > span:last-child')
+                const descriptionButton = document.createElement('button')
+                descriptionButton.type = 'button'
+                descriptionButton.className = 'host-description-button'
+                descriptionButton.textContent = data.name
+                descriptionButton.title = `${data.name} — Description`
+                descriptionButton.onclick = () => appDialogs.alert(data.description || 'No description.', { title: `${data.name} — Description` })
+                name.replaceChildren(descriptionButton)
                 row.querySelector('.part-address > span:last-child').title = `${data.address}:${data.port}`
                 row.querySelectorAll('button[title]').forEach(button => button.setAttribute('aria-label', button.title))
             })

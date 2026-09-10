@@ -31,6 +31,8 @@ dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog))
 #dialog-host-edit input[type="radio"] { margin: 0; accent-color: #6baca5; }
 #dialog-host-edit form > div:has(input[type="radio"]) label { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; cursor: pointer; }
 #dialog-host-edit textarea[name="private-key-text"] { min-height: 120px; font-family: monospace; font-size: 12px; }
+#dialog-host-edit form > div > #host-edit-private-key-text { grid-column: 1; }
+#host-edit-private-key-text.private-key-masked { -webkit-text-security: disc; }
 #dialog-host-edit textarea[name="description"] { min-height: 64px; }
 #dialog-host-edit .key-file-button { grid-column: 1 / -1; justify-self: start; }
 #dialog-host-edit form > div:last-child { position: sticky; bottom: 0; background: #0d131c; border-top: 1px solid #303f50; z-index: 1; }
@@ -40,7 +42,10 @@ dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog))
 #file-connect-dialog input, #file-connect-dialog select { width: 100%; min-width: 0; padding: 7px 9px; }
 #file-connect-dialog .file-actions { position: sticky; bottom: 0; background: #0d131c; }
 #dialog-notice > div { width: 100%; }
+#dialog-notice:has(.repository-link) { width: max-content; max-width: calc(100vw - 32px); }
 .app-message-dialog .app-dialog-message { white-space: pre-wrap; margin-bottom: 16px !important; }
+dialog.app-message-dialog form > label.app-dialog-checkbox { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+dialog.app-message-dialog form > label.app-dialog-checkbox > input[type="checkbox"] { width: 16px; height: 16px; margin: 0; padding: 0; flex: 0 0 16px; accent-color: #6baca5; }
 .modal-password-field { display: grid; grid-template-columns: minmax(0, 1fr) 32px; gap: 6px; align-items: center; }
 dialog:not(:where(#order-container, #file-rename-dialog, #file-conflict-dialog)) .repository-link { min-height: 0; padding: 0; margin-top: 8px; border: 0; background: none; }
 @media (max-width: 420px) { #dialog-host-edit:not(#order-container):not(#file-rename-dialog) form { grid-template-columns: minmax(0, 1fr); } }

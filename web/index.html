@@ -235,7 +235,8 @@
             <div>
                 <label for="host-edit-private-key-text">Private key</label>
                 <input type="file" id="host-edit-private-key-file" onchange="moveKeyFileToPrivateKeyText(event)">
-                <textarea id="host-edit-private-key-text" name="private-key-text" required placeholder="Paste your private key here"></textarea>
+                <textarea id="host-edit-private-key-text" class="private-key-masked" name="private-key-text" required placeholder="Paste your private key here" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+                <button type="button" class="password-toggle" data-password-toggle="host-edit-private-key-text" data-secret-label="private key" onclick="togglePasswordVisibility(this)" title="Show private key" aria-label="Show private key" aria-pressed="false"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
                 <button class="key-file-button" type="button" onclick="document.querySelector('#host-edit-private-key-file').click()">Choose key file…</button>
             </div>
 

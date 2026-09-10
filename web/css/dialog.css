@@ -70,10 +70,6 @@ dialog::backdrop {
     backdrop-filter: blur(1px);
 }
 
-#dialog-notice > div:has(.repository-link) {
-    width: min(24rem, calc(100vw - 4rem));
-}
-
 #dialog-notice > div:has(.repository-link) > p {
     box-sizing: border-box;
     max-width: 100%;
