@@ -12,4 +12,4 @@ require (
 	golang.org/x/sys v0.48.0 // indirect
 )
 
-replace github.com/mattn/go-tty => github.com/edp1096/go-tty v0.0.0-20240427140603-5244c02fcc96
+// replace github.com/mattn/go-tty => github.com/edp1096/go-tty v0.0.0-20240427140603-5244c02fcc96
