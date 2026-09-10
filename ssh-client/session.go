@@ -58,7 +58,7 @@ func openSession() (err error) {
 	// termType := "vt320" // No color on shell
 	// termType := "linux" // No color on shell
 	termType := "xterm-256color"
-	w, h, err := tty.Size()
+	w, h, err := terminalSize(tty)
 	if err != nil {
 		w, h = 0, 0
 	}
@@ -100,7 +100,8 @@ func openSession() (err error) {
 		return fmt.Errorf("sess.Shell: %v", err)
 	}
 
-	setResizeControl(sess, tty, pw, w, h)
+	stopResize := setResizeControl(sess, tty)
+	defer stopResize()
 	input := newInputBridge(pw)
 	defer input.Close()
 	if *relayAddress != "" {

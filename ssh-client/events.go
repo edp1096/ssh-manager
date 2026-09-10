@@ -18,18 +18,14 @@ import (
 // 	}
 // }
 
-func setResizeControl(sess *ssh.Session, tty *gotty.TTY, pw io.WriteCloser, w, h int) {
+func setResizeControl(sess *ssh.Session, tty *gotty.TTY) func() {
+	sizes, stop := terminalResizeEvents(tty)
 	go func() {
-		for ws := range tty.SIGWINCH() {
-			w, h = ws.W, ws.H
-
-			// Update remote terminal size
-			sess.WindowChange(h, w)
-
-			// 리사이즈 후 화면 리프레시 (필요시에만)
-			// pw.Write([]byte{12})
+		for ws := range sizes {
+			sess.WindowChange(ws.H, ws.W)
 		}
 	}()
+	return stop
 }
 
 func setEventControl(pw io.Writer, tty *gotty.TTY, onEnd func()) {
