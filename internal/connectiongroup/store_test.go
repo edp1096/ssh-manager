@@ -17,7 +17,7 @@ func TestPanelPinPersistence(t *testing.T) {
 	if _, err := s.PanelPinned(file, &pinned); err != nil {
 		t.Fatal(err)
 	}
-	groups, err := s.Change(file, "POST", Group{Name: "Test", Hosts: []string{"one"}})
+	groups, err := s.Change(file, "POST", Group{Name: "Test", Hosts: []string{"one"}, Layout: "grid", Columns: 2, Fill: "vertical"})
 	if err != nil {
 		t.Fatal(err)
 	}

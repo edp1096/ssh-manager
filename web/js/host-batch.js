@@ -23,27 +23,46 @@ const hostBatch = (() => {
         document.querySelector('#host-selection-count').textContent = `${selected.size} selected`
         document.querySelector('#host-batch-open').disabled = busy || !selected.size
         document.querySelector('#host-batch-save').disabled = busy || !selected.size
+        document.querySelector('#host-batch-delete').disabled = busy || !selected.size
         if (groupLoaded) renderGroups()
     }
     function toggle(id) { if (!id || busy) return; if (selected.has(id)) selected.delete(id); else selected.add(id); sync() }
+    async function deleteSelected() {
+        if (busy || !selected.size) return
+        const chosen = ids(), file = hostsFile
+        const names = hosts().filter(h => chosen.includes(h['unique-id'])).map(h => h.name)
+        busy = true; sync()
+        try {
+            if (!await appDialogs.confirm(`Delete ${chosen.length} selected hosts from the saved host list? This cannot be undone.\n\n${names.join('\n')}`, {title: 'Delete selected hosts', confirmText: 'Delete', danger: true})) return
+            const response = await fetch('/hosts/selected?' + new URLSearchParams({'hosts-file': file}), {
+                method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({'host-ids': chosen}),
+            })
+            if (!response.ok) throw new Error(await response.text())
+            for (const id of chosen) selected.delete(id)
+            await getHosts()
+        } catch (error) { await appDialogs.alert(error.message, {title: 'Could not delete hosts'}) }
+        finally { busy = false; sync() }
+    }
     container.addEventListener('change', event => { if (event.target.matches('.host-select')) toggle(event.target.closest('.host-part-info').dataset.hostId) })
     function ids() { return hosts().filter(h => selected.has(h['unique-id'])).map(h => h['unique-id']) }
-    function layoutFields(value) { return value.startsWith('grid:') ? { layout: 'grid', columns: Number(value.split(':')[1]) } : { layout: value, columns: 0 } }
-    function addGridOptions(select) { for (let columns = 1; columns <= 32; columns++) { const option=document.createElement('option'); option.value=`grid:${columns}`; option.textContent=`Grid · ${columns} columns`; select.append(option) } }
+    function layoutFields(value) { return value.startsWith('grid:') ? { layout: 'grid', columns: Number(value.split(':')[1]), 'grid-fill': value.split(':')[2] || 'horizontal' } : { layout: value, columns: 0 } }
+    function addGridOptions(select) { for (let columns = 1; columns <= 32; columns++) { for (const fill of ['horizontal', 'vertical']) { const option=document.createElement('option'); option.value=`grid:${columns}${fill === 'vertical' ? ':vertical' : ''}`; option.textContent=`Grid · ${columns} columns · ${fill}`; select.append(option) } } }
     function gridLabel(columns, rows) { return `${columns} ${columns === 1 ? 'column' : 'columns'} × ${rows} ${rows === 1 ? 'row' : 'rows'}` }
     function closePicker(focus = false) { if (!picker) return; const { popup, anchor } = picker; picker = null; popup.remove(); anchor.setAttribute('aria-expanded', 'false'); if (focus && anchor.isConnected) anchor.focus() }
     document.addEventListener('pointerdown', event => { if (picker && !picker.popup.contains(event.target) && !picker.anchor.contains(event.target)) closePicker() })
     window.addEventListener('resize', () => closePicker())
-    function attachLayoutPicker(select, hostIDs) {
+    function attachLayoutPicker(select, hostIDs, saveFill) {
         select.hidden = true
         const button = document.createElement('button'); button.type = 'button'; button.className = 'grid-picker-toggle'; button.dataset.action = 'layout-picker'
         button.setAttribute('aria-haspopup', 'dialog'); button.setAttribute('aria-expanded', 'false')
-        const update = () => { const fields = layoutFields(select.value); button.textContent = fields.layout === 'grid' ? gridLabel(fields.columns, Math.ceil(hostIDs.length / fields.columns)) : select.selectedOptions[0]?.textContent; button.disabled = select.disabled }
+        const update = () => { const fields = layoutFields(select.value); button.textContent = fields.layout === 'grid' ? gridLabel(fields.columns, Math.ceil(hostIDs.length / fields.columns)) + (fields['grid-fill'] === 'vertical' ? ' · ↕' : '') : select.selectedOptions[0]?.textContent; button.title = fields.layout === 'grid' ? `Expand ${fields['grid-fill'] === 'vertical' ? 'vertically' : 'horizontally'}` : button.textContent; button.disabled = select.disabled }
         select.after(button); update(); select.addEventListener('change', update)
         button.onclick = () => {
             if (picker?.anchor === button) { closePicker(); return }
             closePicker(); const popup = document.createElement('div'); popup.className = 'layout-picker'; popup.setAttribute('role', 'dialog'); popup.setAttribute('aria-label', 'Split layout')
             const choose = value => { closePicker(true); select.value = value; select.dispatchEvent(new Event('change')); update() }
+            let fill = layoutFields(select.value)['grid-fill'] || 'horizontal'
+            const gridValue = c => `grid:${c}${fill === 'vertical' ? ':vertical' : ''}`
             for (const [value, text] of [['alternating', 'Alternating splits'], ['horizontal', 'Left / right'], ['vertical', 'Top / bottom']]) {
                 const option = document.createElement('button'); option.type = 'button'; option.textContent = text; option.onclick = () => choose(value); popup.append(option)
             }
@@ -54,8 +73,18 @@ const hostBatch = (() => {
             const viewport = document.createElement('div'); viewport.className = 'layout-grid-viewport'; viewport.append(grid)
             let column = select.value.startsWith('grid:') ? layoutFields(select.value).columns : Math.min(3, Math.max(2, hostIDs.length)), row = Math.ceil(hostIDs.length / column)
             const valid = (c, r) => c >= 1 && r === Math.ceil(hostIDs.length / c)
+            const arrangement = document.createElement('div'); arrangement.className = 'grid-arrangement'; arrangement.setAttribute('aria-label', 'Panel arrangement preview')
             const preview = (c, r) => {
                 column = c; row = r
+                arrangement.replaceChildren(); arrangement.style.visibility = valid(c,r) ? 'visible' : 'hidden'
+                arrangement.style.flexDirection = fill === 'vertical' ? 'row' : 'column'
+                const major = fill === 'vertical' ? Math.min(c, hostIDs.length) : Math.ceil(hostIDs.length/c)
+                for (let a=0; a<major; a++) {
+                    const strip=document.createElement('div'); strip.style.flexDirection=fill === 'vertical' ? 'column' : 'row'
+                    const minor=fill === 'vertical' ? Math.floor((hostIDs.length-1-a)/c)+1 : Math.min(c,hostIDs.length-a*c)
+                    for(let b=0;b<minor;b++) {const index=fill === 'vertical' ? b*c+a : a*c+b;const cell=document.createElement('span');cell.textContent=String(index+1);cell.title=currentNames.get(hostIDs[index]) || '[Missing host]';strip.append(cell)}
+                    arrangement.append(strip)
+                }
                 caption.textContent = `${gridLabel(c,r)}${valid(c,r) ? '' : ' — unavailable'}`
                 for (const cell of cells) {
                     const x = Number(cell.dataset.column), y = Number(cell.dataset.row), inside = x <= c && y <= r, index = (y - 1) * c + x - 1
@@ -71,7 +100,7 @@ const hostBatch = (() => {
                     const cell = document.createElement('button'); cell.type = 'button'; cell.setAttribute('role', 'gridcell'); cell.dataset.column = x; cell.dataset.row = y
                     cell.setAttribute('aria-label', gridLabel(x,y)); cell.setAttribute('aria-disabled', String(!valid(x,y)))
                     cell.onpointerenter = () => preview(x,y)
-                    cell.onclick = () => { if (valid(x,y)) choose(`grid:${x}`) }
+                    cell.onclick = () => { if (valid(x,y)) choose(gridValue(x)) }
                     gridRow.append(cell); cells.push(cell)
                 }
                 grid.append(gridRow)
@@ -81,16 +110,40 @@ const hostBatch = (() => {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault(); event.stopPropagation()
                     const c = Number(event.target.dataset.column), r = Number(event.target.dataset.row)
-                    if (valid(c,r)) choose(`grid:${c}`)
+                    if (valid(c,r)) choose(gridValue(c))
                     return
                 }
                 const delta = {ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[event.key]
                 if (!delta) return; event.preventDefault(); event.stopPropagation()
-                preview(Math.max(1,Math.min(columns,column+delta[0])),Math.max(1,Math.min(rows,row+delta[1])))
+                const focusedColumn = Number(event.target.dataset.column), focusedRow = Number(event.target.dataset.row)
+                preview(Math.max(1,Math.min(columns,focusedColumn+delta[0])),Math.max(1,Math.min(rows,focusedRow+delta[1])))
                 cells.find(cell => Number(cell.dataset.column) === column && Number(cell.dataset.row) === row)?.focus()
             })
-            const note = document.createElement('p'); note.className = 'grid-note'; note.textContent = `${hostIDs.length} hosts · Rows fit the host count. Unused last-row slots do not open terminals; remaining hosts share the row.`
-            popup.append(caption,viewport,note); preview(column,row)
+            const fillLabel = document.createElement('label'); fillLabel.className = 'grid-fill-label'; fillLabel.textContent = 'Expand'
+            const fillSelect = document.createElement('select'); fillSelect.className = 'grid-fill-select'; fillSelect.setAttribute('aria-label', 'Expand incomplete grid')
+            for (const [value, text] of [['horizontal','Horizontally'],['vertical','Vertically']]) { const option = document.createElement('option'); option.value=value; option.textContent=text; fillSelect.append(option) }
+            fillSelect.value=fill
+            fillSelect.onchange=async()=>{
+                const previousFill = fill
+                fill=fillSelect.value
+                const selectedColumns = layoutFields(select.value).columns || column
+                const value = gridValue(selectedColumns)
+                const controls = [...popup.querySelectorAll('button, select')]
+                controls.forEach(control => { control.disabled = true })
+                try {
+                    if (saveFill) await saveFill(layoutFields(value))
+                    select.value=value; update()
+                    preview(selectedColumns, Math.ceil(hostIDs.length/selectedColumns)); updateNote()
+                } catch (error) {
+                    fill=previousFill; fillSelect.value=fill
+                    await appDialogs.alert(error.message, {title:'Could not save grid layout'})
+                } finally { controls.forEach(control => { control.disabled = false }) }
+            }
+            fillLabel.append(fillSelect)
+            const note = document.createElement('p'); note.className = 'grid-note'
+            const updateNote = () => { note.textContent = `${hostIDs.length} hosts · ${fill === 'vertical' ? 'Each column shares its height among its hosts. Shorter columns expand vertically.' : 'Each row shares its width among its hosts. The last row expands horizontally.'}` }
+            updateNote()
+            popup.append(caption,viewport,fillLabel,arrangement,note); preview(column,row)
             popup.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closePicker(true) } })
             popup.addEventListener('focusout', event => {
                 // focusout runs before the browser completes the next focus.
@@ -111,7 +164,7 @@ const hostBatch = (() => {
         result.textContent = `${group.name}: Opening panels…`
         let message
         try {
-            const response = await fetch('/session/batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ 'hosts-file': hostsFile, 'host-ids': group['host-ids'], layout: group.layout || 'alternating', columns: group.columns || 0 }) })
+            const response = await fetch('/session/batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ 'hosts-file': hostsFile, 'host-ids': group['host-ids'], layout: group.layout || 'alternating', columns: group.columns || 0, 'grid-fill': group['grid-fill'] || 'horizontal' }) })
             if (!response.ok) throw new Error(await response.text())
             const data = await response.json()
             message = data.error || `${data.opened} launch request(s) completed. Check authentication in each terminal.`
@@ -127,6 +180,7 @@ const hostBatch = (() => {
         dialog.setAttribute('aria-labelledby', 'host-batch-title')
         dialog.innerHTML = `<h2 id="host-batch-title">Open in panels</h2><p>A new terminal window will open. Each following host is added as a split panel. Broadcast input stays off for these new connections.</p><ol></ol><label class="batch-layout">Layout<select><option value="alternating">Alternating splits</option><option value="horizontal">Left / right</option><option value="vertical">Top / bottom</option></select></label><p class="batch-result" role="status"></p><footer class="modal-actions"><button type="button" data-close title="Close (Esc)">Cancel</button><button type="button" data-connect class="ok">Connect</button></footer>`
         dialog.querySelector('p').textContent = 'Open these hosts in a new terminal window using the selected layout. Grid fills left to right, then top to bottom. Broadcast input stays off.'
+        dialog.querySelector('.batch-layout').firstChild.textContent = 'Split'
         for (const id of hostIDs) { const li = document.createElement('li'); li.textContent = names.get(id); dialog.querySelector('ol').append(li) }
         addGridOptions(dialog.querySelector('select')); dialog.querySelector('select').value = initialLayout
         const layoutButton = attachLayoutPicker(dialog.querySelector('select'), hostIDs)
@@ -176,10 +230,39 @@ const hostBatch = (() => {
     const groupToggle = container.querySelector('[onclick="hostBatch.groups()"]')
     groupToggle.setAttribute('aria-controls', panel.id); groupToggle.setAttribute('aria-expanded', 'false')
     const pinButton = panel.querySelector('[data-pin]')
+    const sideButton = document.createElement('button'); sideButton.type = 'button'; sideButton.dataset.side = ''
+    sideButton.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">right_panel_open</span>'
+    pinButton.before(sideButton)
+    let panelSide = 'left'
+    function updateSide() {
+        closeGroupMenu()
+        container.classList.toggle('groups-right', panelSide === 'right')
+        sideButton.title = panelSide === 'right' ? 'Move panel to left' : 'Move panel to right'
+        sideButton.setAttribute('aria-label', sideButton.title)
+        sideButton.querySelector('span').textContent = panelSide === 'right' ? 'left_panel_open' : 'right_panel_open'
+    }
+    updateSide(); sideButton.disabled = true
+    fetch('/window-size', {cache:'no-store'}).then(async response => {
+        if (!response.ok) throw new Error('Could not load panel position')
+        const settings = await response.json()
+        panelSide = settings['panel-side'] === 'right' ? 'right' : 'left'; updateSide()
+    }).catch(error => { result.textContent = error.message }).finally(() => { sideButton.disabled = false })
+    sideButton.onclick = async () => {
+        sideButton.disabled = true
+        const side = panelSide === 'left' ? 'right' : 'left'
+        try {
+            const response = await fetch('/window-size', {method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify({'panel-side':side})})
+            if (!response.ok) throw new Error(await response.text())
+            panelSide = side; updateSide()
+        } catch (error) { await appDialogs.alert(error.message, {title:'Panel position'}) }
+        finally { sideButton.disabled = false }
+    }
     function updatePin() {
         pinButton.setAttribute('aria-pressed', String(panelPinned))
         pinButton.title = panelPinned ? 'Unpin panel' : 'Pin panel'
         pinButton.setAttribute('aria-label', pinButton.title)
+        panel.querySelector('[data-close]').disabled = panelPinned
+        groupToggle.disabled = panelPinned
     }
     async function restorePanelSettings() {
         const file = hostsFile; panelSettingsFile = file; pinButton.disabled = true
@@ -199,7 +282,7 @@ const hostBatch = (() => {
         } catch (error) { await appDialogs.alert(error.message, {title: 'Panel settings'}) }
         finally { pinButton.disabled = false }
     }
-    function hideGroups() { closeGroupMenu(); panel.hidden = true; container.classList.remove('groups-open'); groupToggle.setAttribute('aria-expanded', 'false'); groupToggle.focus() }
+    function hideGroups() { if (panelPinned) return; closeGroupMenu(); panel.hidden = true; container.classList.remove('groups-open'); groupToggle.setAttribute('aria-expanded', 'false'); groupToggle.focus() }
     panel.querySelector('[data-close]').onclick = hideGroups
     panel.addEventListener('keydown', event => {
         if (event.key === 'Escape' && !event.isComposing) { event.preventDefault(); event.stopPropagation(); hideGroups() }
@@ -263,9 +346,17 @@ const hostBatch = (() => {
             const label = document.createElement('label'); label.textContent = 'Split'
             const layout = document.createElement('select'); layout.dataset.action = 'layout'; layout.setAttribute('aria-label', `Split: ${group.name}`)
             for (const [value, text] of [['alternating','Alternating splits'],['horizontal','Left / right'],['vertical','Top / bottom']]) { const option = document.createElement('option'); option.value = value; option.textContent = text; layout.append(option) }
-            addGridOptions(layout); layout.value = group.layout === 'grid' ? `grid:${group.columns}` : group.layout || 'alternating'; layout.disabled = changing || busy
+            addGridOptions(layout); layout.value = group.layout === 'grid' ? `grid:${group.columns}${group['grid-fill'] === 'vertical' ? ':vertical' : ''}` : group.layout || 'alternating'; layout.disabled = changing || busy
             layout.onchange = () => { const fields = layoutFields(layout.value); changeGroup(() => groupRequest('PUT', { ...group, ...fields })) }; label.append(layout)
-            attachLayoutPicker(layout, group['host-ids'])
+            attachLayoutPicker(layout, group['host-ids'], async fields => {
+                if (changing || busy) throw new Error('Please wait for the current operation.')
+                changing = true; groupRevision++
+                try {
+                    const data = await groupRequest('PUT', {...group, ...fields})
+                    Object.assign(group, data.find(item => item.id === group.id))
+                    groupData = data
+                } finally { changing = false }
+            })
             const actions = document.createElement('div'); actions.className = 'connection-group-actions'
             const connect = document.createElement('button'); connect.type = 'button'; connect.textContent = 'Connect'; connect.dataset.action = 'connect'; connect.disabled = !!missing.length || busy || changing; connect.onclick = () => connectGroup(group)
             const more = document.createElement('button'); more.type = 'button'; more.textContent = '⋯'; more.dataset.action = 'menu'; more.title = 'Group actions'; more.setAttribute('aria-label', `Actions: ${group.name}`); more.setAttribute('aria-haspopup', 'menu'); more.disabled = changing || busy
@@ -311,5 +402,5 @@ const hostBatch = (() => {
     }
     // The toolbar toggles; saveGroup/groups() can always reveal the panel.
     groupToggle.onclick = () => panel.hidden ? groups() : hideGroups()
-    return { sync, toggle, open, ids, groups, saveGroup, selectAll() { if (!busy) { for (const h of hosts()) if (h['unique-id']) selected.add(h['unique-id']); sync() } }, clear() { if (!busy) { selected.clear(); sync() } } }
+    return { sync, toggle, open, ids, groups, saveGroup, deleteSelected, selectAll() { if (!busy) { for (const h of hosts()) if (h['unique-id']) selected.add(h['unique-id']); sync() } }, clear() { if (!busy) { selected.clear(); sync() } } }
 })()

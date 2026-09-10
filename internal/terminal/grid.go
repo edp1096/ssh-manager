@@ -2,11 +2,42 @@ package terminal
 
 import "fmt"
 
-// PlanGrid places input hosts in row-major order. Row anchors must be created
-// first; returned arguments are in actual launch order (also used for failures).
-func PlanGrid(args []SshClientArgument, columns int) ([]SshClientArgument, error) {
+// PlanGrid assigns input hosts in row-major order. Row or column anchors are
+// created first; returned arguments are in actual launch order.
+func PlanGrid(args []SshClientArgument, columns int, fill ...string) ([]SshClientArgument, error) {
 	if len(args) < 1 || len(args) > 32 || columns < 1 || columns > 32 {
 		return nil, fmt.Errorf("grid requires 1–32 hosts and 1–32 columns")
+	}
+	if len(fill) > 0 && fill[0] != "" && fill[0] != "horizontal" && fill[0] != "vertical" {
+		return nil, fmt.Errorf("invalid grid fill")
+	}
+	if len(fill) > 0 && fill[0] == "vertical" {
+		count := min(columns, len(args))
+		result := make([]SshClientArgument, 0, len(args))
+		for col := 0; col < count; col++ {
+			a := args[col]
+			a.GridColumns = columns
+			a.GridVertical = true
+			a.GridTarget = col
+			a.SplitVertical = false
+			a.SplitSize = float64(count-col) / float64(count-col+1)
+			result = append(result, a)
+		}
+		for col := 0; col < count; col++ {
+			rows := (len(args)-1-col)/columns + 1
+			target := col + 1
+			for row := 1; row < rows; row++ {
+				a := args[row*columns+col]
+				a.GridColumns = columns
+				a.GridVertical = true
+				a.GridTarget = target
+				a.SplitVertical = true
+				a.SplitSize = float64(rows-row) / float64(rows-row+1)
+				result = append(result, a)
+				target = len(result)
+			}
+		}
+		return result, nil
 	}
 	rows := (len(args) + columns - 1) / columns
 	result := make([]SshClientArgument, 0, len(args))

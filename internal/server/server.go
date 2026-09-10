@@ -682,6 +682,36 @@ func handleTerminalStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleWindowSize(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		json.NewEncoder(w).Encode(browser.LoadWindowSize(WorkingDir))
+		return
+	}
+	if r.Method == http.MethodPatch {
+		var settings struct {
+			Side  string `json:"panel-side"`
+			Theme string `json:"theme"`
+		}
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&settings) != nil {
+			http.Error(w, "Invalid panel side", 400)
+			return
+		}
+		var err error
+		if settings.Theme != "" && settings.Side == "" {
+			err = browser.SaveTheme(WorkingDir, settings.Theme)
+		} else if settings.Theme == "" {
+			err = browser.SavePanelSide(WorkingDir, settings.Side)
+		} else {
+			err = fmt.Errorf("update one window preference at a time")
+		}
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	var size browser.WindowSize
 	r.Body = http.MaxBytesReader(w, r.Body, 1024)
 	if err := json.NewDecoder(r.Body).Decode(&size); err != nil || !size.Valid() {
@@ -727,6 +757,14 @@ func handleStaticFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fext := filepath.Ext(fname)[1:]
+	if fname == "index.html" {
+		theme := browser.LoadWindowSize(WorkingDir).Theme
+		if theme != "light" {
+			theme = "dark"
+		}
+		file = []byte(strings.Replace(string(file), `<html lang="en" data-theme="dark">`, `<html lang="en" data-theme="`+theme+`">`, 1))
+		w.Header().Set("Cache-Control", "no-store")
+	}
 	switch fext {
 	case "js":
 		w.Header().Set("Content-Type", "text/javascript")
@@ -777,6 +815,7 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("POST /hosts", handleAddEditHost)
 	mux.HandleFunc("PATCH /hosts", handleReorderHosts)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
+	mux.HandleFunc("DELETE /hosts/selected", handleDeleteSelectedHosts)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
 	mux.HandleFunc("POST /session/batch", handleOpenBatch)
 	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
@@ -788,6 +827,8 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("GET /version", handleGetVersion)
 	mux.HandleFunc("POST /repository/open", handleOpenRepository)
 	mux.HandleFunc("POST /window-size", handleWindowSize)
+	mux.HandleFunc("GET /window-size", handleWindowSize)
+	mux.HandleFunc("PATCH /window-size", handleWindowSize)
 	mux.HandleFunc("GET /", handleStaticFiles)
 
 	var wg sync.WaitGroup

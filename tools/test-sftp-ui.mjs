@@ -17,6 +17,8 @@ let groupSaves = 0
 let batchHostList, batchRequest
 let savedConnectionGroups = []
 let panelPinned = false
+let panelSide = 'left'
+let savedTheme = process.env.UI_TEST_THEME || 'dark'
 let rejectConnectionGroupSave = false
 let broadcastState = { connections: [], source: '', targets: [], enabled: false, reason: '' }
 const listingRequests = { local: 0, remote: 0 }
@@ -38,6 +40,15 @@ try {
     proxy = http.createServer(async (req, res) => {
         try {
             const url = new URL(req.url, 'http://localhost')
+            if (url.pathname === '/window-size') {
+                if (req.method === 'PATCH') {
+                    const chunks=[];for await(const chunk of req)chunks.push(chunk)
+                    const settings=JSON.parse(Buffer.concat(chunks).toString())
+                    if (settings['panel-side']) panelSide=settings['panel-side']
+                    if (settings.theme) savedTheme=settings.theme
+                }
+                res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({width:720,height:520,'panel-side':panelSide,theme:savedTheme}));return
+            }
             if (url.pathname === '/connection-groups') {
                 if (url.searchParams.get('settings') === 'panel') {
                     if (req.method === 'PUT') {
@@ -106,6 +117,7 @@ try {
             res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'text/plain' })
             if (req.url === '/') {
                 let html = await response.text()
+                html = html.replace('data-theme="dark"', `data-theme="${savedTheme}"`)
                 html = html.replace(/<script src="\/js\/ws\.js"><\/script>/g, '')
                 res.end(html)
             } else if (req.url === '/js/scripts.js') {
@@ -180,6 +192,16 @@ try {
     await call('Emulation.setDeviceMetricsOverride', { width: 720, height: 520, deviceScaleFactor: 1, mobile: false })
     await call('Page.navigate', { url: `http://127.0.0.1:${proxy.address().port}/` })
     await until(`typeof fileBrowser !== 'undefined'`)
+    const initialTheme = savedTheme
+    await evaluate(`updateThemeButton()`)
+    assert.equal(await evaluate(`document.documentElement.dataset.theme`),initialTheme,'Initial HTML has saved theme')
+    await click(`document.querySelector('#theme-toggle')`)
+    await until(`!document.querySelector('#theme-toggle').disabled`)
+    assert.equal(savedTheme,initialTheme==='dark'?'light':'dark','Theme change saved')
+    assert.equal(await evaluate(`document.documentElement.dataset.theme`),savedTheme,'Theme change applied')
+    await click(`document.querySelector('#theme-toggle')`)
+    await until(`!document.querySelector('#theme-toggle').disabled`)
+    assert.equal(savedTheme,initialTheme,'Theme can be restored')
     await evaluate(`window.dialogAnswer=true;window.promptAnswer=null;window.autoDialogs=true;
         window.alert=window.confirm=window.prompt=()=>{throw new Error('Native browser dialog used')};
         new MutationObserver(()=>{
@@ -675,14 +697,22 @@ try {
     await captureModal('host-batch')
     await click(`document.querySelector('#host-batch-dialog .grid-picker-toggle')`)
     await until(`!!document.querySelector('#host-batch-dialog .layout-picker')`)
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('#host-batch-dialog .batch-layout')).gridTemplateColumns.split(' ').length`),2,'Modal split label and selector share a row')
+    assert.equal(await evaluate(`document.querySelector('#host-batch-dialog .layout-picker').getBoundingClientRect().width`),230,'Modal grid uses the same popup width as sidebar')
+    assert.deepEqual(await evaluate(`(() => {const r=document.querySelector('#host-batch-dialog .layout-grid button').getBoundingClientRect();return [r.width,r.height]})()`),[25,25],'Modal grid cells stay square')
     await press('Escape')
     assert.equal(await evaluate(`document.querySelector('#host-batch-dialog').open`),true,'Picker Escape does not close batch dialog')
     await click(`document.querySelector('#host-batch-dialog .grid-picker-toggle')`)
     await click(`document.querySelector('#host-batch-dialog .layout-picker [data-column="2"][data-row="2"]')`)
     assert.equal(await evaluate(`document.querySelector('#host-batch-dialog select').value`),'grid:2','Picker works inside modal')
+    await click(`document.querySelector('#host-batch-dialog .grid-picker-toggle')`)
+    await evaluate(`document.querySelector('#host-batch-dialog .grid-fill-select').value='vertical';document.querySelector('#host-batch-dialog .grid-fill-select').dispatchEvent(new Event('change'))`)
+    assert.equal(await evaluate(`document.querySelector('#host-batch-dialog select').value`),'grid:2:vertical','Temporary batch can expand vertically')
+    assert.equal(await evaluate(`!!document.querySelector('#host-batch-dialog .layout-picker')`),true,'Changing Expand keeps modal picker open')
     await click(`document.querySelector('#host-batch-dialog [data-connect]')`)
     await until(`document.querySelector('#host-batch-dialog .batch-result').textContent.includes('completed')`)
     assert.deepEqual(batchRequest['host-ids'],batchHostList.flatMap(c=>c.hosts.map(h=>h['unique-id'])))
+    assert.equal(batchRequest['grid-fill'],'vertical','Temporary batch submits its own grid fill')
     assert.equal(broadcastState.enabled,false,'Batch launch does not enable broadcast')
     await press('Escape')
     const savedIDs=[...batchRequest['host-ids']]
@@ -696,14 +726,32 @@ try {
     await click(`document.querySelector('#connection-groups-panel [data-pin]')`)
     await until(`document.querySelector('#connection-groups-panel [data-pin]').getAttribute('aria-pressed')==='true'`)
     assert.equal(panelPinned,true,'Panel pin is saved to settings')
+    assert.equal(await evaluate(`document.querySelector('#connection-groups-panel [data-close]').disabled && document.querySelector('[onclick="hostBatch.groups()"]').disabled`),true,'Pinned panel disables both hide buttons')
+    await press('Escape')
+    assert.equal(await evaluate(`document.querySelector('#connection-groups-panel').hidden`),false,'Pinned panel cannot be hidden with Escape')
     await click(`document.querySelector('#connection-groups-panel [data-pin]')`)
     await until(`document.querySelector('#connection-groups-panel [data-pin]').getAttribute('aria-pressed')==='false'`)
     assert.equal(panelPinned,false,'Panel pin can be cleared')
+    assert.equal(await evaluate(`!document.querySelector('#connection-groups-panel [data-close]').disabled && !document.querySelector('[onclick="hostBatch.groups()"]').disabled`),true,'Unpin restores both hide buttons')
     await call('Emulation.setDeviceMetricsOverride', { width: 1200, height: 700, deviceScaleFactor: 1, mobile: false })
     assert.equal(await evaluate(`document.querySelector('#connection-groups-panel').getBoundingClientRect().right <= document.querySelector('#hosts-data-container > .categories').getBoundingClientRect().left`),true,'Wide screen places groups beside Hosts')
+    const desktopPanelWidth = await evaluate(`document.querySelector('#connection-groups-panel').getBoundingClientRect().width`)
+    assert.equal(await evaluate(`(() => {const h=document.querySelector('#connection-groups-title'),r=document.createRange();r.selectNodeContents(h);return r.getClientRects().length===1 && r.getBoundingClientRect().right<=document.querySelector('#connection-groups-panel [data-side]').getBoundingClientRect().left})()`),true,'Panel title stays on one line without overlapping controls')
+    await click(`document.querySelector('#connection-groups-panel [data-side]')`)
+    await until(`document.querySelector('#hosts-data-container').classList.contains('groups-right')`)
+    assert.equal(panelSide,'right','Panel side is saved')
+    assert.equal(await evaluate(`document.querySelector('#connection-groups-panel').getBoundingClientRect().left >= document.querySelector('#hosts-data-container > .categories').getBoundingClientRect().right`),true,'Right panel sits after Hosts on wide screens')
+    await call('Emulation.setDeviceMetricsOverride', { width: 720, height: 520, deviceScaleFactor: 1, mobile: false })
+    assert.equal(await evaluate(`(() => {const p=document.querySelector('#connection-groups-panel').getBoundingClientRect(),c=document.querySelector('#hosts-data-container').getBoundingClientRect();return p.right<=c.right && p.right>c.right-20})()`),true,'Narrow right panel stays at the right edge')
+    assert.equal(await evaluate(`document.querySelector('#connection-groups-panel').getBoundingClientRect().width`),desktopPanelWidth,'Right overlay keeps desktop panel width')
+    await click(`document.querySelector('#connection-groups-panel [data-side]')`)
+    await until(`!document.querySelector('#hosts-data-container').classList.contains('groups-right')`)
+    assert.equal(panelSide,'left','Panel can return to left')
+    await call('Emulation.setDeviceMetricsOverride', { width: 1200, height: 700, deviceScaleFactor: 1, mobile: false })
     if (process.env.MODAL_SCREENSHOT_DIR) await fs.writeFile(path.join(process.env.MODAL_SCREENSHOT_DIR, 'connection-groups-wide.png'), Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
     await call('Emulation.setDeviceMetricsOverride', { width: 720, height: 520, deviceScaleFactor: 1, mobile: false })
     assert.equal(await evaluate(`document.querySelector('#connection-groups-panel').getBoundingClientRect().right < innerWidth`),true,'Narrow sidebar fits viewport')
+    assert.equal(await evaluate(`document.querySelector('#connection-groups-panel').getBoundingClientRect().width`),desktopPanelWidth,'Left overlay keeps desktop panel width')
     assert.equal(await evaluate(`(() => {const card=document.querySelector('#connection-groups-panel section'),name=card.querySelector('.connection-group-name').getBoundingClientRect(),count=card.querySelector('p').getBoundingClientRect(),label=card.querySelector('label').getBoundingClientRect(),select=card.querySelector('.grid-picker-toggle').getBoundingClientRect();return Math.abs((name.top+name.bottom-count.top-count.bottom)/2)<2 && Math.abs((label.top+label.bottom-select.top-select.bottom)/2)<2})()`),true,'Group title/count and split selector share their respective lines')
     if (process.env.MODAL_SCREENSHOT_DIR) await fs.writeFile(path.join(process.env.MODAL_SCREENSHOT_DIR, 'connection-groups-narrow.png'), Buffer.from((await call('Page.captureScreenshot')).data, 'base64'))
     await click(`document.querySelector('#connection-groups-panel .connection-group-name')`)
@@ -746,6 +794,21 @@ try {
     await until(`document.querySelector('#connection-groups-panel .group-result').textContent.includes('completed')`)
     assert.equal(batchRequest.layout,'grid')
     assert.equal(batchRequest.columns,3,'Direct Connect submits grid columns')
+    await click(`document.querySelector('#connection-groups-panel .grid-picker-toggle')`)
+    await evaluate(`document.querySelector('.grid-fill-select').value='vertical';document.querySelector('.grid-fill-select').dispatchEvent(new Event('change'))`)
+    await until(`document.querySelector('.grid-fill-select')?.disabled === false`)
+    assert.equal(await evaluate(`!!document.querySelector('.layout-picker')`),true,'Changing Expand keeps group picker open')
+    assert.equal(savedConnectionGroups[0]['grid-fill'],'vertical','Group saves its grid fill')
+    await evaluate(`hostBatch.groups()`)
+    assert.equal(await evaluate(`document.querySelector('#connection-groups-panel select').value`),'grid:3:vertical','Group fill survives reload')
+    await click(`document.querySelector('#connection-groups-panel [data-action=connect]')`)
+    await until(`document.querySelector('#connection-groups-panel .group-result').textContent.includes('completed')`)
+    assert.equal(batchRequest['grid-fill'],'vertical','Group Connect uses saved fill')
+    await click(`document.querySelector('#connection-groups-panel .grid-picker-toggle')`)
+    await evaluate(`document.querySelector('.grid-fill-select').value='horizontal';document.querySelector('.grid-fill-select').dispatchEvent(new Event('change'))`)
+    await until(`document.querySelector('.grid-fill-select')?.disabled === false`)
+    await evaluate(`document.querySelector('.grid-fill-select')?.focus()`)
+    await press('Escape')
     await click(`document.querySelector('#connection-groups-panel .connection-group-name')`)
     if (!await evaluate(`!!document.querySelector('.connection-group-order')`)) await click(`document.querySelector('#connection-groups-panel .connection-group-name')`)
     await click(`document.querySelector('.connection-group-order button')`)
@@ -822,7 +885,7 @@ try {
     await click(`document.querySelector('#connection-groups-panel .grid-picker-toggle')`)
     await click(`document.querySelector('.layout-picker [data-column="32"][data-row="1"]')`)
     await until(`!document.querySelector('#connection-groups-panel select').disabled`)
-    assert.equal(savedConnectionGroups[0].columns,32,'Horizontally scrolled grid saves 32 columns')
+    assert.equal(savedConnectionGroups[0].columns,32,`Horizontally scrolled grid saves 32 columns: ${await evaluate(`(() => {const p=document.querySelector('.layout-picker'),c=p?.querySelector('[data-column="32"][data-row="1"]');if(!c)return 'closed';const r=c.getBoundingClientRect();return JSON.stringify({rect:r.toJSON(),at:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.outerHTML,scroll:p.scrollTop,viewport:p.querySelector('.layout-grid-viewport').scrollTop})})()`)}`)
     await evaluate(`hostBatch.groups()`)
     assert.equal(await evaluate(`document.querySelector('#connection-groups-panel .grid-picker-toggle').textContent`),'32 columns × 1 row','Wide grid survives reload')
     await click(`document.querySelector('#connection-groups-panel .grid-picker-toggle')`)

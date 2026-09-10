@@ -22,7 +22,9 @@ const inputBroadcast = (() => {
     function draw(force = false) {
         indicator.textContent = available ? (state.enabled ? 'ON' : 'OFF') : '?'
         tool.classList.toggle('broadcast-on', available && state.enabled)
-        tool.title = available && state.enabled ? 'Broadcast input ON — click to manage or stop' : 'Broadcast input'
+        tool.classList.toggle('broadcast-unavailable', !available)
+        tool.title = !available ? 'Broadcast input — status unavailable' : state.enabled ? 'Broadcast input ON — click to manage or stop' : 'Broadcast input OFF'
+        tool.setAttribute('aria-label', tool.title)
         start.disabled = busy || !available || state.enabled || state.connections.length < 2
         stop.disabled = busy || (available && !state.enabled)
         if (!dialog.open) return

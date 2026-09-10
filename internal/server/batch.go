@@ -84,6 +84,7 @@ func handleOpenBatch(w http.ResponseWriter, r *http.Request) {
 		IDs     []string `json:"host-ids"`
 		Layout  string   `json:"layout"`
 		Columns int      `json:"columns"`
+		Fill    string   `json:"grid-fill"`
 	}
 	if json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384)).Decode(&request) != nil {
 		http.Error(w, "Invalid request", 400)
@@ -91,6 +92,10 @@ func handleOpenBatch(w http.ResponseWriter, r *http.Request) {
 	}
 	if request.Layout != "alternating" && request.Layout != "horizontal" && request.Layout != "vertical" && request.Layout != "grid" {
 		http.Error(w, "Invalid split layout", 400)
+		return
+	}
+	if request.Fill != "" && request.Fill != "horizontal" && request.Fill != "vertical" {
+		http.Error(w, "Invalid grid fill", 400)
 		return
 	}
 	if request.Layout == "grid" && (request.Columns < 1 || request.Columns > 32) {
@@ -131,7 +136,7 @@ func handleOpenBatch(w http.ResponseWriter, r *http.Request) {
 		args = append(args, terminal.SshClientArgument{HostsFile: file, HostFileKEY: key, CategoryIndex: 1, HostIndex: i + 1, RelayAddress: address, RelayToken: token, SplitVertical: request.Layout == "vertical" || (request.Layout == "alternating" && i%2 == 0)})
 	}
 	if request.Layout == "grid" {
-		args, err = terminal.PlanGrid(args, request.Columns)
+		args, err = terminal.PlanGrid(args, request.Columns, request.Fill)
 		if err != nil {
 			http.Error(w, err.Error(), 400)
 			return

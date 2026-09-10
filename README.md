@@ -20,6 +20,7 @@ SSH host manager for personal using
 * Then - Open `hosts.dat` with the password
 
 Window dimensions and position are saved in `window.json` beside the executable and restored on the next launch.
+The toolbar's sun/moon button switches between dark and light themes. The selected theme and connection-group panel side are also saved in `window.json`; existing installations default to dark. The saved theme is applied in the initial HTML before rendering.
 
 ## Build
 ```sh

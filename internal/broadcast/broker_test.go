@@ -16,6 +16,39 @@ type testPeer struct {
 	id  string
 }
 
+func TestSnapshotUsesLaunchOrder(t *testing.T) {
+	b := New()
+	defer b.Close()
+	var issued []Connection
+	for _, label := range []string{"First", "Second", "Third"} {
+		_, token, err := b.Issue(label)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b.mu.Lock()
+		issued = append(issued, b.pending[token].Connection)
+		delete(b.pending, token)
+		b.mu.Unlock()
+	}
+	// Simulate reverse client arrival with IDs also sorted opposite to launch.
+	b.mu.Lock()
+	for i := len(issued) - 1; i >= 0; i-- {
+		c := issued[i]
+		c.ID = []string{"z", "m", "a"}[i]
+		b.peers[c.ID] = &peer{Connection: c}
+	}
+	b.mu.Unlock()
+	s := b.Snapshot()
+	for i, c := range s.Connections {
+		if c.Label != issued[i].Label {
+			t.Fatalf("unexpected order: %+v", s.Connections)
+		}
+	}
+	b.mu.Lock()
+	clear(b.peers)
+	b.mu.Unlock()
+}
+
 func TestHTTPRejectsCrossOriginAndInvalidTargets(t *testing.T) {
 	b := New()
 	defer b.Close()

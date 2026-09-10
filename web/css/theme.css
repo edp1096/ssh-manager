@@ -1,0 +1,92 @@
+/* Shared palette overrides. Existing colour values remain the dark defaults. */
+:root { color-scheme: dark; }
+:root[data-theme="light"] {
+    color-scheme: light;
+    --ui-010409: #f5f7fa;
+    --ui-28a745: #1e793a;
+    --ui-218838: #196a32;
+    --ui-d9534f: #b42332;
+    --ui-c9302c: #a31e2b;
+    --ui-0d131c: #ffffff;
+    --ui-101923: #f6f8fb;
+    --ui-161b22: #ffffff;
+    --ui-161f2b: #ffffff;
+    --ui-17212e: #f4f7fa;
+    --ui-172330: #eaf0f6;
+    --ui-18222e: #edf2f7;
+    --ui-182b36: #eaf3f4;
+    --ui-1b2b34: #edf2f5;
+    --ui-1b3036: #def0ed;
+    --ui-1c2b3a: #e8eff6;
+    --ui-1c2c3c: #e8eff6;
+    --ui-203747: #dcecf6;
+    --ui-21303f: #e5edf5;
+    --ui-223746: #dfeef5;
+    --ui-263342: #e7edf4;
+    --ui-263646: #e2ebf3;
+    --ui-284b50: #d2eee7;
+    --ui-315b65: #d5ebe9;
+    --ui-303b48: #cbd5e1;
+    --ui-303f50: #c4cfdb;
+    --ui-344151: #c1cdd9;
+    --ui-36485a: #b6c5d5;
+    --ui-3e4c60: #b4c2d1;
+    --ui-405064: #a4b5c7;
+    --ui-405468: #a6b8c9;
+    --ui-465c70: #93aabe;
+    --ui-496477: #91abbb;
+    --ui-4b7780: #558991;
+    --ui-56616d: #9aabba;
+    --ui-62788f: #526d88;
+    --ui-71879a: #637e96;
+    --ui-8293a6: #5b6d81;
+    --ui-848d97: #59697b;
+    --ui-8b9bad: #52687f;
+    --ui-8ba5bc: #476b87;
+    --ui-93a3b6: #52677f;
+    --ui-95a9ba: #536d83;
+    --ui-9aabba: #536b80;
+    --ui-9dafaf: #476b6b;
+    --ui-a9b8c9: #465e77;
+    --ui-b7bdc4: #263849;
+    --ui-b7c5d5: #3e566e;
+    --ui-d8e1ec: #22384e;
+    --ui-e1e7ee: #20364d;
+    --ui-edf3fa: #1d344a;
+    --ui-eef5fc: #172e43;
+    --ui-fff: #172e43;
+    --ui-ffffff: #ffffff;
+    --ui-b1bac439: #dbe4ed80;
+    --ui-6baca5: #24786e;
+    --ui-7abcb7: #367f7c;
+    --ui-83c6c0: #227d73;
+    --ui-9dd9d1: #166c61;
+    --ui-a0dfd5: #116a5d;
+    --ui-008b8b30: #168b8230;
+    --ui-193f2c: #d7f0df;
+    --ui-4ca875: #2b8851;
+    --ui-b4edcb: #155f33;
+    --ui-81dfa7: #188443;
+    --ui-51252d: #fce3e7;
+    --ui-96515c: #c57680;
+    --ui-c98e94: #a52e40;
+    --ui-ffbac2: #8f2335;
+    --ui-e77: #b32638;
+    --ui-c44: #b32638;
+    --ui-e8bd83: #88571d;
+    --ui-8886: #78899b66;
+    --ui-8883: #78899b33;
+    --ui-0008: #26384922;
+    --ui-0009: #26384926;
+    --ui-000a: #26384930;
+    --ui-01040999: #26384955;
+}
+:root[data-theme="light"] dialog { color-scheme: light; color: #263849; }
+:root[data-theme="light"] button.ok,
+:root[data-theme="light"] button.cancel,
+:root[data-theme="light"] button.critical { color: #fff; }
+:root[data-theme="light"] dialog button.cancel { color: #40576d; }
+:root[data-theme="light"] .category button.critical { color: #a52e40; }
+:root[data-theme="light"] input,
+:root[data-theme="light"] textarea,
+:root[data-theme="light"] select { color-scheme: light; }

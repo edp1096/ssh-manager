@@ -16,6 +16,7 @@ type SshClientArgument struct {
 	RelayToken    string  `json:"-"`
 	BatchWindow   string  `json:"-"`
 	GridColumns   int     `json:"-"`
+	GridVertical  bool    `json:"-"`
 	GridTarget    int     `json:"-"` // One-based launch index of the pane to split.
 	SplitSize     float64 `json:"-"`
 }

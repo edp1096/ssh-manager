@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="/css/dialog.css">
     <link rel="stylesheet" href="/css/modals.css">
     <link rel="stylesheet" href="/css/broadcast.css">
+    <link rel="stylesheet" href="/css/theme.css">
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)">
@@ -48,7 +49,7 @@
         </div>
         <div class="workspace-tools" aria-label="Host tools">
             <button type="button" onclick="fileBrowser.quickConnect()" title="New FTP / FTPS connection" aria-label="New FTP / FTPS connection"><span class="material-symbols-outlined">add_link</span></button>
-            <button id="broadcast-tool" type="button" onclick="inputBroadcast.open()" title="Broadcast input" aria-label="Broadcast input"><span class="material-symbols-outlined">keyboard</span><span id="broadcast-indicator">OFF</span></button>
+            <button id="broadcast-tool" type="button" onclick="inputBroadcast.open()" title="Broadcast input" aria-label="Broadcast input"><span class="material-symbols-outlined" aria-hidden="true">keyboard</span><span id="broadcast-indicator" aria-hidden="true">OFF</span></button>
             <div class="button-group-left" data-host-tools>
                 <button onclick="expandAllCategories()" title="Expand all">
                     <span class="material-symbols-outlined">expand_all</span>
@@ -70,6 +71,7 @@
                 <button onclick="openChangePasswordDialog()" title="Change password of host file">
                     <span class="material-symbols-outlined">lock</span>
                 </button>
+                <button id="theme-toggle" type="button" onclick="toggleTheme()" title="Switch to light theme" aria-label="Switch to light theme"><span class="material-symbols-outlined" aria-hidden="true">light_mode</span></button>
                 <button onclick="getApplicationVersion()" title="Info">
                     <span class="material-symbols-outlined">info</span>
                 </button>
@@ -79,7 +81,7 @@
 
     <main id="workspace-panels">
         <div id="hosts-data-container" role="tabpanel" aria-labelledby="tab-hosts">
-            <div class="host-batch-bar"><span id="host-selection-count">0 selected</span><button type="button" onclick="hostBatch.selectAll()">Select all</button><button type="button" onclick="hostBatch.clear()">Clear</button><button type="button" id="host-batch-save" onclick="hostBatch.saveGroup()" disabled>Save selection</button><button type="button" onclick="hostBatch.groups()">Connection groups</button><button type="button" id="host-batch-open" onclick="hostBatch.open()" disabled>Open in panels</button></div>
+            <div class="host-batch-bar"><span id="host-selection-count">0 selected</span><button type="button" onclick="hostBatch.selectAll()">Select all</button><button type="button" onclick="hostBatch.clear()">Clear</button><button type="button" id="host-batch-save" onclick="hostBatch.saveGroup()" disabled>Save selection</button><button type="button" onclick="hostBatch.groups()">Connection groups</button><button type="button" id="host-batch-open" onclick="hostBatch.open()" disabled>Open in panels</button><button type="button" id="host-batch-delete" class="critical" onclick="hostBatch.deleteSelected()" title="Delete selected hosts" disabled>Delete selected</button></div>
             <ul class="categories"></ul>
         </div>
     </main>

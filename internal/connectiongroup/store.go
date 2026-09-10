@@ -21,6 +21,7 @@ type Group struct {
 	Hosts   []string `json:"host-ids"`
 	Layout  string   `json:"layout"`
 	Columns int      `json:"columns,omitempty"`
+	Fill    string   `json:"grid-fill,omitempty"`
 }
 type document struct {
 	Version     int     `json:"version"`
@@ -30,6 +31,9 @@ type document struct {
 type Store struct{ mu sync.Mutex }
 
 func validate(g Group) error {
+	if g.Fill != "" && g.Fill != "horizontal" && g.Fill != "vertical" {
+		return fmt.Errorf("invalid grid fill")
+	}
 	if g.Layout != "alternating" && g.Layout != "horizontal" && g.Layout != "vertical" && g.Layout != "grid" {
 		return fmt.Errorf("invalid split layout")
 	}

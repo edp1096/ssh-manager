@@ -33,3 +33,27 @@ func TestWindowSizeHandler(t *testing.T) {
 		t.Fatalf("saved size: %+v", got)
 	}
 }
+
+func TestWindowThemeHandler(t *testing.T) {
+	previousDir := WorkingDir
+	WorkingDir = t.TempDir()
+	t.Cleanup(func() { WorkingDir = previousDir })
+	for _, tc := range []struct {
+		body string
+		code int
+	}{
+		{`{"theme":"light"}`, 204}, {`{"theme":"invalid"}`, 400},
+		{`{"panel-side":"right"}`, 204}, {`{"theme":"dark","panel-side":"left"}`, 400},
+	} {
+		w := httptest.NewRecorder()
+		handleWindowSize(w, httptest.NewRequest("PATCH", "/window-size", strings.NewReader(tc.body)))
+		if w.Code != tc.code {
+			t.Fatal(tc, w.Code)
+		}
+	}
+	w := httptest.NewRecorder()
+	handleWindowSize(w, httptest.NewRequest("GET", "/window-size", nil))
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"theme":"light"`) || !strings.Contains(w.Body.String(), `"panel-side":"right"`) {
+		t.Fatal(w.Body.String())
+	}
+}

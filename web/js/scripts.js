@@ -177,6 +177,7 @@ async function openRepository(button) {
 }
 
 async function init() {
+    updateThemeButton()
     initKeyboardNavigation()
     initPasswordVisibility()
     initWindowSizePersistence()
@@ -200,6 +201,28 @@ async function init() {
             dialog.querySelector('input').focus({ preventScroll: true })
         }
     })
+}
+
+function updateThemeButton() {
+    const button = document.querySelector('#theme-toggle')
+    const light = document.documentElement.dataset.theme === 'light'
+    button.title = light ? 'Switch to dark theme' : 'Switch to light theme'
+    button.setAttribute('aria-label', button.title)
+    button.querySelector('span').textContent = light ? 'dark_mode' : 'light_mode'
+}
+
+async function toggleTheme() {
+    const button = document.querySelector('#theme-toggle')
+    if (button.disabled) return
+    button.disabled = true
+    const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'
+    try {
+        const response = await fetch('/window-size', {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme})})
+        if (!response.ok) throw new Error(await response.text())
+        document.documentElement.dataset.theme = theme
+        updateThemeButton()
+    } catch (error) { await appDialogs.alert(error.message, {title:'Could not save theme'}) }
+    finally { button.disabled = false }
 }
 
 function initWindowSizePersistence() {

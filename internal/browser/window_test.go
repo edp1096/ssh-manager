@@ -7,6 +7,65 @@ import (
 	"testing"
 )
 
+func TestPanelSidePreservesWindowGeometry(t *testing.T) {
+	dir := t.TempDir()
+	size := WindowSize{Width: 1100, Height: 800, Position: &WindowPosition{X: -200, Y: 60}}
+	if err := SaveWindowSize(dir, size); err != nil {
+		t.Fatal(err)
+	}
+	if err := SavePanelSide(dir, "right"); err != nil {
+		t.Fatal(err)
+	}
+	expected := size
+	expected.PanelSide = "right"
+	if got := LoadWindowSize(dir); !reflect.DeepEqual(got, expected) {
+		t.Fatal(got)
+	}
+	size.Width = 1200
+	if err := SaveWindowSize(dir, size); err != nil {
+		t.Fatal(err)
+	}
+	expected.Width = 1200
+	if got := LoadWindowSize(dir); !reflect.DeepEqual(got, expected) {
+		t.Fatal(got)
+	}
+	if err := SavePanelSide(dir, "invalid"); err == nil {
+		t.Fatal("invalid side accepted")
+	}
+	if err := SavePanelSide(dir, "left"); err != nil {
+		t.Fatal(err)
+	}
+	if got := LoadWindowSize(dir); got.PanelSide != "left" || got.Width != 1200 {
+		t.Fatal(got)
+	}
+}
+
+func TestThemePersistence(t *testing.T) {
+	dir := t.TempDir()
+	if err := SaveTheme(dir, "light"); err != nil {
+		t.Fatal(err)
+	}
+	if err := SavePanelSide(dir, "right"); err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveWindowSize(dir, WindowSize{Width: 1000, Height: 700}); err != nil {
+		t.Fatal(err)
+	}
+	got := LoadWindowSize(dir)
+	if got.Theme != "light" || got.PanelSide != "right" || got.Width != 1000 {
+		t.Fatal(got)
+	}
+	if err := SaveTheme(dir, "invalid"); err == nil {
+		t.Fatal("invalid theme accepted")
+	}
+	if err := SaveTheme(dir, "dark"); err != nil {
+		t.Fatal(err)
+	}
+	if got := LoadWindowSize(dir); got.Theme != "dark" || got.PanelSide != "right" {
+		t.Fatal(got)
+	}
+}
+
 func TestWindowSizePersistence(t *testing.T) {
 	dir := t.TempDir()
 	defaultSize := WindowSize{Width: 720, Height: 520}

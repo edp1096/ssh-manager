@@ -214,7 +214,7 @@ func equalKonsoleGrid(service string, call dbusCaller) error {
 	return nil
 }
 
-func verifyKonsoleGrid(service string, views []int, columns int, call dbusCaller) error {
+func verifyKonsoleGrid(service string, views []int, columns int, call dbusCaller, vertical ...bool) error {
 	tree, err := readKonsoleTree(service, call)
 	if err != nil {
 		return err
@@ -227,9 +227,15 @@ func verifyKonsoleGrid(service string, views []int, columns int, call dbusCaller
 	}
 	tree = unwrap(tree)
 	rows := (len(views) + columns - 1) / columns
+	outerAxis, innerAxis := byte('{'), byte('[')
+	columnFirst := len(vertical) > 0 && vertical[0]
+	if columnFirst {
+		rows = min(columns, len(views))
+		outerAxis, innerAxis = innerAxis, outerAxis
+	}
 	rowNodes := []*konsoleNode{tree}
 	if rows > 1 {
-		if tree.axis != '{' || len(tree.children) != rows {
+		if tree.axis != outerAxis || len(tree.children) != rows {
 			return fmt.Errorf("Konsole grid row structure mismatch")
 		}
 		rowNodes = tree.children
@@ -238,9 +244,12 @@ func verifyKonsoleGrid(service string, views []int, columns int, call dbusCaller
 	for row, node := range rowNodes {
 		node = unwrap(node)
 		count := min(columns, len(views)-row*columns)
+		if columnFirst {
+			count = (len(views)-1-row)/columns + 1
+		}
 		cells := []*konsoleNode{node}
 		if count > 1 {
-			if node.axis != '[' || len(node.children) != count {
+			if node.axis != innerAxis || len(node.children) != count {
 				return fmt.Errorf("Konsole grid column structure mismatch")
 			}
 			cells = node.children

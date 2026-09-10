@@ -1,7 +1,7 @@
 dialog {
-    background: #010409;
-    color: #fff;
-    border: 2px solid #56616d;
+    background: var(--ui-010409, #010409);
+    color: var(--ui-fff, #fff);
+    border: 2px solid var(--ui-56616d, #56616d);
     border-radius: 3px;
     padding: 0.5em;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
@@ -9,7 +9,7 @@ dialog {
 
 dialog h2,
 dialog p {
-    color: #fff;
+    color: var(--ui-fff, #fff);
 }
 
 dialog h2 {
@@ -22,8 +22,8 @@ dialog form p {
 
 input:not([type="radio"]),
 textarea {
-    background-color: #b1bac439;
-    color: #fff;
+    background-color: var(--ui-b1bac439, #b1bac439);
+    color: var(--ui-fff, #fff);
     border: none;
     padding-left: 0.5em;
     margin-left: 1em;
@@ -56,7 +56,7 @@ dialog>form input[type="file"] {
 dialog>form>p>span {
     display: inline-table;
     overflow-x: scroll;
-    scrollbar-color: #3e4c60 #010409;
+    scrollbar-color: var(--ui-3e4c60, #3e4c60) var(--ui-010409, #010409);
     scrollbar-width: thin;
 }
 
@@ -84,12 +84,12 @@ dialog .repository-link {
     font: inherit;
     text-align: left;
     text-decoration: underline;
-    color: #6baca5;
+    color: var(--ui-6baca5, #6baca5);
     overflow-wrap: anywhere;
 }
 
 dialog .repository-link:focus-visible {
-    outline: 2px solid #6baca5;
+    outline: 2px solid var(--ui-6baca5, #6baca5);
     outline-offset: 2px;
 }
 

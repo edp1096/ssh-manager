@@ -9,9 +9,11 @@ import (
 )
 
 type WindowSize struct {
-	Width    int             `json:"width"`
-	Height   int             `json:"height"`
-	Position *WindowPosition `json:"position,omitempty"`
+	Width     int             `json:"width"`
+	Height    int             `json:"height"`
+	Position  *WindowPosition `json:"position,omitempty"`
+	PanelSide string          `json:"panel-side,omitempty"`
+	Theme     string          `json:"theme,omitempty"`
 }
 
 type WindowPosition struct {
@@ -31,6 +33,10 @@ func (s WindowSize) Valid() bool {
 func LoadWindowSize(dir string) WindowSize {
 	windowSizeMu.Lock()
 	defer windowSizeMu.Unlock()
+	return loadWindowSize(dir)
+}
+
+func loadWindowSize(dir string) WindowSize {
 	var size WindowSize
 	data, err := os.ReadFile(filepath.Join(dir, "window.json"))
 	if err != nil || json.Unmarshal(data, &size) != nil || !size.Valid() {
@@ -45,6 +51,36 @@ func SaveWindowSize(dir string, size WindowSize) error {
 	}
 	windowSizeMu.Lock()
 	defer windowSizeMu.Unlock()
+	// Geometry updates must not reset the independently saved panel side.
+	settings := loadWindowSize(dir)
+	size.PanelSide = settings.PanelSide
+	size.Theme = settings.Theme
+	return writeWindowSize(dir, size)
+}
+
+func SavePanelSide(dir, side string) error {
+	if side != "left" && side != "right" {
+		return fmt.Errorf("invalid panel side")
+	}
+	windowSizeMu.Lock()
+	defer windowSizeMu.Unlock()
+	size := loadWindowSize(dir)
+	size.PanelSide = side
+	return writeWindowSize(dir, size)
+}
+
+func SaveTheme(dir, theme string) error {
+	if theme != "dark" && theme != "light" {
+		return fmt.Errorf("invalid theme")
+	}
+	windowSizeMu.Lock()
+	defer windowSizeMu.Unlock()
+	size := loadWindowSize(dir)
+	size.Theme = theme
+	return writeWindowSize(dir, size)
+}
+
+func writeWindowSize(dir string, size WindowSize) error {
 	data, err := json.Marshal(size)
 	if err != nil {
 		return err

@@ -26,6 +26,7 @@ type frame struct {
 type Connection struct {
 	ID    string `json:"id"`
 	Label string `json:"label"`
+	order uint64
 }
 type State struct {
 	Connections []Connection `json:"connections"`
@@ -44,15 +45,16 @@ type peer struct {
 	queue chan frame
 }
 type Broker struct {
-	mu       sync.Mutex
-	listener net.Listener
-	pending  map[string]ticket
-	peers    map[string]*peer
-	source   string
-	targets  map[string]bool
-	epoch    uint64
-	reason   string
-	closed   bool
+	mu        sync.Mutex
+	listener  net.Listener
+	pending   map[string]ticket
+	peers     map[string]*peer
+	source    string
+	targets   map[string]bool
+	epoch     uint64
+	reason    string
+	closed    bool
+	nextOrder uint64
 }
 
 func New() *Broker {
@@ -88,7 +90,8 @@ func (b *Broker) Issue(label string) (address, token string, err error) {
 	if _, err = rand.Read(id[:]); err != nil {
 		return "", "", err
 	}
-	b.pending[token] = ticket{Connection{hex.EncodeToString(id[:]), label}, time.Now().Add(2 * time.Minute)}
+	b.nextOrder++
+	b.pending[token] = ticket{Connection{ID: hex.EncodeToString(id[:]), Label: label, order: b.nextOrder}, time.Now().Add(2 * time.Minute)}
 	return b.listener.Addr().String(), token, nil
 }
 
@@ -263,7 +266,7 @@ func (b *Broker) Snapshot() State {
 	for id := range b.targets {
 		s.Targets = append(s.Targets, id)
 	}
-	sort.Slice(s.Connections, func(i, j int) bool { return s.Connections[i].ID < s.Connections[j].ID })
+	sort.Slice(s.Connections, func(i, j int) bool { return s.Connections[i].order < s.Connections[j].order })
 	sort.Strings(s.Targets)
 	return s
 }
