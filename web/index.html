@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/css/files.css">
     <link rel="stylesheet" href="/css/dialog.css">
     <link rel="stylesheet" href="/css/modals.css">
+    <link rel="stylesheet" href="/css/broadcast.css">
 </head>
 
 <body oncontextmenu="contextMenu(event); return false" onmousewheel="preventCtrlWheel(event)">
@@ -47,6 +48,7 @@
         </div>
         <div class="workspace-tools" aria-label="Host tools">
             <button type="button" onclick="fileBrowser.quickConnect()" title="New FTP / FTPS connection" aria-label="New FTP / FTPS connection"><span class="material-symbols-outlined">add_link</span></button>
+            <button id="broadcast-tool" type="button" onclick="inputBroadcast.open()" title="Broadcast input" aria-label="Broadcast input"><span class="material-symbols-outlined">keyboard</span><span id="broadcast-indicator">OFF</span></button>
             <div class="button-group-left" data-host-tools>
                 <button onclick="expandAllCategories()" title="Expand all">
                     <span class="material-symbols-outlined">expand_all</span>
@@ -282,6 +284,7 @@
 <script src="/js/host-order.js"></script>
 <script src="/js/tabs.js"></script>
 <script src="/js/files.js"></script>
+<script src="/js/broadcast.js"></script>
 <script src="/js/scripts.js"></script>
 
 </html>

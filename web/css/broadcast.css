@@ -1,0 +1,15 @@
+#broadcast-tool { display: inline-flex; align-items: center; gap: 4px; }
+#broadcast-indicator { font-size: 10px; color: #9aabba; }
+#broadcast-tool.broadcast-on { border-color: #e5a24e; background: #573a19; }
+#broadcast-tool.broadcast-on #broadcast-indicator { color: #ffd390; }
+#broadcast-dialog { width: min(720px, calc(100vw - 32px)); }
+#broadcast-dialog .broadcast-warning { margin: 10px 0; color: #e8bd83; }
+#broadcast-dialog .broadcast-list { box-sizing: border-box; max-height: 45vh; overflow: auto; margin: 12px 0; border: 1px solid #303f50; border-radius: 5px; }
+#broadcast-dialog table { width: 100%; border-collapse: collapse; }
+#broadcast-dialog th, #broadcast-dialog td { padding: 7px 9px; border-bottom: 1px solid #303f50; text-align: left; }
+#broadcast-dialog th { font-size: 12px; color: #a9b8c9; background: #161f2b; position: sticky; top: 0; }
+#broadcast-dialog td:last-child { overflow-wrap: anywhere; }
+#broadcast-dialog input { width: 16px; height: 16px; margin: 0; padding: 0; accent-color: #6baca5; }
+#broadcast-dialog .broadcast-status { min-height: 36px; }
+#broadcast-dialog button:disabled { opacity: .4; cursor: default; }
+#broadcast-dialog .broadcast-select-all { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }

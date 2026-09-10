@@ -101,7 +101,14 @@ func openSession() (err error) {
 	}
 
 	setResizeControl(sess, tty, pw, w, h)
-	setEventControl(pw, tty)
+	input := newInputBridge(pw)
+	defer input.Close()
+	if *relayAddress != "" {
+		if err := input.connect(*relayAddress, *relayToken); err != nil {
+			fmt.Fprintln(os.Stderr, "Input broadcast unavailable; ordinary SSH remains connected.")
+		}
+	}
+	setEventControl(input, tty, func() { input.Close(); sess.Close() })
 
 	sess.Wait()
 

@@ -28,10 +28,12 @@ type HostInfo struct {
 }
 
 var (
-	hostsFile   = flag.String("f", "", "host data file (required)")
-	hostFileKey = flag.String("k", "", "host data file key which is base64 encoded (required)")
-	hostIDX     = flag.Int("hi", 0, "index of host (required)")
-	categoryIDX = flag.Int("ci", 0, "index of category (required)")
+	hostsFile    = flag.String("f", "", "host data file (required)")
+	hostFileKey  = flag.String("k", "", "host data file key which is base64 encoded (required)")
+	hostIDX      = flag.Int("hi", 0, "index of host (required)")
+	categoryIDX  = flag.Int("ci", 0, "index of category (required)")
+	relayAddress = flag.String("relay-address", "", "app input relay address")
+	relayToken   = flag.String("relay-token", "", "one-use app input relay token")
 
 	// hosts []HostInfo
 	hosts HostList

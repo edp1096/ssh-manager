@@ -14,6 +14,7 @@ let savedHostOrder
 let rejectHostSave = false
 let passwordAttempts = 0, passwordChanges = 0
 let groupSaves = 0
+let broadcastState = { connections: [], source: '', targets: [], enabled: false, reason: '' }
 const listingRequests = { local: 0, remote: 0 }
 try {
     const uploads = path.join(temporary, 'uploads'), downloads = path.join(temporary, 'downloads')
@@ -33,6 +34,14 @@ try {
     proxy = http.createServer(async (req, res) => {
         try {
             const url = new URL(req.url, 'http://localhost')
+            if (url.pathname === '/session/broadcast') {
+                if (req.method === 'POST') {
+                    const chunks=[]; for await (const chunk of req) chunks.push(chunk)
+                    const config=JSON.parse(Buffer.concat(chunks).toString())
+                    broadcastState={...broadcastState,...config,enabled:!!config.source,reason:''}
+                }
+                res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(broadcastState));return
+            }
             if (url.pathname === '/categories' && req.method === 'POST') {
                 for await (const chunk of req) { /* consume isolated test payload */ }
                 groupSaves++;res.writeHead(200, {'Content-Type':'application/json'});res.end('{"message":"success"}');return
@@ -614,9 +623,47 @@ try {
     await press('Escape')
     await until(`window.modalResult===false`)
     await evaluate(`window.autoDialogs=true`)
+    broadcastState.connections = [{id:'source01',label:'Same host — source'}, {id:'target01',label:'Same host — receiver'}, {id:'excluded',label:'Excluded'}]
+    await click(`document.querySelector('#broadcast-tool')`)
+    await until(`document.querySelectorAll('#broadcast-dialog tbody tr').length===3`)
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog [data-start]').disabled`),true)
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog [data-select-all]').disabled`),true)
+    await click(`document.querySelector('#broadcast-dialog input[type="radio"][value="source01"]')`)
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog input[type="checkbox"][value="source01"]').disabled`),true)
+    await click(`document.querySelector('#broadcast-dialog [data-select-all]')`)
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#broadcast-dialog tbody input[type="checkbox"]:checked')].map(e=>e.value)`),['target01','excluded'],'Select all excludes source')
+    await click(`document.querySelector('#broadcast-dialog input[type="radio"][value="target01"]')`)
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog input[type="checkbox"][value="target01"]').checked`),false,'Changing source removes it from receivers')
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog [data-select-all]').indeterminate`),true)
+    await click(`document.querySelector('#broadcast-dialog input[type="radio"][value="source01"]')`)
+    await click(`document.querySelector('#broadcast-dialog [data-select-all]')`)
+    await click(`document.querySelector('#broadcast-dialog [data-select-all]')`)
+    assert.equal(await evaluate(`document.querySelectorAll('#broadcast-dialog tbody input[type="checkbox"]:checked').length`),0,'Uncheck all receivers')
+    await click(`document.querySelector('#broadcast-dialog input[type="checkbox"][value="target01"]')`)
+    await click(`document.querySelector('#broadcast-dialog [data-start]')`)
+    await until(`document.querySelector('#broadcast-indicator').textContent==='ON'`)
+    assert.deepEqual(broadcastState.targets,['target01'])
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog input[type="radio"]').disabled`),true)
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog [data-select-all]').disabled`),true,'Cannot change receiver selection while broadcasting')
+    await captureModal('broadcast')
+    await press('Escape')
+    assert.equal(broadcastState.enabled,true,'Closing dialog does not stop broadcasting')
+    broadcastState={...broadcastState,connections:broadcastState.connections.filter(c=>c.id!=='target01'),source:'',targets:[],enabled:false,reason:'A selected connection closed; broadcast stopped.'}
+    await until(`document.querySelector('#broadcast-indicator').textContent==='OFF'`)
+    await click(`document.querySelector('#broadcast-tool')`)
+    await until(`document.querySelectorAll('#broadcast-dialog tbody tr').length===2`)
+    await click(`document.querySelector('#broadcast-dialog input[type="checkbox"][value="excluded"]')`)
+    await click(`document.querySelector('#broadcast-dialog [data-start]')`)
+    await until(`document.querySelector('#broadcast-indicator').textContent==='ON'`)
+    await click(`document.querySelector('#broadcast-dialog [data-stop]')`)
+    await until(`document.querySelector('#broadcast-indicator').textContent==='OFF'`)
+    await press('Escape')
+    assert.equal(await evaluate(`document.querySelector('#broadcast-dialog').open`), false, 'Escape works after Stop disables its button')
     await evaluate(`window.dialogAnswer=false`)
     await press('w', 2)
     assert.equal(exitRequests, 0, 'Cancelled Hosts close must not exit')
+    await until(`!document.querySelector('.app-message-dialog[open]')`)
+    await delay(50)
     await evaluate(`window.dialogAnswer=true`)
     await press('w', 2)
     for (let i = 0; !exitRequests && i < 30; i++) await delay(100)

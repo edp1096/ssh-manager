@@ -19,6 +19,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"ssh-manager/internal/broadcast"
 	"ssh-manager/internal/browser"
 	"ssh-manager/internal/filetransfer"
 	"ssh-manager/internal/host"
@@ -57,6 +58,7 @@ var (
 	BrowserData    embed.FS
 	VERSION        string
 	HostFileKEY    []byte
+	inputBroker    = broadcast.New()
 	fileManager    = filetransfer.New(func(file, id string) (model.HostInfo, error) {
 		var hosts model.HostList
 		if id == "" {
@@ -90,6 +92,7 @@ func ExitProcess() {
 func exitApplication() {
 	applicationExitOnce.Do(func() {
 		terminal.Cleanup()
+		inputBroker.Close()
 		fileManager.Close()
 
 		if cmdBrowser != nil && cmdBrowser.Process != nil {
@@ -644,8 +647,28 @@ func handleOpenSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	arg.HostFileKEY = HostFileKEY
+	if status := terminal.Status(); !status.Ready {
+		http.Error(w, status.Message, http.StatusServiceUnavailable)
+		return
+	}
+	var hosts model.HostList
+	if err := host.LoadHostData(arg.HostsFile, HostFileKEY, &hosts); err != nil {
+		http.Error(w, "Cannot load hosts", http.StatusBadRequest)
+		return
+	}
+	if arg.CategoryIndex < 1 || arg.CategoryIndex > len(hosts.Categories) || arg.HostIndex < 1 || arg.HostIndex > len(hosts.Categories[arg.CategoryIndex-1].Hosts) {
+		http.Error(w, "Invalid host index", http.StatusBadRequest)
+		return
+	}
+	h := hosts.Categories[arg.CategoryIndex-1].Hosts[arg.HostIndex-1]
+	arg.RelayAddress, arg.RelayToken, err = inputBroker.Issue(fmt.Sprintf("%s — %s@%s:%d", h.Name, h.Username, h.Address, h.Port))
+	if err != nil {
+		http.Error(w, "Cannot start input relay", http.StatusServiceUnavailable)
+		return
+	}
 
 	if err := terminal.OpenSession(arg); err != nil {
+		inputBroker.Revoke(arg.RelayToken)
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
@@ -754,6 +777,8 @@ func RunServer(misc InitData) {
 	mux.HandleFunc("PATCH /hosts", handleReorderHosts)
 	mux.HandleFunc("DELETE /hosts", handleDeleteHost)
 	mux.HandleFunc("POST /session/open", handleOpenSession)
+	mux.HandleFunc("GET /session/broadcast", inputBroker.Handler)
+	mux.HandleFunc("POST /session/broadcast", inputBroker.Handler)
 	mux.HandleFunc("GET /terminal/status", handleTerminalStatus)
 	mux.HandleFunc("GET /version", handleGetVersion)
 	mux.HandleFunc("POST /repository/open", handleOpenRepository)

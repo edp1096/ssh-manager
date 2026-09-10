@@ -11,6 +11,15 @@ type SshClientArgument struct {
 	NewWindow     bool
 	HostFileKEY   []byte
 	SplitVertical bool
+	RelayAddress  string `json:"-"`
+	RelayToken    string `json:"-"`
+}
+
+func relayArguments(arg SshClientArgument) []string {
+	if arg.RelayAddress == "" {
+		return nil
+	}
+	return []string{"-relay-address", arg.RelayAddress, "-relay-token", arg.RelayToken}
 }
 
 var (

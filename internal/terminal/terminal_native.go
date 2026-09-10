@@ -185,6 +185,7 @@ func openTerminal(arg SshClientArgument) (int, error) {
 		return -1, err
 	}
 	argv := []string{client, "-f", hostFile, "-k", base64.URLEncoding.EncodeToString(arg.HostFileKEY), "-ci", strconv.Itoa(arg.CategoryIndex), "-hi", strconv.Itoa(arg.HostIndex)}
+	argv = append(argv, relayArguments(arg)...)
 
 	// Remove ended windows and select the most recently used live app window.
 	var live []*nativeWindow

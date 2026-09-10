@@ -81,6 +81,7 @@ func openTerminal(arg SshClientArgument) (pid int, err error) {
 	hostFileKEYB64 := base64.URLEncoding.EncodeToString(HostFileKEY)
 
 	sshParams := []string{sshclientPath, "-f", hostsDataFile, "-k", hostFileKEYB64, "-ci", strconv.Itoa(categoryIndex), "-hi", strconv.Itoa(hostIndex)}
+	sshParams = append(sshParams, relayArguments(arg)...)
 	shParams = append(shParams, sshParams...)
 
 	CmdTerminal = exec.Command(ShellRuntimePath, shParams...)

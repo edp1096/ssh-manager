@@ -32,14 +32,15 @@ func setResizeControl(sess *ssh.Session, tty *gotty.TTY, pw io.WriteCloser, w, h
 	}()
 }
 
-func setEventControl(pw io.WriteCloser, tty *gotty.TTY) {
+func setEventControl(pw io.Writer, tty *gotty.TTY, onEnd func()) {
 	go func() {
+		defer onEnd()
 		var b []byte
 		for {
 			r, err := tty.ReadRune()
 			if err != nil {
 				fmt.Println("tty.ReadRune:", err)
-				continue
+				return
 			}
 
 			if r == rune(0) {
@@ -56,7 +57,9 @@ func setEventControl(pw io.WriteCloser, tty *gotty.TTY) {
 					b = []byte("\x1b[4~")
 				}
 
-				pw.Write(b)
+				if _, err := pw.Write(b); err != nil {
+					return
+				}
 
 				b = nil
 				continue
