@@ -26,3 +26,12 @@ The toolbar's sun/moon button switches between dark and light themes. The select
 ```sh
 make
 ```
+
+## Troubleshooting
+
+If escape codes like `11;rgb:...` appear at the prompt when starting Byobu or logging in with `byobu-enable`, run this once inside Byobu on the remote host:
+
+```sh
+tmux set -s escape-time 500
+printf '\nset -s escape-time 500\n' >> "${BYOBU_CONFIG_DIR:-$HOME/.byobu}/.tmux.conf"
+```
